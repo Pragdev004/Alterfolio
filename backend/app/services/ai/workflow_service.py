@@ -1,5 +1,8 @@
+from app.schemas.analysis import PortfolioAnalysisInput
 from app.schemas.portfolio import PortfolioSummary
+from app.schemas.stock import StockQuote
 from app.services.ai.ai_service import AIService
+from app.services.market_service import MarketService
 from app.services.portfolio_service import PortfolioService
 from app.schemas.ai import PortfolioAnalysisResponse
 
@@ -12,12 +15,26 @@ class AIWorkflowService:
     def __init__(
         self,
         portfolio_service: PortfolioService,
+        market_service: MarketService,
         ai_service: AIService,
     ) -> None:
         self._portfolio_service = portfolio_service
+        self._market_service = market_service
         self._ai_service = ai_service
 
     def analyze_portfolio(self) -> PortfolioAnalysisResponse:
         summary: PortfolioSummary = self._portfolio_service.get_summary()
 
-        return self._ai_service.analyze_portfolio(summary)
+        quotes: list[StockQuote] = []
+
+        for holding in summary.holdings:
+            quotes.append(
+                self._market_service.get_stock_quote(holding.symbol)
+            )
+
+        analysis_input = PortfolioAnalysisInput(
+            portfolio=summary,
+            quotes=quotes,
+        )
+
+        return self._ai_service.analyze_portfolio(analysis_input)

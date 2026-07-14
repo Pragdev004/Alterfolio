@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.core.config import get_settings
+from app.schemas.analysis import PortfolioAnalysisInput
+from app.schemas.ai import PortfolioAnalysis, PortfolioAnalysisResponse
 from app.services.ai.client import get_ai_client
 from app.services.ai.prompts import SYSTEM_PROMPT, build_portfolio_analysis_prompt
-from app.schemas.ai import PortfolioAnalysis, PortfolioAnalysisResponse
-from app.schemas.portfolio import PortfolioSummary
 
 
 class AIService:
@@ -20,9 +20,9 @@ class AIService:
 
     def analyze_portfolio(
             self, 
-            portfolio_summary: PortfolioSummary
+            analysis_input: PortfolioAnalysisInput
             ) -> PortfolioAnalysisResponse:
-        prompt = build_portfolio_analysis_prompt(portfolio_summary)
+        prompt = build_portfolio_analysis_prompt(analysis_input)
 
         response = self._client.responses.parse(
             model=self._settings.azure_openai_deployment,

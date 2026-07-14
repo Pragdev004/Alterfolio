@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.schemas.portfolio import PortfolioSummary
+from app.schemas.analysis import PortfolioAnalysisInput
 
 
 SYSTEM_PROMPT = """
@@ -18,14 +18,14 @@ Rules:
 
 
 def build_portfolio_analysis_prompt(
-    portfolio: PortfolioSummary,
+    analysis_input: PortfolioAnalysisInput,
 ) -> str:
     return f"""
 Analyze the following investment portfolio.
 
 Portfolio:
 
-{portfolio.model_dump_json(indent=2)}
+{analysis_input.model_dump_json(indent=2)}
 
 Return:
 
