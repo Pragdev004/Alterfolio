@@ -6,6 +6,7 @@ from app.repositories.portfolio_repository import PortfolioRepository
 from app.services.ai.ai_service import AIService
 from app.services.ai.workflow_service import AIWorkflowService
 from app.services.market_service import MarketService
+from app.services.news_service import NewsService
 from app.schemas.portfolio import PortfolioSummary
 from app.services.portfolio_service import PortfolioService
 
@@ -36,12 +37,14 @@ def get_ai_workflow_service(
 
     portfolio_service = PortfolioService(repository)
     market_service = MarketService()
+    news_service = NewsService()
 
     ai_service = AIService()
 
     return AIWorkflowService(
         portfolio_service=portfolio_service,
         market_service=market_service,
+        news_service=news_service,
         ai_service=ai_service,
     )
 
