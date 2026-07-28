@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -22,3 +23,8 @@ class PortfolioAnalysisResponse(BaseModel):
     generated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ErrorResponse(BaseModel):
+    code: str
+    message: str

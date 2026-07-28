@@ -1,45 +1,62 @@
+from app.schemas.ai import PortfolioAnalysisResponse
 from app.schemas.analysis import PortfolioAnalysisInput
 from app.schemas.news import CompanyNews
 from app.schemas.portfolio import PortfolioSummary
 from app.schemas.stock import StockQuote
 from app.services.ai.ai_service import AIService
-from app.services.market_service import MarketService
-from app.services.news_service import NewsService
-from app.services.portfolio_service import PortfolioService
-from app.schemas.ai import PortfolioAnalysisResponse
+from app.services.ai.tool_registry import ToolRegistry
+
+
+class PortfolioRetrievalError(Exception):
+    pass
+
+
+class MarketDataRetrievalError(Exception):
+    pass
+
+
+class AIProviderError(Exception):
+    pass
 
 
 class AIWorkflowService:
-    """
-    Orchestrates AI-powered workflows.
-    """
+    """Orchestrates AI-powered workflows."""
 
     def __init__(
         self,
-        portfolio_service: PortfolioService,
-        market_service: MarketService,
-        news_service: NewsService,
+        tool_registry: ToolRegistry,
         ai_service: AIService,
     ) -> None:
-        self._portfolio_service = portfolio_service
-        self._market_service = market_service
-        self._news_service = news_service
+        self._tools = tool_registry
         self._ai_service = ai_service
 
     def analyze_portfolio(self) -> PortfolioAnalysisResponse:
-        summary: PortfolioSummary = self._portfolio_service.get_summary()
+        try:
+            summary: PortfolioSummary = (
+                self._tools.portfolio.get_portfolio_summary()
+            )
+        except Exception as exc:
+            raise PortfolioRetrievalError(
+                "Failed to retrieve portfolio summary"
+            ) from exc
 
         quotes: list[StockQuote] = []
         news: list[CompanyNews] = []
 
         for holding in summary.holdings:
-            quotes.append(
-                self._market_service.get_stock_quote(holding.symbol)
-            )
+            try:
+                quotes.append(
+                    self._tools.market.get_stock_quote(holding.symbol)
+                )
+            except Exception:
+                pass
 
-            news.append(
-                self._news_service.get_company_news(holding.symbol)
-            )
+            try:
+                news.append(
+                    self._tools.news.get_company_news(holding.symbol)
+                )
+            except Exception:
+                pass
 
         analysis_input = PortfolioAnalysisInput(
             portfolio=summary,
@@ -47,4 +64,9 @@ class AIWorkflowService:
             news=news,
         )
 
-        return self._ai_service.analyze_portfolio(analysis_input)
+        try:
+            return self._ai_service.analyze_portfolio(analysis_input)
+        except Exception as exc:
+            raise AIProviderError(
+                "Failed to generate portfolio analysis"
+            ) from exc

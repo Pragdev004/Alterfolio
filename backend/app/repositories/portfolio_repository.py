@@ -15,20 +15,21 @@ class PortfolioRepository:
     def get_summary(self) -> PortfolioSummary:
         total_trades = self.db.query(Trade).count()
 
+        quantity_sum = func.sum(Trade.quantity)
+        invested_sum = func.sum(Trade.quantity * Trade.price_per_unit)
+
         holdings_query = (
             self.db.query(
                 Trade.asset_symbol.label("symbol"),
-                func.sum(Trade.quantity).label("quantity"),
-                (
-                    func.sum(Trade.quantity * Trade.price_per_unit)
-                    / func.sum(Trade.quantity)
-                ).label("average_buy_price"),
-                func.sum(
-                    Trade.quantity * Trade.price_per_unit
-                ).label("invested_amount"),
+                quantity_sum.label("quantity"),
+                (invested_sum / func.nullif(quantity_sum, 0)).label(
+                    "average_buy_price"
+                ),
+                invested_sum.label("invested_amount"),
             )
             .filter(Trade.transaction_type == TransactionType.BUY)
             .group_by(Trade.asset_symbol)
+            .having(quantity_sum != 0)
             .all()
         )
 
