@@ -33,10 +33,7 @@ const transactionTypes: TransactionType[] = ["BUY", "SELL"];
 
 const tradeSources: TradeSource[] = ["MANUAL", "IMPORT", "BROKER_SYNC", "AI"];
 
-const DEV_USER_ID = "11111111-1111-4111-8111-111111111111";
-
 const initialFormState: TradeCreateRequest = {
-  user_id: DEV_USER_ID,
   asset_symbol: "",
   asset_name: "",
   asset_type: "STOCK",
@@ -129,7 +126,6 @@ export function TradesPage() {
     try {
       await createTrade({
         ...formData,
-        user_id: DEV_USER_ID,
         asset_symbol: formData.asset_symbol.trim().toUpperCase(),
         asset_name: formData.asset_name.trim(),
       });

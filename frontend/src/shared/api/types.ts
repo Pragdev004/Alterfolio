@@ -52,7 +52,6 @@ export type TradeSource = "MANUAL" | "IMPORT" | "BROKER_SYNC" | "AI";
 export type MarketSession = "PRE_MARKET" | "REGULAR" | "POST_MARKET";
 
 export type TradeCreateRequest = {
-  user_id: string;
   asset_symbol: string;
   asset_name: string;
   asset_type: AssetType;
@@ -67,6 +66,7 @@ export type TradeCreateRequest = {
 
 export type TradeResponse = TradeCreateRequest & {
   id: string;
+  user_id: string;
   created_at: string;
   updated_at: string;
 };

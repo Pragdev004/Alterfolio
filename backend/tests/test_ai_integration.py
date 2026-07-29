@@ -28,8 +28,12 @@ from app.services.ai.tool_registry import ToolRegistry
 from app.services.ai.workflow_service import AIWorkflowService
 
 
+TEST_USER_ID = uuid4()
+
+
 class StubPortfolioService:
-    def get_summary(self) -> PortfolioSummary:
+    def get_summary(self, user_id) -> PortfolioSummary:
+        assert user_id == TEST_USER_ID
         return PortfolioSummary(
             total_trades=2,
             total_invested=Decimal("3500"),
@@ -182,6 +186,7 @@ def _build_workflow_with_services(
         portfolio_service=StubPortfolioService(),
         market_service=market_service,
         news_service=news_service,
+        user_id=TEST_USER_ID,
     )
 
     return AIWorkflowService(
@@ -202,6 +207,7 @@ def test_ai_workflow_service_builds_context_and_calls_ai_service() -> None:
         portfolio_service=portfolio_service,
         market_service=market_service,
         news_service=news_service,
+        user_id=TEST_USER_ID,
     )
 
     workflow = AIWorkflowService(

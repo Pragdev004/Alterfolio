@@ -1,0 +1,244 @@
+.astra-layout {
+  margin-top: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.astra-conversation-card,
+.astra-context-card {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-card);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.astra-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.astra-section-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.astra-conversation-viewport {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-overlay);
+  padding: var(--space-3);
+  min-height: 360px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.astra-empty-state {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.astra-empty-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: 2px solid var(--color-primary);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.astra-empty-icon::before,
+.astra-empty-icon::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.astra-empty-icon::before {
+  width: 16px;
+  height: 2px;
+}
+
+.astra-empty-icon::after {
+  width: 2px;
+  height: 16px;
+}
+
+.astra-empty-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.astra-empty-description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  max-width: 36ch;
+}
+
+.astra-message-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.astra-message {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.astra-message--assistant,
+.astra-message--system {
+  justify-items: start;
+}
+
+.astra-message--user {
+  justify-items: end;
+}
+
+.astra-message-bubble {
+  max-width: 90%;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  line-height: 1.45;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-card);
+}
+
+.astra-message--user .astra-message-bubble {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface-card);
+}
+
+.astra-message--system .astra-message-bubble {
+  border-style: dashed;
+}
+
+.astra-message-time {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.astra-input-row {
+  margin-top: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.astra-input {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.75rem;
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.astra-send-button {
+  grid-column: auto;
+}
+
+.astra-suggestions {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.astra-suggestion-button {
+  font-size: 0.82rem;
+}
+
+.astra-context-list {
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.astra-context-item {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface-overlay);
+}
+
+.astra-context-item dt {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.astra-context-item dd {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.astra-context-skeleton {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.astra-markdown-h2,
+.astra-markdown-h3,
+.astra-markdown-h4 {
+  margin: 0;
+  color: inherit;
+}
+
+.astra-markdown-h3,
+.astra-markdown-h4 {
+  margin-top: var(--space-2);
+}
+
+.astra-markdown-paragraph {
+  margin: 0;
+}
+
+.astra-markdown-list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.astra-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media (max-width: 1100px) {
+  .astra-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .astra-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .astra-send-button {
+    width: 100%;
+  }
+
+  .astra-message-bubble {
+    max-width: 100%;
+  }
+}

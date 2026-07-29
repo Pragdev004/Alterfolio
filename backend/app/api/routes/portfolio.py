@@ -1,22 +1,24 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import get_authenticated_user_id
 from app.db.database import get_db
 from app.repositories.portfolio_repository import PortfolioRepository
+from app.schemas.ai import ErrorResponse, PortfolioAnalysisResponse
+from app.schemas.portfolio import PortfolioSummary
 from app.services.ai.ai_service import AIService
+from app.services.ai.tool_registry import ToolRegistry
 from app.services.ai.workflow_service import (
     AIProviderError,
     AIWorkflowService,
     MarketDataRetrievalError,
     PortfolioRetrievalError,
 )
-
-from app.services.ai.tool_registry import ToolRegistry
 from app.services.market_service import MarketService
 from app.services.news_service import NewsService
-from app.schemas.ai import ErrorResponse, PortfolioAnalysisResponse
-from app.schemas.portfolio import PortfolioSummary
 from app.services.portfolio_service import PortfolioService
 
 router = APIRouter()
@@ -36,33 +38,33 @@ def get_portfolio_service(
 )
 def get_portfolio_summary(
     service: PortfolioService = Depends(get_portfolio_service),
+    user_id: UUID = Depends(get_authenticated_user_id),
 ):
-    return service.get_summary()
+    return service.get_summary(user_id)
 
 
 def get_ai_workflow_service(
     db: Session = Depends(get_db),
+    user_id: UUID = Depends(get_authenticated_user_id),
 ) -> AIWorkflowService:
     repository = PortfolioRepository(db)
 
     portfolio_service = PortfolioService(repository)
     market_service = MarketService()
     news_service = NewsService()
-
     ai_service = AIService()
 
     tool_registry = ToolRegistry(
         portfolio_service=portfolio_service,
         market_service=market_service,
         news_service=news_service,
+        user_id=user_id,
     )
-
 
     return AIWorkflowService(
         tool_registry=tool_registry,
         ai_service=ai_service,
     )
-
 
 
 @router.get(

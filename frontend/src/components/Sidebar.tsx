@@ -4,7 +4,8 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/trades", label: "Trades" },
   { to: "/portfolio", label: "Portfolio" },
-  { to: "/ai-analysis", label: "AI Analysis" },
+  { to: "/ai-analysis", label: "Astra" },
+  { to: "/market-intelligence", label: "Market Intelligence" },
 ];
 
 type SidebarProps = {

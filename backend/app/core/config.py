@@ -1,8 +1,11 @@
 from functools import lru_cache
 from urllib.parse import quote_plus
+from uuid import UUID
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEFAULT_DEV_USER_ID = UUID("11111111-1111-4111-8111-111111111111")
 
 
 class Settings(BaseSettings):
@@ -17,6 +20,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False)
     environment: str = Field(default="development")
     log_level: str = Field(default="INFO")
+    default_dev_user_id: UUID = Field(default=DEFAULT_DEV_USER_ID)
 
     postgres_host: str
     postgres_port: int = 5432
@@ -24,11 +28,12 @@ class Settings(BaseSettings):
     postgres_user: str
     postgres_password: str
 
-        # Azure AI Foundry
+    # Azure AI Foundry
     azure_openai_endpoint: str
     azure_openai_api_key: str
     azure_openai_deployment: str
     azure_openai_api_version: str = "v1"
+
 
     @computed_field
     @property

@@ -45,7 +45,8 @@ class TradeBase(BaseModel):
 
 
 class TradeCreate(TradeBase):
-    user_id: UUID
+    user_id: UUID | None = None
+
 
 
 class TradeUpdate(BaseModel):
