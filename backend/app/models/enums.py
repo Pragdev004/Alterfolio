@@ -56,3 +56,23 @@ class Exchange(str, Enum):
     BSE = "BSE"
     NFO = "NFO"
     MCX = "MCX"
+
+
+class RecommendationStatus(str, Enum):
+    GENERATED = "GENERATED"
+    DISPLAYED = "DISPLAYED"
+    ACCEPTED = "ACCEPTED"
+    IGNORED = "IGNORED"
+    EXPIRED = "EXPIRED"
+    EXECUTED = "EXECUTED"
+    EVALUATED = "EVALUATED"
+    ARCHIVED = "ARCHIVED"
+
+
+class RecommendationType(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    HOLD = "HOLD"
+    REBALANCE = "REBALANCE"
+    REDUCE = "REDUCE"
+    INCREASE = "INCREASE"

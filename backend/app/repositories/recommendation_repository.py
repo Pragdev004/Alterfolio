@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.models.enums import RecommendationStatus, RecommendationType
+from app.models.recommendation import Recommendation
+
+
+class RecommendationRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(
+        self,
+        *,
+        user_id: UUID,
+        recommendation_type: RecommendationType,
+        asset_symbol: str,
+        suggested_allocation: Decimal,
+        expected_holding_period_days: int,
+        confidence_score: Decimal,
+        risk_score: Decimal,
+        reasoning_text: str,
+        reasoning_json: dict,
+        market_snapshot: dict,
+        portfolio_snapshot_id: UUID | None = None,
+        expires_at: datetime | None = None,
+        status: RecommendationStatus = RecommendationStatus.GENERATED,
+    ) -> Recommendation:
+        recommendation = Recommendation(
+            user_id=user_id,
+            recommendation_type=recommendation_type,
+            asset_symbol=asset_symbol,
+            suggested_allocation=suggested_allocation,
+            expected_holding_period_days=expected_holding_period_days,
+            confidence_score=confidence_score,
+            risk_score=risk_score,
+            reasoning_text=reasoning_text,
+            reasoning_json=reasoning_json,
+            market_snapshot=market_snapshot,
+            portfolio_snapshot_id=portfolio_snapshot_id,
+            expires_at=expires_at,
+            status=status,
+        )
+
+        self.db.add(recommendation)
+        self.db.flush()
+        self.db.refresh(recommendation)
+
+        return recommendation
+
+    def get_by_id(self, user_id: UUID, recommendation_id: UUID) -> Recommendation | None:
+        return (
+            self.db.query(Recommendation)
+            .filter(
+                Recommendation.user_id == user_id,
+                Recommendation.id == recommendation_id,
+            )
+            .first()
+        )
+
+    def list_for_user(
+        self,
+        user_id: UUID,
+        *,
+        status: RecommendationStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[Recommendation]:
+        query = self.db.query(Recommendation).filter(Recommendation.user_id == user_id)
+
+        if status is not None:
+            query = query.filter(Recommendation.status == status)
+
+        query = query.order_by(Recommendation.created_at.desc())
+
+        if offset:
+            query = query.offset(offset)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    def update_lifecycle(
+        self,
+        *,
+        user_id: UUID,
+        recommendation_id: UUID,
+        status: RecommendationStatus | None = None,
+        expires_at: datetime | None = None,
+        evaluated_at: datetime | None = None,
+    ) -> Recommendation | None:
+        recommendation = self.get_by_id(user_id, recommendation_id)
+
+        if recommendation is None:
+            return None
+
+        if status is not None:
+            recommendation.status = status
+
+        if expires_at is not None:
+            recommendation.expires_at = expires_at
+
+        if evaluated_at is not None:
+            recommendation.evaluated_at = evaluated_at
+
+        self.db.flush()
+        self.db.refresh(recommendation)
+
+        return recommendation
