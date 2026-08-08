@@ -1,5 +1,6 @@
 """Repository layer package."""
 
+from app.repositories.baseline_decision_repository import BaselineDecisionRepository
 from app.repositories.market_snapshot_repository import MarketSnapshotRepository
 from app.repositories.position_repository import PositionRepository
 from app.repositories.recommendation_repository import RecommendationRepository
@@ -10,4 +11,5 @@ __all__ = [
     "RecommendationRepository",
     "MarketSnapshotRepository",
     "UserDecisionRepository",
+    "BaselineDecisionRepository",
 ]

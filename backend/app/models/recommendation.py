@@ -107,6 +107,12 @@ class Recommendation(Base):
         uselist=False,
     )
 
+    baseline_decision = relationship(
+        "BaselineDecision",
+        uselist=False,
+        back_populates="recommendation",
+    )
+
     portfolio_snapshot_id: Mapped[UUID | None] = mapped_column(
         PostgreSQLUUID(as_uuid=True),
         nullable=True,

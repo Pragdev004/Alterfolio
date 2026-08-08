@@ -82,3 +82,7 @@ class UserDecisionType(str, Enum):
     ACCEPTED = "ACCEPTED"
     IGNORED = "IGNORED"
     MODIFIED = "MODIFIED"
+
+
+class BaselineAction(str, Enum):
+    MAINTAIN = "MAINTAIN"
