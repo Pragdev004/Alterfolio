@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_authenticated_user_id
 from app.db.database import get_db
+from app.repositories.position_repository import PositionRepository
 from app.repositories.trade_repository import TradeRepository
+
 from app.schemas.trade import TradeCreate, TradeResponse
 from app.services.trade_service import TradeService
 
@@ -14,8 +16,14 @@ router = APIRouter()
 
 
 def get_trade_service(db: Session = Depends(get_db)) -> TradeService:
-    repository = TradeRepository(db)
-    return TradeService(repository)
+    trade_repository = TradeRepository(db)
+    position_repository = PositionRepository(db)
+    return TradeService(
+        db=db,
+        trade_repository=trade_repository,
+        position_repository=position_repository,
+    )
+
 
 
 @router.post("/", response_model=TradeResponse, status_code=201)

@@ -78,7 +78,7 @@ class PositionRepository:
             position.cumulative_realized_profit_loss = cumulative_realized_profit_loss
             position.last_accounted_trade_timestamp = last_accounted_trade_timestamp
 
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(position)
 
         return position

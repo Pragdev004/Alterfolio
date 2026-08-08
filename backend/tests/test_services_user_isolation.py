@@ -11,6 +11,7 @@ from app.models.enums import (
     Exchange,
     MarketSession,
     TradeSource,
+    TradeStatus,
     TransactionType,
 )
 from app.schemas.trade import TradeCreate
@@ -38,27 +39,40 @@ def _build_trade_payload() -> TradeCreate:
     )
 
 
+def _build_trade_service() -> tuple[TradeService, Mock, Mock, Mock]:
+    db = Mock()
+    trade_repository = Mock()
+    position_repository = Mock()
+
+    service = TradeService(
+        db=db,
+        trade_repository=trade_repository,
+        position_repository=position_repository,
+    )
+    return service, db, trade_repository, position_repository
+
+
 def test_trade_service_create_uses_authenticated_user_identity() -> None:
-    repository = Mock()
-    repository.create.return_value = SimpleNamespace()
-    service = TradeService(repository)
+    service, db, trade_repository, position_repository = _build_trade_service()
+    trade_repository.create.return_value = SimpleNamespace(status=TradeStatus.PENDING)
 
     trade = _build_trade_payload()
     service.create_trade(trade, AUTH_USER)
 
-    repository.create.assert_called_once_with(trade, AUTH_USER)
+    trade_repository.create.assert_called_once_with(trade, AUTH_USER)
+    position_repository.lock_position.assert_not_called()
+    db.commit.assert_called_once()
 
 
 def test_trade_service_scopes_get_and_list_queries() -> None:
-    repository = Mock()
-    service = TradeService(repository)
+    service, _, trade_repository, _ = _build_trade_service()
 
     trade_id = UUID("33333333-3333-4333-8333-333333333333")
     service.get_trade(trade_id, AUTH_USER)
     service.list_trades(AUTH_USER)
 
-    repository.get_by_id.assert_called_once_with(trade_id, AUTH_USER)
-    repository.list_all.assert_called_once_with(AUTH_USER)
+    trade_repository.get_by_id.assert_called_once_with(trade_id, AUTH_USER)
+    trade_repository.list_all.assert_called_once_with(AUTH_USER)
 
 
 def test_portfolio_service_scopes_summary_query() -> None:

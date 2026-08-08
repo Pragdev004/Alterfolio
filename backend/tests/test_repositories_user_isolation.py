@@ -48,7 +48,7 @@ def test_trade_repository_create_ignores_payload_user_id() -> None:
     assert isinstance(created, Trade)
     assert created.user_id == USER_A
     db.add.assert_called_once()
-    db.commit.assert_called_once()
+    db.flush.assert_called_once()
     db.refresh.assert_called_once_with(created)
 
 

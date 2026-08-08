@@ -50,7 +50,7 @@ def test_upsert_position_creates_new_position() -> None:
     assert created.last_accounted_trade_timestamp == timestamp
 
     db.add.assert_called_once_with(created)
-    db.commit.assert_called_once()
+    db.flush.assert_called_once()
     db.refresh.assert_called_once_with(created)
 
 
@@ -99,7 +99,7 @@ def test_upsert_position_updates_existing_position() -> None:
     assert updated.last_accounted_trade_timestamp == updated_timestamp
 
     db.add.assert_not_called()
-    db.commit.assert_called_once()
+    db.flush.assert_called_once()
     db.refresh.assert_called_once_with(existing)
 
 

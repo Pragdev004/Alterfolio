@@ -15,7 +15,7 @@ class TradeRepository:
         db_trade = Trade(**trade_data, user_id=user_id)
 
         self.db.add(db_trade)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_trade)
 
         return db_trade
