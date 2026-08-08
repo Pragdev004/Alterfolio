@@ -4,9 +4,9 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum as SQLEnum, Index, Integer, JSON, Numeric, String, Text, func
+from sqlalchemy import DateTime, Enum as SQLEnum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.enums import RecommendationStatus, RecommendationType
@@ -92,6 +92,19 @@ class Recommendation(Base):
     market_snapshot: Mapped[dict] = mapped_column(
         JSON,
         nullable=False,
+    )
+
+    market_snapshot_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("market_snapshots.id"),
+        nullable=True,
+        index=True,
+    )
+
+    context_market_snapshot = relationship(
+        "MarketSnapshot",
+        foreign_keys=[market_snapshot_id],
+        uselist=False,
     )
 
     portfolio_snapshot_id: Mapped[UUID | None] = mapped_column(

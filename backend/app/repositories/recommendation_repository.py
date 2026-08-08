@@ -4,10 +4,15 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.enums import RecommendationStatus, RecommendationType
+from app.models.market_snapshot import MarketSnapshot
 from app.models.recommendation import Recommendation
+
+
+class RecommendationMarketSnapshotMismatchError(ValueError):
+    """Raised when a recommendation references a missing or cross-user market snapshot."""
 
 
 class RecommendationRepository:
@@ -27,10 +32,25 @@ class RecommendationRepository:
         reasoning_text: str,
         reasoning_json: dict,
         market_snapshot: dict,
+        market_snapshot_id: UUID | None = None,
         portfolio_snapshot_id: UUID | None = None,
         expires_at: datetime | None = None,
         status: RecommendationStatus = RecommendationStatus.GENERATED,
     ) -> Recommendation:
+        if market_snapshot_id is not None:
+            snapshot = (
+                self.db.query(MarketSnapshot)
+                .filter(
+                    MarketSnapshot.user_id == user_id,
+                    MarketSnapshot.id == market_snapshot_id,
+                )
+                .first()
+            )
+            if snapshot is None:
+                raise RecommendationMarketSnapshotMismatchError(
+                    "market_snapshot_id does not exist for the user"
+                )
+
         recommendation = Recommendation(
             user_id=user_id,
             recommendation_type=recommendation_type,
@@ -42,6 +62,7 @@ class RecommendationRepository:
             reasoning_text=reasoning_text,
             reasoning_json=reasoning_json,
             market_snapshot=market_snapshot,
+            market_snapshot_id=market_snapshot_id,
             portfolio_snapshot_id=portfolio_snapshot_id,
             expires_at=expires_at,
             status=status,
@@ -53,14 +74,23 @@ class RecommendationRepository:
 
         return recommendation
 
-    def get_by_id(self, user_id: UUID, recommendation_id: UUID) -> Recommendation | None:
+    def get_by_id(
+        self,
+        user_id: UUID,
+        recommendation_id: UUID,
+        *,
+        include_market_snapshot: bool = False,
+    ) -> Recommendation | None:
+        query = self.db.query(Recommendation)
+
+        if include_market_snapshot:
+            query = query.options(joinedload(Recommendation.context_market_snapshot))
+
         return (
-            self.db.query(Recommendation)
-            .filter(
+            query.filter(
                 Recommendation.user_id == user_id,
                 Recommendation.id == recommendation_id,
-            )
-            .first()
+            ).first()
         )
 
     def list_for_user(

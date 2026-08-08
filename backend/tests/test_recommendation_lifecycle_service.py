@@ -34,6 +34,7 @@ def _build_recommendation(status: RecommendationStatus) -> Recommendation:
         reasoning_text="Momentum and earnings quality.",
         reasoning_json={"signals": ["momentum"]},
         market_snapshot={"index_trend": "up"},
+        market_snapshot_id=None,
         portfolio_snapshot_id=None,
         expires_at=None,
         evaluated_at=None,
