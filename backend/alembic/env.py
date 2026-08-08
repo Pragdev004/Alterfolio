@@ -7,6 +7,7 @@ from alembic import context
 
 from app.core.config import get_settings
 from app.models.base import Base
+from app.models.market_snapshot import MarketSnapshot
 from app.models.position import Position
 from app.models.recommendation import Recommendation
 from app.models.trade import Trade
