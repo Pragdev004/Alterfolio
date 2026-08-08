@@ -11,6 +11,7 @@ from app.models.enums import Currency, RecommendationStatus, RecommendationType
 from app.models.market_snapshot import MarketSnapshot
 from app.models.recommendation import Recommendation
 from app.repositories.recommendation_repository import (
+    InvalidSuggestedAllocationError,
     RecommendationMarketSnapshotMismatchError,
     RecommendationRepository,
 )
@@ -98,6 +99,147 @@ def test_create_recommendation() -> None:
     db.add.assert_called_once_with(created)
     db.flush.assert_called_once()
     db.refresh.assert_called_once_with(created)
+
+
+def test_suggested_allocation_zero_is_valid() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_type=RecommendationType.BUY,
+        asset_symbol="AAPL",
+        suggested_allocation=Decimal("0"),
+        expected_holding_period_days=30,
+        confidence_score=Decimal("0.85000000"),
+        risk_score=Decimal("0.30000000"),
+        reasoning_text="Momentum and earnings quality.",
+        reasoning_json={"signals": ["momentum", "earnings"]},
+        market_snapshot={"index_trend": "up"},
+    )
+
+    assert created.suggested_allocation == Decimal("0")
+
+
+def test_suggested_allocation_fraction_is_valid() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_type=RecommendationType.BUY,
+        asset_symbol="AAPL",
+        suggested_allocation=Decimal("0.10"),
+        expected_holding_period_days=30,
+        confidence_score=Decimal("0.85000000"),
+        risk_score=Decimal("0.30000000"),
+        reasoning_text="Momentum and earnings quality.",
+        reasoning_json={"signals": ["momentum", "earnings"]},
+        market_snapshot={"index_trend": "up"},
+    )
+
+    assert created.suggested_allocation == Decimal("0.10")
+
+
+def test_suggested_allocation_one_is_valid() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_type=RecommendationType.BUY,
+        asset_symbol="AAPL",
+        suggested_allocation=Decimal("1.0"),
+        expected_holding_period_days=30,
+        confidence_score=Decimal("0.85000000"),
+        risk_score=Decimal("0.30000000"),
+        reasoning_text="Momentum and earnings quality.",
+        reasoning_json={"signals": ["momentum", "earnings"]},
+        market_snapshot={"index_trend": "up"},
+    )
+
+    assert created.suggested_allocation == Decimal("1.0")
+
+
+def test_suggested_allocation_negative_is_rejected() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    with pytest.raises(InvalidSuggestedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_type=RecommendationType.BUY,
+            asset_symbol="AAPL",
+            suggested_allocation=Decimal("-0.00000001"),
+            expected_holding_period_days=30,
+            confidence_score=Decimal("0.85000000"),
+            risk_score=Decimal("0.30000000"),
+            reasoning_text="Momentum and earnings quality.",
+            reasoning_json={"signals": ["momentum", "earnings"]},
+            market_snapshot={"index_trend": "up"},
+        )
+
+
+def test_suggested_allocation_greater_than_one_is_rejected() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    with pytest.raises(InvalidSuggestedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_type=RecommendationType.BUY,
+            asset_symbol="AAPL",
+            suggested_allocation=Decimal("1.00000001"),
+            expected_holding_period_days=30,
+            confidence_score=Decimal("0.85000000"),
+            risk_score=Decimal("0.30000000"),
+            reasoning_text="Momentum and earnings quality.",
+            reasoning_json={"signals": ["momentum", "earnings"]},
+            market_snapshot={"index_trend": "up"},
+        )
+
+
+def test_suggested_allocation_preserves_decimal_precision_without_float_conversion() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    precise = Decimal("0.12345678")
+
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_type=RecommendationType.BUY,
+        asset_symbol="AAPL",
+        suggested_allocation=precise,
+        expected_holding_period_days=30,
+        confidence_score=Decimal("0.85000000"),
+        risk_score=Decimal("0.30000000"),
+        reasoning_text="Momentum and earnings quality.",
+        reasoning_json={"signals": ["momentum", "earnings"]},
+        market_snapshot={"index_trend": "up"},
+    )
+
+    assert isinstance(created.suggested_allocation, Decimal)
+    assert created.suggested_allocation == precise
+    assert created.suggested_allocation is precise
+
+
+def test_suggested_allocation_float_input_is_rejected() -> None:
+    db = Mock()
+    repository = RecommendationRepository(db)
+
+    with pytest.raises(InvalidSuggestedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_type=RecommendationType.BUY,
+            asset_symbol="AAPL",
+            suggested_allocation=0.1,
+            expected_holding_period_days=30,
+            confidence_score=Decimal("0.85000000"),
+            risk_score=Decimal("0.30000000"),
+            reasoning_text="Momentum and earnings quality.",
+            reasoning_json={"signals": ["momentum", "earnings"]},
+            market_snapshot={"index_trend": "up"},
+        )
 
 
 def test_create_recommendation_with_same_user_market_snapshot_succeeds() -> None:

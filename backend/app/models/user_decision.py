@@ -52,6 +52,9 @@ class UserDecision(Base):
         nullable=False,
     )
 
+    # When present, this follows the same unit as Recommendation.suggested_allocation:
+    # final target portfolio weight for the recommended asset,
+    # represented as a Decimal fraction of total portfolio value.
     modified_allocation: Mapped[Decimal | None] = mapped_column(
         Numeric(20, 8),
         nullable=True,

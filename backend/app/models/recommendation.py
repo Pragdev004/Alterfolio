@@ -59,6 +59,9 @@ class Recommendation(Base):
         nullable=False,
     )
 
+    # Final target portfolio weight for the recommended asset,
+    # represented as a Decimal fraction of total portfolio value.
+    # Examples: 0.05 = 5%, 0.10 = 10%, 1.00 = 100%.
     suggested_allocation: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,

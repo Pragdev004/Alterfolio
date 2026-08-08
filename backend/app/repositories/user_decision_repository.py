@@ -24,6 +24,10 @@ class DuplicateUserDecisionError(ValueError):
     """Raised when a decision already exists for a user recommendation pair."""
 
 
+class InvalidModifiedAllocationError(ValueError):
+    """Raised when modified_allocation is outside [0, 1] fraction bounds."""
+
+
 class UserDecisionRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -39,6 +43,8 @@ class UserDecisionRepository:
         modified_allocation: Decimal | None = None,
         decision_note: str | None = None,
     ) -> UserDecision:
+        self._validate_modified_allocation(modified_allocation)
+
         recommendation = (
             self.db.query(Recommendation)
             .filter(
@@ -96,6 +102,24 @@ class UserDecisionRepository:
         self.db.refresh(decision)
 
         return decision
+
+    @staticmethod
+    def _validate_modified_allocation(modified_allocation: Decimal | None) -> None:
+        # modified_allocation semantics (when present):
+        # final target portfolio weight for the recommended asset,
+        # represented as a Decimal fraction of total portfolio value.
+        if modified_allocation is None:
+            return
+
+        if not isinstance(modified_allocation, Decimal):
+            raise InvalidModifiedAllocationError(
+                "modified_allocation must be provided as Decimal"
+            )
+
+        if modified_allocation < Decimal("0") or modified_allocation > Decimal("1"):
+            raise InvalidModifiedAllocationError(
+                "modified_allocation must be a Decimal fraction between 0 and 1 inclusive"
+            )
 
     def get_by_id(self, user_id: UUID, decision_id: UUID) -> UserDecision | None:
         return (

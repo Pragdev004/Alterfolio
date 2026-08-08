@@ -23,6 +23,7 @@ from app.models.trade import Trade
 from app.models.user_decision import UserDecision
 from app.repositories.user_decision_repository import (
     DuplicateUserDecisionError,
+    InvalidModifiedAllocationError,
     UserDecisionRecommendationNotFoundError,
     UserDecisionRepository,
     UserDecisionTradeNotFoundError,
@@ -173,6 +174,155 @@ def test_create_modified_decision() -> None:
     assert created.decision_type == UserDecisionType.MODIFIED
     assert created.modified_allocation == Decimal("0.33333333")
     assert created.decision_note == "Reduced allocation due to concentration."
+
+
+def test_modified_allocation_zero_is_valid_for_modified_decision() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    duplicate_query = Mock()
+    duplicate_query.filter.return_value = duplicate_query
+    duplicate_query.first.return_value = None
+
+    db = Mock()
+    db.query.side_effect = [recommendation_query, duplicate_query]
+
+    repository = UserDecisionRepository(db)
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_id=RECOMMENDATION_ID,
+        decision_type=UserDecisionType.MODIFIED,
+        modified_allocation=Decimal("0"),
+    )
+
+    assert created.modified_allocation == Decimal("0")
+
+
+def test_modified_allocation_fraction_is_valid_for_modified_decision() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    duplicate_query = Mock()
+    duplicate_query.filter.return_value = duplicate_query
+    duplicate_query.first.return_value = None
+
+    db = Mock()
+    db.query.side_effect = [recommendation_query, duplicate_query]
+
+    repository = UserDecisionRepository(db)
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_id=RECOMMENDATION_ID,
+        decision_type=UserDecisionType.MODIFIED,
+        modified_allocation=Decimal("0.10"),
+    )
+
+    assert created.modified_allocation == Decimal("0.10")
+
+
+def test_modified_allocation_one_is_valid_for_modified_decision() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    duplicate_query = Mock()
+    duplicate_query.filter.return_value = duplicate_query
+    duplicate_query.first.return_value = None
+
+    db = Mock()
+    db.query.side_effect = [recommendation_query, duplicate_query]
+
+    repository = UserDecisionRepository(db)
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_id=RECOMMENDATION_ID,
+        decision_type=UserDecisionType.MODIFIED,
+        modified_allocation=Decimal("1.0"),
+    )
+
+    assert created.modified_allocation == Decimal("1.0")
+
+
+def test_modified_allocation_negative_is_rejected() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    db = Mock()
+    db.query.return_value = recommendation_query
+
+    repository = UserDecisionRepository(db)
+
+    with pytest.raises(InvalidModifiedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_id=RECOMMENDATION_ID,
+            decision_type=UserDecisionType.MODIFIED,
+            modified_allocation=Decimal("-0.00000001"),
+        )
+
+
+def test_modified_allocation_greater_than_one_is_rejected() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    db = Mock()
+    db.query.return_value = recommendation_query
+
+    repository = UserDecisionRepository(db)
+
+    with pytest.raises(InvalidModifiedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_id=RECOMMENDATION_ID,
+            decision_type=UserDecisionType.MODIFIED,
+            modified_allocation=Decimal("1.00000001"),
+        )
+
+
+def test_modified_allocation_uses_same_target_weight_fraction_semantics() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    duplicate_query = Mock()
+    duplicate_query.filter.return_value = duplicate_query
+    duplicate_query.first.return_value = None
+
+    db = Mock()
+    db.query.side_effect = [recommendation_query, duplicate_query]
+
+    repository = UserDecisionRepository(db)
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_id=RECOMMENDATION_ID,
+        decision_type=UserDecisionType.MODIFIED,
+        modified_allocation=Decimal("0.25"),
+    )
+
+    assert created.modified_allocation == Decimal("0.25")
+
+
+def test_modified_allocation_float_input_is_rejected() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    db = Mock()
+    db.query.return_value = recommendation_query
+
+    repository = UserDecisionRepository(db)
+
+    with pytest.raises(InvalidModifiedAllocationError):
+        repository.create(
+            user_id=USER_A,
+            recommendation_id=RECOMMENDATION_ID,
+            decision_type=UserDecisionType.MODIFIED,
+            modified_allocation=0.25,
+        )
 
 
 def test_create_decision_with_valid_trade_reference() -> None:
@@ -409,6 +559,33 @@ def test_modified_allocation_preserves_decimal_precision() -> None:
     )
 
     assert created.modified_allocation == precise_value
+
+
+def test_modified_allocation_preserves_decimal_precision_without_float_conversion() -> None:
+    recommendation_query = Mock()
+    recommendation_query.filter.return_value = recommendation_query
+    recommendation_query.first.return_value = _build_recommendation()
+
+    duplicate_query = Mock()
+    duplicate_query.filter.return_value = duplicate_query
+    duplicate_query.first.return_value = None
+
+    db = Mock()
+    db.query.side_effect = [recommendation_query, duplicate_query]
+
+    repository = UserDecisionRepository(db)
+    precise_value = Decimal("0.12345678")
+
+    created = repository.create(
+        user_id=USER_A,
+        recommendation_id=RECOMMENDATION_ID,
+        decision_type=UserDecisionType.MODIFIED,
+        modified_allocation=precise_value,
+    )
+
+    assert isinstance(created.modified_allocation, Decimal)
+    assert created.modified_allocation == precise_value
+    assert created.modified_allocation is precise_value
 
 
 def test_repository_has_no_update_method() -> None:

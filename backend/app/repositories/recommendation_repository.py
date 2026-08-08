@@ -15,6 +15,10 @@ class RecommendationMarketSnapshotMismatchError(ValueError):
     """Raised when a recommendation references a missing or cross-user market snapshot."""
 
 
+class InvalidSuggestedAllocationError(ValueError):
+    """Raised when suggested_allocation is outside [0, 1] fraction bounds."""
+
+
 class RecommendationRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -37,6 +41,8 @@ class RecommendationRepository:
         expires_at: datetime | None = None,
         status: RecommendationStatus = RecommendationStatus.GENERATED,
     ) -> Recommendation:
+        self._validate_suggested_allocation(suggested_allocation)
+
         if market_snapshot_id is not None:
             snapshot = (
                 self.db.query(MarketSnapshot)
@@ -73,6 +79,21 @@ class RecommendationRepository:
         self.db.refresh(recommendation)
 
         return recommendation
+
+    @staticmethod
+    def _validate_suggested_allocation(suggested_allocation: Decimal) -> None:
+        # suggested_allocation semantics:
+        # final target portfolio weight for the recommended asset,
+        # represented as a Decimal fraction of total portfolio value.
+        if not isinstance(suggested_allocation, Decimal):
+            raise InvalidSuggestedAllocationError(
+                "suggested_allocation must be provided as Decimal"
+            )
+
+        if suggested_allocation < Decimal("0") or suggested_allocation > Decimal("1"):
+            raise InvalidSuggestedAllocationError(
+                "suggested_allocation must be a Decimal fraction between 0 and 1 inclusive"
+            )
 
     def get_by_id(
         self,
