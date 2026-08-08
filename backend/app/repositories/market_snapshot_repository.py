@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import AssetType, Currency, Exchange
 from app.models.market_snapshot import MarketSnapshot
+
+
+class NaiveAsOfDatetimeError(ValueError):
+    """Raised when an as_of datetime is provided without timezone information."""
 
 
 class MarketSnapshotRepository:
@@ -93,3 +97,30 @@ class MarketSnapshotRepository:
             query = query.limit(limit)
 
         return query.all()
+
+    def get_latest_price_at_or_before(
+        self,
+        *,
+        user_id: UUID,
+        asset_symbol: str,
+        as_of: datetime,
+    ) -> MarketSnapshot | None:
+        as_of_utc = self._normalize_as_of_to_utc(as_of)
+
+        return (
+            self.db.query(MarketSnapshot)
+            .filter(
+                MarketSnapshot.user_id == user_id,
+                MarketSnapshot.asset_symbol == asset_symbol,
+                MarketSnapshot.price_timestamp <= as_of_utc,
+            )
+            .order_by(MarketSnapshot.price_timestamp.desc(), MarketSnapshot.id.desc())
+            .first()
+        )
+
+    @staticmethod
+    def _normalize_as_of_to_utc(as_of: datetime) -> datetime:
+        if as_of.tzinfo is None or as_of.tzinfo.utcoffset(as_of) is None:
+            raise NaiveAsOfDatetimeError("as_of must be timezone-aware")
+
+        return as_of.astimezone(timezone.utc)
