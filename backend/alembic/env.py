@@ -11,6 +11,7 @@ from app.models.market_snapshot import MarketSnapshot
 from app.models.position import Position
 from app.models.recommendation import Recommendation
 from app.models.trade import Trade
+from app.models.user_decision import UserDecision
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -76,3 +76,9 @@ class RecommendationType(str, Enum):
     REBALANCE = "REBALANCE"
     REDUCE = "REDUCE"
     INCREASE = "INCREASE"
+
+
+class UserDecisionType(str, Enum):
+    ACCEPTED = "ACCEPTED"
+    IGNORED = "IGNORED"
+    MODIFIED = "MODIFIED"
