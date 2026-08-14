@@ -8,6 +8,7 @@ from app.api.dependencies.auth import get_astra_authenticated_principal
 from app.core.config import Settings, get_settings
 from app.db.database import get_db
 from app.repositories.portfolio_repository import PortfolioRepository
+from app.repositories.position_repository import PositionRepository
 from app.services.ai.agent_orchestrator import IAgentOrchestrator
 from app.services.ai.astra_query_service import AstraQueryService
 from app.services.ai.tool_executor import ToolExecutor
@@ -24,8 +25,13 @@ def build_astra_tool_executor(
     principal: AuthenticatedPrincipal,
     settings: Settings,
 ) -> ToolExecutor:
-    repository = PortfolioRepository(db)
-    portfolio_service = PortfolioService(repository)
+    portfolio_repository = PortfolioRepository(db)
+    position_repository = PositionRepository(db)
+    portfolio_service = PortfolioService(
+        portfolio_repository=portfolio_repository,
+        position_repository=position_repository,
+        market_service=MarketService(),
+    )
     market_service = MarketService()
     news_service = NewsService()
 

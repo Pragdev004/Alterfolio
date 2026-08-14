@@ -76,9 +76,23 @@ def test_trade_service_scopes_get_and_list_queries() -> None:
 
 
 def test_portfolio_service_scopes_summary_query() -> None:
-    repository = Mock()
-    service = PortfolioService(repository)
+    portfolio_repository = Mock()
+    portfolio_repository.get_total_trades.return_value = 0
+
+    position_repository = Mock()
+    position_repository.list_active_positions.return_value = []
+    position_repository.list_all_positions.return_value = []
+
+    market_service = Mock()
+
+    service = PortfolioService(
+        portfolio_repository=portfolio_repository,
+        position_repository=position_repository,
+        market_service=market_service,
+    )
 
     service.get_summary(AUTH_USER)
 
-    repository.get_summary.assert_called_once_with(AUTH_USER)
+    portfolio_repository.get_total_trades.assert_called_once_with(AUTH_USER)
+    position_repository.list_active_positions.assert_called_once_with(user_id=AUTH_USER)
+    position_repository.list_all_positions.assert_called_once_with(user_id=AUTH_USER)

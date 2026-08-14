@@ -1,25 +1,37 @@
 import { type HoldingSummary } from "../../../shared/api/types";
 import { parseDecimal } from "../../../shared/lib/format";
+import {
+  buildCompositeInstrumentId,
+  buildDisplaySymbol,
+} from "../../../shared/lib/instrumentIdentity";
 
 export type HoldingMetric = {
+  instrumentId: string;
+  displayLabel: string;
   symbol: string;
+  exchange: string | null;
+  assetType: string | null;
+  currency: string | null;
   quantity: number;
   averageCost: number;
-  currentPrice: number;
+  currentPrice: number | null;
   investedAmount: number;
-  marketValue: number;
-  profitLoss: number;
-  profitLossPercent: number;
+  marketValue: number | null;
+  profitLoss: number | null;
+  profitLossPercent: number | null;
+  quoteStatus: "AVAILABLE" | "UNAVAILABLE";
 };
 
 export type AllocationDatum = {
-  symbol: string;
+  id: string;
+  label: string;
   value: number;
   weightPercent: number;
 };
 
 export type GainLossDatum = {
-  symbol: string;
+  id: string;
+  label: string;
   profitLoss: number;
 };
 
@@ -41,14 +53,26 @@ export function buildHoldingMetrics(holdings: HoldingSummary[]): HoldingMetric[]
     const averageCost = parseDecimal(holding.average_buy_price);
     const investedAmount = parseDecimal(holding.invested_amount);
 
-    const currentPrice = quantity > 0 ? investedAmount / quantity : averageCost;
-    const marketValue = currentPrice * quantity;
-    const profitLoss = marketValue - investedAmount;
+    const currentPrice =
+      holding.current_price == null ? null : parseDecimal(holding.current_price);
+    const marketValue =
+      holding.market_value == null ? null : parseDecimal(holding.market_value);
+    const profitLoss =
+      holding.unrealized_profit_loss == null
+        ? null
+        : parseDecimal(holding.unrealized_profit_loss);
     const profitLossPercent =
-      investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      profitLoss == null || investedAmount <= 0
+        ? null
+        : (profitLoss / investedAmount) * 100;
 
     return {
+      instrumentId: buildInstrumentId(holding),
+      displayLabel: buildHoldingLabel(holding.symbol, holding.exchange),
       symbol: holding.symbol,
+      exchange: holding.exchange,
+      assetType: holding.asset_type,
+      currency: holding.currency,
       quantity,
       averageCost,
       currentPrice,
@@ -56,13 +80,15 @@ export function buildHoldingMetrics(holdings: HoldingSummary[]): HoldingMetric[]
       marketValue,
       profitLoss,
       profitLossPercent,
+      quoteStatus: holding.quote_status,
     };
   });
 }
 
 export function buildAllocationData(holdings: HoldingMetric[]): AllocationDatum[] {
-  const totalMarketValue = holdings.reduce(
-    (total, holding) => total + holding.marketValue,
+  const valuedHoldings = holdings.filter((holding) => holding.marketValue != null);
+  const totalMarketValue = valuedHoldings.reduce(
+    (total, holding) => total + (holding.marketValue ?? 0),
     0
   );
 
@@ -70,20 +96,23 @@ export function buildAllocationData(holdings: HoldingMetric[]): AllocationDatum[
     return [];
   }
 
-  return holdings
+  return valuedHoldings
     .map((holding) => ({
-      symbol: holding.symbol,
-      value: holding.marketValue,
-      weightPercent: (holding.marketValue / totalMarketValue) * 100,
+      id: holding.instrumentId,
+      label: holding.displayLabel,
+      value: holding.marketValue ?? 0,
+      weightPercent: ((holding.marketValue ?? 0) / totalMarketValue) * 100,
     }))
     .sort((left, right) => right.value - left.value);
 }
 
 export function buildGainLossData(holdings: HoldingMetric[]): GainLossDatum[] {
   return holdings
+    .filter((holding) => holding.profitLoss != null)
     .map((holding) => ({
-      symbol: holding.symbol,
-      profitLoss: holding.profitLoss,
+      id: holding.instrumentId,
+      label: holding.displayLabel,
+      profitLoss: holding.profitLoss ?? 0,
     }))
     .sort((left, right) => right.profitLoss - left.profitLoss);
 }
@@ -91,7 +120,9 @@ export function buildGainLossData(holdings: HoldingMetric[]): GainLossDatum[] {
 export function buildPortfolioStatistics(
   holdings: HoldingMetric[]
 ): PortfolioStatistics {
-  if (holdings.length === 0) {
+  const valuedHoldings = holdings.filter((holding) => holding.marketValue != null);
+
+  if (valuedHoldings.length === 0) {
     return {
       largestPosition: null,
       smallestPosition: null,
@@ -100,16 +131,16 @@ export function buildPortfolioStatistics(
     };
   }
 
-  const sortedBySize = [...holdings].sort(
-    (left, right) => right.marketValue - left.marketValue
+  const sortedBySize = [...valuedHoldings].sort(
+    (left, right) => (right.marketValue ?? 0) - (left.marketValue ?? 0)
   );
 
   const totalMarketValue = sortedBySize.reduce(
-    (total, holding) => total + holding.marketValue,
+    (total, holding) => total + (holding.marketValue ?? 0),
     0
   );
 
-  const averagePositionSize = totalMarketValue / holdings.length;
+  const averagePositionSize = totalMarketValue / valuedHoldings.length;
 
   return {
     largestPosition: sortedBySize[0],
@@ -123,12 +154,14 @@ export function buildTopPerformers(
   holdings: HoldingMetric[],
   count = 3
 ): TopPerformers {
-  const sortedByGainLoss = [...holdings].sort((left, right) => {
-    if (right.profitLoss === left.profitLoss) {
-      return right.marketValue - left.marketValue;
+  const valuedByGainLoss = holdings.filter((holding) => holding.profitLoss != null);
+
+  const sortedByGainLoss = [...valuedByGainLoss].sort((left, right) => {
+    if ((right.profitLoss ?? 0) === (left.profitLoss ?? 0)) {
+      return (right.marketValue ?? 0) - (left.marketValue ?? 0);
     }
 
-    return right.profitLoss - left.profitLoss;
+    return (right.profitLoss ?? 0) - (left.profitLoss ?? 0);
   });
 
   const winners = sortedByGainLoss.slice(0, count);
@@ -137,13 +170,26 @@ export function buildTopPerformers(
   return { winners, losers };
 }
 
+function buildInstrumentId(holding: HoldingSummary): string {
+  return buildCompositeInstrumentId({
+    symbol: holding.symbol,
+    exchange: holding.exchange,
+    assetType: holding.asset_type,
+    currency: holding.currency,
+  });
+}
+
+function buildHoldingLabel(symbol: string, exchange: string | null): string {
+  return buildDisplaySymbol(symbol, exchange);
+}
+
 function calculateDiversificationScore(holdings: HoldingMetric[]): number {
   if (holdings.length <= 1) {
     return 0;
   }
 
   const totalMarketValue = holdings.reduce(
-    (total, holding) => total + holding.marketValue,
+    (total, holding) => total + (holding.marketValue ?? 0),
     0
   );
 
@@ -152,7 +198,7 @@ function calculateDiversificationScore(holdings: HoldingMetric[]): number {
   }
 
   const concentration = holdings.reduce((total, holding) => {
-    const weight = holding.marketValue / totalMarketValue;
+    const weight = (holding.marketValue ?? 0) / totalMarketValue;
     return total + weight * weight;
   }, 0);
 

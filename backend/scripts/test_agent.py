@@ -1,5 +1,7 @@
 from app.db.database import SessionLocal
 from app.repositories.portfolio_repository import PortfolioRepository
+from app.repositories.position_repository import PositionRepository
+
 from app.services.ai.ai_service import AIService
 from app.services.ai.tool_executor import ToolExecutor
 from app.services.ai.tool_registry import ToolRegistry
@@ -12,10 +14,17 @@ def main() -> None:
     db = SessionLocal()
 
     try:
-        repository = PortfolioRepository(db)
-
-        portfolio_service = PortfolioService(repository)
+        portfolio_repository = PortfolioRepository(db)
+        position_repository = PositionRepository(db)
         market_service = MarketService()
+
+        portfolio_service = PortfolioService(
+
+            portfolio_repository=portfolio_repository,
+            position_repository=position_repository,
+            market_service=market_service,
+        )
+
         news_service = NewsService()
 
         registry = ToolRegistry(

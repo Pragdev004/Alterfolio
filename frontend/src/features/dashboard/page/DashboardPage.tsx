@@ -127,6 +127,22 @@ function formatTooltipCurrency(value: unknown): string {
   return formatCurrency(0);
 }
 
+function formatMaybeCurrency(value: number | null): string {
+  if (value == null) {
+    return "Unavailable";
+  }
+
+  return formatCurrency(value);
+}
+
+function formatMaybeSignedCurrency(value: number | null): string {
+  if (value == null) {
+    return "Unavailable";
+  }
+
+  return formatSignedCurrency(value);
+}
+
 export function DashboardPage() {
   const { startLoading, stopLoading } = useLoading();
   const isMountedRef = useRef(true);
@@ -275,14 +291,29 @@ export function DashboardPage() {
   const dailyBrief = useMemo(() => buildDailyBrief(analysis), [analysis]);
 
   const totalInvested = parseDecimal(summary?.total_invested);
-  const currentPortfolioValue = totalInvested;
-  const unrealizedGainLoss = currentPortfolioValue - totalInvested;
+  const currentPortfolioValue =
+    summary?.total_market_value == null
+      ? null
+      : parseDecimal(summary.total_market_value);
+  const unrealizedGainLoss =
+    summary?.total_unrealized_profit_loss == null
+      ? null
+      : parseDecimal(summary.total_unrealized_profit_loss);
   const unrealizedTone: StatCardTone =
-    unrealizedGainLoss > 0
-      ? "positive"
-      : unrealizedGainLoss < 0
-        ? "negative"
-        : "default";
+    unrealizedGainLoss == null
+      ? "default"
+      : unrealizedGainLoss > 0
+        ? "positive"
+        : unrealizedGainLoss < 0
+          ? "negative"
+          : "default";
+
+  const valuationStatus = summary?.valuation_status ?? "UNAVAILABLE";
+  const isCompleteValuation = valuationStatus === "COMPLETE";
+  const isPartialValuation = valuationStatus === "PARTIAL";
+  const valuedHoldingsCount = holdings.filter(
+    (holding) => holding.quote_status === "AVAILABLE"
+  ).length;
 
   return (
     <PageContainer
@@ -311,11 +342,11 @@ export function DashboardPage() {
               <StatCard label="Total Invested" value={formatCurrency(totalInvested)} />
               <StatCard
                 label="Current Value"
-                value={formatCurrency(currentPortfolioValue)}
+                value={formatMaybeCurrency(currentPortfolioValue)}
               />
               <StatCard
                 label="Unrealized Gain / Loss"
-                value={formatSignedCurrency(unrealizedGainLoss)}
+                value={formatMaybeSignedCurrency(unrealizedGainLoss)}
                 tone={unrealizedTone}
               />
               <StatCard label="Holdings Count" value={String(holdings.length)} />
@@ -482,6 +513,12 @@ export function DashboardPage() {
                 retryLabel="Retry Allocation"
                 onRetry={handleSummaryRetry}
               />
+            ) : !isCompleteValuation ? (
+              <p className="dashboard-empty">
+                {isPartialValuation
+                  ? `Allocation is hidden because valuation is partial (${valuedHoldingsCount}/${holdings.length} holdings valued).`
+                  : "Allocation unavailable because live valuation data is unavailable."}
+              </p>
             ) : allocationSeries.length === 0 ? (
               <p className="dashboard-empty">No holdings available for allocation breakdown.</p>
             ) : (
@@ -492,13 +529,13 @@ export function DashboardPage() {
                       <Pie
                         data={allocationSeries}
                         dataKey="value"
-                        nameKey="name"
+                        nameKey="label"
                         innerRadius="60%"
                         outerRadius="82%"
                         paddingAngle={2}
                       >
-                        {allocationSeries.map((_, index) => (
-                          <Cell key={`allocation-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        {allocationSeries.map((item, index) => (
+                          <Cell key={item.id} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -515,14 +552,14 @@ export function DashboardPage() {
 
                 <ul className="dashboard-legend">
                   {allocationSeries.slice(0, 5).map((item, index) => (
-                    <li key={item.name} className="dashboard-legend-item">
+                    <li key={item.id} className="dashboard-legend-item">
                       <span className="dashboard-legend-name">
                         <span
                           className="dashboard-legend-dot"
                           style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}
                           aria-hidden="true"
                         />
-                        {item.name}
+                        {item.label}
                       </span>
                       <span>{formatNumber(item.percentage)}%</span>
                     </li>
@@ -613,8 +650,10 @@ export function DashboardPage() {
                   </thead>
                   <tbody>
                     {largestHoldings.map((holding) => (
-                      <tr key={holding.symbol}>
-                        <td>{holding.symbol}</td>
+                      <tr
+                        key={`${holding.symbol}-${holding.exchange ?? "NA"}-${holding.asset_type ?? "NA"}-${holding.currency ?? "NA"}`}
+                      >
+                        <td>{holding.exchange ? `${holding.symbol} · ${holding.exchange}` : holding.symbol}</td>
                         <td>{formatNumber(holding.quantity)}</td>
                         <td>{formatCurrency(parseDecimal(holding.average_buy_price))}</td>
                         <td>{formatCurrency(parseDecimal(holding.invested_amount))}</td>

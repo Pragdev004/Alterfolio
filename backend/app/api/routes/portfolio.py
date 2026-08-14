@@ -1,6 +1,8 @@
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from app.api.dependencies.ai import get_structured_ai_service
 from app.api.dependencies.auth import get_authenticated_user_id
 from app.db.database import get_db
 from app.repositories.portfolio_repository import PortfolioRepository
+from app.repositories.position_repository import PositionRepository
 from app.schemas.ai import ErrorResponse, PortfolioAnalysisResponse
 from app.schemas.portfolio import PortfolioSummary
 from app.services.ai.ai_service import AIService
@@ -22,26 +25,58 @@ from app.services.market_service import MarketService
 from app.services.news_service import NewsService
 from app.services.portfolio_service import PortfolioService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 
 def get_portfolio_service(
     db: Session = Depends(get_db),
 ) -> PortfolioService:
-    repository = PortfolioRepository(db)
-    return PortfolioService(repository)
+    portfolio_repository = PortfolioRepository(db)
+    position_repository = PositionRepository(db)
+    market_service = MarketService()
+    return PortfolioService(
+        portfolio_repository=portfolio_repository,
+        position_repository=position_repository,
+        market_service=market_service,
+    )
 
 
 @router.get(
     "/summary",
     response_model=PortfolioSummary,
     summary="Get portfolio summary",
+    responses={
+        500: {
+            "model": ErrorResponse,
+            "description": "Portfolio summary retrieval failure",
+        },
+    },
 )
 def get_portfolio_summary(
     service: PortfolioService = Depends(get_portfolio_service),
     user_id: UUID = Depends(get_authenticated_user_id),
 ):
-    return service.get_summary(user_id)
+    try:
+        return service.get_summary(user_id)
+    except Exception:
+        logger.error(
+            "portfolio.summary.error",
+            extra={
+                "route": "/portfolio/summary",
+                "error_code": "portfolio_summary_failed",
+            },
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "code": "portfolio_summary_failed",
+                "message": "Failed to retrieve portfolio summary",
+            },
+        )
+
+
 
 
 def get_ai_workflow_service(
@@ -49,9 +84,14 @@ def get_ai_workflow_service(
     user_id: UUID = Depends(get_authenticated_user_id),
     ai_service: AIService = Depends(get_structured_ai_service),
 ) -> AIWorkflowService:
-    repository = PortfolioRepository(db)
+    portfolio_repository = PortfolioRepository(db)
+    position_repository = PositionRepository(db)
 
-    portfolio_service = PortfolioService(repository)
+    portfolio_service = PortfolioService(
+        portfolio_repository=portfolio_repository,
+        position_repository=position_repository,
+        market_service=MarketService(),
+    )
     market_service = MarketService()
     news_service = NewsService()
 

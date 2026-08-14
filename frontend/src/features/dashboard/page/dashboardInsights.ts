@@ -1,5 +1,9 @@
 import { type PortfolioAnalysisResponse, type TradeResponse } from "../../../shared/api/types";
 import { formatDateTime, parseDecimal } from "../../../shared/lib/format";
+import {
+  buildCompositeInstrumentId,
+  buildDisplaySymbol,
+} from "../../../shared/lib/instrumentIdentity";
 
 export type PortfolioValuePoint = {
   label: string;
@@ -7,7 +11,8 @@ export type PortfolioValuePoint = {
 };
 
 export type AllocationPoint = {
-  name: string;
+  id: string;
+  label: string;
   value: number;
   percentage: number;
 };
@@ -53,28 +58,48 @@ export function buildPortfolioValueSeries(trades: TradeResponse[]): PortfolioVal
 }
 
 export function buildAllocationSeries(
-  holdings: Array<{ symbol: string; invested_amount: string }>
+  holdings: Array<{
+    symbol: string;
+    exchange: string | null;
+    asset_type: string | null;
+    currency: string | null;
+    market_value: string | null;
+  }>
 ): AllocationPoint[] {
-  const totalInvested = holdings.reduce(
-    (total, holding) => total + parseDecimal(holding.invested_amount),
+  const valuedHoldings = holdings
+    .map((holding) => {
+      return {
+        id: buildCompositeInstrumentId({
+          symbol: holding.symbol,
+          exchange: holding.exchange,
+          assetType: holding.asset_type,
+          currency: holding.currency,
+        }),
+        label: buildDisplaySymbol(holding.symbol, holding.exchange),
+        value: holding.market_value == null ? null : parseDecimal(holding.market_value),
+      };
+    })
+    .filter(
+      (holding): holding is { id: string; label: string; value: number } =>
+        holding.value != null
+    );
+
+  const totalMarketValue = valuedHoldings.reduce(
+    (total, holding) => total + holding.value,
     0
   );
 
-  if (totalInvested <= 0) {
+  if (totalMarketValue <= 0) {
     return [];
   }
 
-  return holdings
-    .map((holding) => {
-      const value = parseDecimal(holding.invested_amount);
-
-      return {
-        name: holding.symbol,
-        value,
-        percentage: (value / totalInvested) * 100,
-      };
-    })
-    .filter((holding) => holding.value > 0)
+  return valuedHoldings
+    .map((holding) => ({
+      id: holding.id,
+      label: holding.label,
+      value: holding.value,
+      percentage: (holding.value / totalMarketValue) * 100,
+    }))
     .sort((left, right) => right.value - left.value);
 }
 

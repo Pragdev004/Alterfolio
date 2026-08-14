@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from types import SimpleNamespace
 from uuid import UUID
 from unittest.mock import Mock
 
@@ -76,35 +75,18 @@ def test_trade_repository_scopes_get_and_list_queries_to_user() -> None:
     assert any(getattr(arg.left, "name", "") == "user_id" and arg.right.value == USER_A for arg in list_call_args)
 
 
-def test_portfolio_repository_scopes_summary_query_to_user() -> None:
+def test_portfolio_repository_scopes_trade_count_query_to_user() -> None:
     count_query = Mock()
     count_query.filter.return_value = count_query
     count_query.count.return_value = 1
 
-    holdings_query = Mock()
-    holdings_query.filter.return_value = holdings_query
-    holdings_query.group_by.return_value = holdings_query
-    holdings_query.having.return_value = holdings_query
-    holdings_query.all.return_value = [
-        SimpleNamespace(
-            symbol="TCS",
-            quantity=Decimal("2"),
-            average_buy_price=Decimal("100"),
-            invested_amount=Decimal("200"),
-        )
-    ]
-
     db = Mock()
-    db.query.side_effect = [count_query, holdings_query]
+    db.query.return_value = count_query
 
     repository = PortfolioRepository(db)
-    summary = repository.get_summary(USER_A)
+    total_trades = repository.get_total_trades(USER_A)
 
     count_filter_args = count_query.filter.call_args.args
-    holdings_filter_args = holdings_query.filter.call_args.args
 
     assert any(getattr(arg.left, "name", "") == "user_id" and arg.right.value == USER_A for arg in count_filter_args)
-    assert any(getattr(arg.left, "name", "") == "user_id" and arg.right.value == USER_A for arg in holdings_filter_args)
-    assert summary.total_trades == 1
-    assert summary.total_invested == Decimal("200")
-    assert summary.holdings[0].symbol == "TCS"
+    assert total_trades == 1

@@ -7,11 +7,24 @@ export type HoldingSummary = {
   quantity: string;
   average_buy_price: string;
   invested_amount: string;
+  exchange: string | null;
+  asset_type: string | null;
+  currency: string | null;
+  current_price: string | null;
+  market_value: string | null;
+  unrealized_profit_loss: string | null;
+  realized_profit_loss: string;
+  quote_status: "AVAILABLE" | "UNAVAILABLE";
 };
 
 export type PortfolioSummary = {
   total_trades: number;
   total_invested: string;
+  total_market_value: string | null;
+  total_unrealized_profit_loss: string | null;
+  total_realized_profit_loss: string;
+  valuation_status: "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
+  valued_at: string | null;
   holdings: HoldingSummary[];
 };
 
@@ -65,6 +78,7 @@ export type TradeCreateRequest = {
 };
 
 export type TradeResponse = TradeCreateRequest & {
+  currency: string;
   id: string;
   user_id: string;
   created_at: string;

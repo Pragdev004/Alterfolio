@@ -55,7 +55,7 @@ function MoverList({
       ) : (
         <ul className="market-mover-list">
           {items.map((item) => (
-            <li key={`${title}-${item.symbol}`} className="market-mover-item">
+            <li key={`${title}-${item.instrumentId}`} className="market-mover-item">
               <p className="market-mover-symbol">{item.symbol}</p>
               <p className={`market-mover-change market-mover-change--${tone}`}>
                 {formatSignedPercent(item.changePercent)}
@@ -222,7 +222,7 @@ export function MarketIntelligencePage() {
                       </thead>
                       <tbody>
                         {data.impact.map((item) => (
-                          <tr key={item.symbol}>
+                          <tr key={item.instrumentId}>
                             <td data-label="Symbol">{item.symbol}</td>
                             <td data-label="Mentions">{item.mentionCount}</td>
                             <td data-label="Latest Mention">{item.latestHeadline}</td>
@@ -244,7 +244,7 @@ export function MarketIntelligencePage() {
                 ) : (
                   <ul className="market-earnings-list">
                     {data.earnings.map((event) => (
-                      <li key={`earning-${event.symbol}`} className="market-earnings-item">
+                      <li key={`earning-${event.instrumentId}`} className="market-earnings-item">
                         <p className="market-earnings-symbol">{event.symbol}</p>
                         <p className="market-earnings-date">{formatDateTime(event.earningsDate)}</p>
                         <p className="market-earnings-note">{event.confidenceNote}</p>

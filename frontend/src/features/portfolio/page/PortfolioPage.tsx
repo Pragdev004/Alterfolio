@@ -19,7 +19,9 @@ import {
   formatCurrency,
   formatNumber,
   formatSignedCurrency,
+  parseDecimal,
 } from "../../../shared/lib/format";
+
 import {
   StatCard,
   type StatCardTone,
@@ -114,7 +116,11 @@ function formatTooltipCurrency(value: unknown): string {
   return formatCurrency(0);
 }
 
-function formatSignedPercentage(value: number): string {
+function formatSignedPercentage(value: number | null): string {
+  if (value == null) {
+    return "Unavailable";
+  }
+
   const absolute = `${formatNumber(Math.abs(value))}%`;
 
   if (value > 0) {
@@ -128,7 +134,27 @@ function formatSignedPercentage(value: number): string {
   return absolute;
 }
 
-function getProfitLossTone(value: number): string {
+function formatMaybeCurrency(value: number | null): string {
+  if (value == null) {
+    return "Unavailable";
+  }
+
+  return formatCurrency(value);
+}
+
+function formatMaybeSignedCurrency(value: number | null): string {
+  if (value == null) {
+    return "Unavailable";
+  }
+
+  return formatSignedCurrency(value);
+}
+
+function getProfitLossTone(value: number | null): string {
+  if (value == null) {
+    return "";
+  }
+
   if (value > 0) {
     return "portfolio-cell-positive";
   }
@@ -140,20 +166,26 @@ function getProfitLossTone(value: number): string {
   return "";
 }
 
+
 function sortHoldings(
   holdings: HoldingMetric[],
   sortConfig: SortConfig
 ): HoldingMetric[] {
   const sorted = [...holdings].sort((left, right) => {
     if (sortConfig.key === "symbol") {
-      return left.symbol.localeCompare(right.symbol);
+      return left.displayLabel.localeCompare(right.displayLabel);
     }
 
-    return left[sortConfig.key] - right[sortConfig.key];
+
+    const leftValue = left[sortConfig.key] ?? Number.NEGATIVE_INFINITY;
+    const rightValue = right[sortConfig.key] ?? Number.NEGATIVE_INFINITY;
+
+    return leftValue - rightValue;
   });
 
   return sortConfig.direction === "asc" ? sorted : sorted.reverse();
 }
+
 
 export function PortfolioPage() {
   const { startLoading, stopLoading } = useLoading();
@@ -235,29 +267,46 @@ export function PortfolioPage() {
     [holdingMetrics]
   );
 
-  const totalInvested = useMemo(
-    () =>
-      holdingMetrics.reduce(
-        (total, holding) => total + holding.investedAmount,
-        0
-      ),
-    [holdingMetrics]
+    const totalInvested = useMemo(
+    () => parseDecimal(summary?.total_invested),
+    [summary?.total_invested]
   );
 
   const currentValue = useMemo(
-    () => holdingMetrics.reduce((total, holding) => total + holding.marketValue, 0),
-    [holdingMetrics]
+    () =>
+      summary?.total_market_value == null
+        ? null
+        : parseDecimal(summary.total_market_value),
+    [summary?.total_market_value]
   );
 
-  const unrealizedGainLoss = currentValue - totalInvested;
-  const unrealizedTone: StatCardTone =
-    unrealizedGainLoss > 0
-      ? "positive"
-      : unrealizedGainLoss < 0
-        ? "negative"
-        : "default";
+  const unrealizedGainLoss = useMemo(
+    () =>
+      summary?.total_unrealized_profit_loss == null
+        ? null
+        : parseDecimal(summary.total_unrealized_profit_loss),
+    [summary?.total_unrealized_profit_loss]
+  );
+
+    const unrealizedTone: StatCardTone =
+    unrealizedGainLoss == null
+      ? "default"
+      : unrealizedGainLoss > 0
+        ? "positive"
+        : unrealizedGainLoss < 0
+          ? "negative"
+          : "default";
+
+  const valuationStatus = summary?.valuation_status ?? "UNAVAILABLE";
+  const isCompleteValuation = valuationStatus === "COMPLETE";
+  const isPartialValuation = valuationStatus === "PARTIAL";
+  const valuedHoldingsCount = holdingMetrics.filter(
+    (holding) => holding.quoteStatus === "AVAILABLE"
+  ).length;
+
 
   const handleSort = useCallback((key: SortKey) => {
+
     setSortConfig((previous) => {
       if (previous.key === key) {
         return {
@@ -323,13 +372,14 @@ export function PortfolioPage() {
             </section>
           ) : (
             <>
-              <StatCard label="Total Invested" value={formatCurrency(totalInvested)} />
-              <StatCard label="Current Value" value={formatCurrency(currentValue)} />
+                            <StatCard label="Total Invested" value={formatCurrency(totalInvested)} />
+              <StatCard label="Current Value" value={formatMaybeCurrency(currentValue)} />
               <StatCard
                 label="Unrealized Gain / Loss"
-                value={formatSignedCurrency(unrealizedGainLoss)}
+                value={formatMaybeSignedCurrency(unrealizedGainLoss)}
                 tone={unrealizedTone}
               />
+
               <StatCard label="Number of Holdings" value={String(holdingMetrics.length)} />
             </>
           )}
@@ -338,9 +388,14 @@ export function PortfolioPage() {
         <section className="portfolio-section" aria-busy={isSummaryLoading}>
           <header className="portfolio-section-header">
             <h2 className="portfolio-section-title">Holdings Table</h2>
-            <p className="portfolio-section-note">
-              Current price and performance are computed from available holding summary data.
+                                    <p className="portfolio-section-note">
+              Valuation status: {valuationStatus}
+              {holdingMetrics.length > 0
+                ? ` (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued)`
+                : ""}
             </p>
+
+
           </header>
 
           {isSummaryLoading ? (
@@ -429,24 +484,26 @@ export function PortfolioPage() {
                     const toneClass = getProfitLossTone(holding.profitLoss);
 
                     return (
-                      <tr key={holding.symbol}>
-                        <td data-label="Symbol">{holding.symbol}</td>
+                                            <tr key={holding.instrumentId}>
+                        <td data-label="Symbol">{holding.displayLabel}</td>
+
                         <td data-label="Quantity">{formatNumber(holding.quantity)}</td>
                         <td data-label="Average Cost">
                           {formatCurrency(holding.averageCost)}
                         </td>
-                        <td data-label="Current Price">
-                          {formatCurrency(holding.currentPrice)}
+                                                <td data-label="Current Price">
+                          {formatMaybeCurrency(holding.currentPrice)}
                         </td>
                         <td data-label="Market Value">
-                          {formatCurrency(holding.marketValue)}
+                          {formatMaybeCurrency(holding.marketValue)}
                         </td>
                         <td data-label="Profit / Loss" className={toneClass}>
-                          {formatSignedCurrency(holding.profitLoss)}
+                          {formatMaybeSignedCurrency(holding.profitLoss)}
                         </td>
                         <td data-label="Profit %" className={toneClass}>
                           {formatSignedPercentage(holding.profitLossPercent)}
                         </td>
+
                       </tr>
                     );
                   })}
@@ -462,13 +519,20 @@ export function PortfolioPage() {
               <h2 className="portfolio-section-title">Portfolio Allocation</h2>
             </header>
 
-            {isSummaryLoading ? (
+                        {isSummaryLoading ? (
               <TableSkeleton />
+            ) : !isCompleteValuation ? (
+              <p className="portfolio-empty">
+                {isPartialValuation
+                  ? `Allocation is hidden because valuation is partial (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued).`
+                  : "Allocation is unavailable because live valuation data is unavailable."}
+              </p>
             ) : allocationData.length === 0 ? (
               <p className="portfolio-empty">
                 Allocation data appears when holdings are available.
               </p>
             ) : (
+
               <div
                 className="portfolio-chart"
                 role="img"
@@ -479,17 +543,19 @@ export function PortfolioPage() {
                     <Pie
                       data={allocationData}
                       dataKey="value"
-                      nameKey="symbol"
+                                            nameKey="label"
+
                       innerRadius="55%"
                       outerRadius="82%"
                       paddingAngle={2}
                     >
-                      {allocationData.map((_, index) => (
+                                            {allocationData.map((item, index) => (
                         <Cell
-                          key={`portfolio-allocation-${index}`}
+                          key={item.id}
                           fill={CHART_COLORS[index % CHART_COLORS.length]}
                         />
                       ))}
+
                     </Pie>
                     <Tooltip
                       formatter={(value) => formatTooltipCurrency(value)}
@@ -510,11 +576,18 @@ export function PortfolioPage() {
               <h2 className="portfolio-section-title">Gain / Loss Chart</h2>
             </header>
 
-            {isSummaryLoading ? (
+                        {isSummaryLoading ? (
               <TableSkeleton />
-                        ) : gainLossData.length === 0 ? (
+            ) : !isCompleteValuation ? (
+              <p className="portfolio-empty">
+                {isPartialValuation
+                  ? `Gain/loss distribution is hidden because valuation is partial (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued).`
+                  : "Gain/loss distribution is unavailable because live valuation data is unavailable."}
+              </p>
+            ) : gainLossData.length === 0 ? (
               <p className="portfolio-empty">No gain/loss distribution available yet.</p>
             ) : (
+
               <div
                 className="portfolio-chart"
                 role="img"
@@ -530,7 +603,8 @@ export function PortfolioPage() {
                       strokeDasharray="3 3"
                     />
                     <XAxis
-                      dataKey="symbol"
+                                            dataKey="label"
+
                       tick={{ fill: "var(--color-text-muted)", fontSize: 12 }}
                     />
                     <YAxis
@@ -548,7 +622,8 @@ export function PortfolioPage() {
                     <Bar dataKey="profitLoss" radius={[6, 6, 0, 0]}>
                       {gainLossData.map((item) => (
                         <Cell
-                          key={`gain-loss-${item.symbol}`}
+                                                    key={`gain-loss-${item.id}`}
+
                           fill={
                             item.profitLoss >= 0
                               ? "var(--color-positive)"
@@ -570,21 +645,30 @@ export function PortfolioPage() {
               <h2 className="portfolio-section-title">Top Winners</h2>
             </header>
 
-            {topPerformers.winners.length === 0 ? (
+                        {!isCompleteValuation ? (
+              <p className="portfolio-empty">
+                {isPartialValuation
+                  ? `Top winners are hidden because valuation is partial (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued).`
+                  : "Top winners are unavailable because live valuation data is unavailable."}
+              </p>
+            ) : topPerformers.winners.length === 0 ? (
               <p className="portfolio-empty">No holdings available.</p>
             ) : (
+
               <ul className="portfolio-list">
                 {topPerformers.winners.map((holding) => (
-                  <li key={`winner-${holding.symbol}`} className="portfolio-list-item">
+                                    <li key={`winner-${holding.instrumentId}`} className="portfolio-list-item">
                     <div>
-                      <p className="portfolio-list-label">{holding.symbol}</p>
-                      <p className="portfolio-list-value">
-                        Market Value: {formatCurrency(holding.marketValue)}
+                      <p className="portfolio-list-label">{holding.displayLabel}</p>
+
+                                            <p className="portfolio-list-value">
+                        Market Value: {formatMaybeCurrency(holding.marketValue)}
                       </p>
                     </div>
                     <p className={`portfolio-list-label ${getProfitLossTone(holding.profitLoss)}`}>
-                      {formatSignedCurrency(holding.profitLoss)}
+                      {formatMaybeSignedCurrency(holding.profitLoss)}
                     </p>
+
                   </li>
                 ))}
               </ul>
@@ -596,21 +680,30 @@ export function PortfolioPage() {
               <h2 className="portfolio-section-title">Top Losers</h2>
             </header>
 
-            {topPerformers.losers.length === 0 ? (
+                        {!isCompleteValuation ? (
+              <p className="portfolio-empty">
+                {isPartialValuation
+                  ? `Top losers are hidden because valuation is partial (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued).`
+                  : "Top losers are unavailable because live valuation data is unavailable."}
+              </p>
+            ) : topPerformers.losers.length === 0 ? (
               <p className="portfolio-empty">No holdings available.</p>
             ) : (
+
               <ul className="portfolio-list">
                 {topPerformers.losers.map((holding) => (
-                  <li key={`loser-${holding.symbol}`} className="portfolio-list-item">
+                                    <li key={`loser-${holding.instrumentId}`} className="portfolio-list-item">
                     <div>
-                      <p className="portfolio-list-label">{holding.symbol}</p>
-                      <p className="portfolio-list-value">
-                        Market Value: {formatCurrency(holding.marketValue)}
+                      <p className="portfolio-list-label">{holding.displayLabel}</p>
+
+                                            <p className="portfolio-list-value">
+                        Market Value: {formatMaybeCurrency(holding.marketValue)}
                       </p>
                     </div>
                     <p className={`portfolio-list-label ${getProfitLossTone(holding.profitLoss)}`}>
-                      {formatSignedCurrency(holding.profitLoss)}
+                      {formatMaybeSignedCurrency(holding.profitLoss)}
                     </p>
+
                   </li>
                 ))}
               </ul>
@@ -623,24 +716,36 @@ export function PortfolioPage() {
             <h2 className="portfolio-section-title">Portfolio Statistics</h2>
           </header>
 
-          {holdingMetrics.length === 0 ? (
-            <p className="portfolio-empty">No holdings available for statistics.</p>
+                              {!isCompleteValuation ? (
+            <p className="portfolio-empty">
+              {isPartialValuation
+                ? `Portfolio statistics are hidden because valuation is partial (${valuedHoldingsCount}/${holdingMetrics.length} holdings valued).`
+                : "Valuation data is unavailable for statistics."}
+            </p>
+          ) : statistics.largestPosition == null ? (
+            <p className="portfolio-empty">Valuation data is unavailable for statistics.</p>
           ) : (
+
+
             <div className="portfolio-stats-grid">
               <article className="portfolio-stat">
                 <p className="portfolio-stat-label">Largest Position</p>
                 <p className="portfolio-stat-value">
-                  {statistics.largestPosition?.symbol ?? "-"} ({formatCurrency(
-                    statistics.largestPosition?.marketValue ?? 0
+                                                      {statistics.largestPosition?.displayLabel ?? "-"} ({formatMaybeCurrency(
+
+                    statistics.largestPosition?.marketValue ?? null
                   )})
+
                 </p>
               </article>
               <article className="portfolio-stat">
                 <p className="portfolio-stat-label">Smallest Position</p>
                 <p className="portfolio-stat-value">
-                  {statistics.smallestPosition?.symbol ?? "-"} ({formatCurrency(
-                    statistics.smallestPosition?.marketValue ?? 0
+                                                      {statistics.smallestPosition?.displayLabel ?? "-"} ({formatMaybeCurrency(
+
+                    statistics.smallestPosition?.marketValue ?? null
                   )})
+
                 </p>
               </article>
               <article className="portfolio-stat">

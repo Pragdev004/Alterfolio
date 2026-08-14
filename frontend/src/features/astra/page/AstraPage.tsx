@@ -88,10 +88,20 @@ export function AstraPage() {
     viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const portfolioValue = useMemo(() => parseDecimal(summary?.total_invested), [summary]);
+  const portfolioValue = useMemo(
+    () =>
+      summary?.total_market_value == null
+        ? null
+        : parseDecimal(summary.total_market_value),
+    [summary?.total_market_value]
+  );
 
   const largestPosition = useMemo(() => {
-    const holdings = summary?.holdings ?? [];
+    if (summary?.valuation_status !== "COMPLETE") {
+      return null;
+    }
+
+    const holdings = summary.holdings;
 
     if (holdings.length === 0) {
       return null;
@@ -100,9 +110,17 @@ export function AstraPage() {
     return holdings
       .map((holding) => ({
         symbol: holding.symbol,
-        value: parseDecimal(holding.invested_amount),
+        exchange: holding.exchange,
+        value:
+          holding.market_value == null
+            ? null
+            : parseDecimal(holding.market_value),
       }))
-      .sort((left, right) => right.value - left.value)[0];
+      .filter(
+        (holding): holding is { symbol: string; exchange: string | null; value: number } =>
+          holding.value != null
+      )
+      .sort((left, right) => right.value - left.value)[0] ?? null;
   }, [summary]);
 
   const submitPrompt = useCallback(
@@ -266,20 +284,22 @@ export function AstraPage() {
             <dl className="astra-context-list">
               <div className="astra-context-item">
                 <dt>Portfolio Value</dt>
-                <dd>{formatCurrency(portfolioValue)}</dd>
+                <dd>{portfolioValue == null ? "Unavailable" : formatCurrency(portfolioValue)}</dd>
               </div>
               <div className="astra-context-item">
                 <dt>Holdings Count</dt>
                 <dd>{summary?.holdings.length ?? 0}</dd>
               </div>
-              <div className="astra-context-item">
-                <dt>Largest Position</dt>
-                <dd>
-                  {largestPosition ?
-                    `${largestPosition.symbol} (${formatCurrency(largestPosition.value)})`
-                  : "Unavailable"}
-                </dd>
-              </div>
+              {summary?.valuation_status === "COMPLETE" ? (
+                <div className="astra-context-item">
+                  <dt>Largest Position</dt>
+                  <dd>
+                    {largestPosition ?
+                      `${largestPosition.exchange ? `${largestPosition.symbol} · ${largestPosition.exchange}` : largestPosition.symbol} (${formatCurrency(largestPosition.value)})`
+                    : "Unavailable"}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           )}
         </aside>

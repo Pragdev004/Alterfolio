@@ -2,10 +2,16 @@ import { getPortfolioAnalysis, getPortfolioSummary, getTrades } from "../../../s
 import { apiClient } from "../../../services/apiClient";
 import { parseDecimal } from "../../../shared/lib/format";
 import {
+  type HoldingSummary,
   type PortfolioAnalysisResponse,
   type PortfolioSummary,
   type TradeResponse,
 } from "../../../shared/api/types";
+import {
+  buildCompositeInstrumentId,
+  buildDisplaySymbol,
+  buildProviderTicker,
+} from "../../../shared/lib/instrumentIdentity";
 import {
   type EarningsEvent,
   type MarketIntelligenceData,
@@ -13,6 +19,13 @@ import {
   type MarketNewsItem,
   type PortfolioImpactItem,
 } from "./marketTypes";
+
+type InstrumentIdentity = {
+  instrumentId: string;
+  displaySymbol: string;
+  providerTicker: string;
+};
+
 
 export async function getMarketIntelligence(): Promise<MarketIntelligenceData> {
   const backendPayload = await tryGetBackendPayload();
@@ -44,22 +57,22 @@ function buildDerivedMarketIntelligence(
   analysis: PortfolioAnalysisResponse,
   trades: TradeResponse[]
 ): MarketIntelligenceData {
-  const topSymbols = summary.holdings
+  const topHoldings = summary.holdings
     .map((holding) => ({
-      symbol: holding.symbol,
+      identity: buildHoldingIdentity(holding),
       invested: parseDecimal(holding.invested_amount),
     }))
     .sort((left, right) => right.invested - left.invested)
     .slice(0, 4)
-    .map((holding) => holding.symbol);
+    .map((holding) => holding.identity);
 
-  const news = buildDerivedNews(topSymbols, analysis);
-  const impact = buildPortfolioImpact(news, summary);
+  const newsWithIdentity = buildDerivedNews(topHoldings, analysis);
+  const impact = buildPortfolioImpact(newsWithIdentity, summary);
   const movers = buildMarketMovers(trades);
   const earnings = buildEarningsCalendar(summary);
 
   return {
-    news,
+    news: newsWithIdentity,
     impact,
     aiSummary: buildAiSummary(analysis),
     movers,
@@ -69,29 +82,30 @@ function buildDerivedMarketIntelligence(
 }
 
 function buildDerivedNews(
-  topSymbols: string[],
+  topHoldings: InstrumentIdentity[],
   analysis: PortfolioAnalysisResponse
 ): MarketNewsItem[] {
   const now = Date.now();
+  const topTickers = topHoldings.map((holding) => holding.providerTicker);
 
   const derivedStories = [
     {
-      headline: `Risk watch across ${topSymbols.slice(0, 2).join(" and ") || "your top holdings"}`,
+      headline: `Risk watch across ${topTickers.slice(0, 2).join(" and ") || "your top holdings"}`,
       summary: firstSentence(analysis.analysis.risk_assessment),
       sentiment: inferSentiment(analysis.analysis.risk_assessment),
-      relatedSymbols: topSymbols.slice(0, 3),
+      related: topHoldings.slice(0, 3),
     },
     {
       headline: "Diversification update from today’s portfolio signals",
       summary: firstSentence(analysis.analysis.diversification_analysis),
       sentiment: inferSentiment(analysis.analysis.diversification_analysis),
-      relatedSymbols: topSymbols.slice(1, 4),
+      related: topHoldings.slice(1, 4),
     },
     {
       headline: "Actionable recommendation focus for this session",
       summary: analysis.analysis.recommendations[0] ?? "No recommendation available.",
       sentiment: "neutral" as const,
-      relatedSymbols: topSymbols.slice(0, 2),
+      related: topHoldings.slice(0, 2),
     },
   ];
 
@@ -101,7 +115,8 @@ function buildDerivedNews(
     summary: story.summary,
     source: "Derived intelligence (portfolio + AI analysis)",
     publishedAt: new Date(now - index * 60 * 60 * 1000).toISOString(),
-    relatedSymbols: story.relatedSymbols,
+    relatedSymbols: story.related.map((item) => item.providerTicker),
+    relatedInstrumentIds: story.related.map((item) => item.instrumentId),
     sentiment: story.sentiment,
   }));
 }
@@ -113,22 +128,25 @@ function buildPortfolioImpact(
   const impactMap = new Map<string, PortfolioImpactItem>();
 
   for (const holding of summary.holdings) {
-    impactMap.set(holding.symbol, {
-      symbol: holding.symbol,
+    const identity = buildHoldingIdentity(holding);
+    impactMap.set(identity.instrumentId, {
+      instrumentId: identity.instrumentId,
+      symbol: identity.displaySymbol,
       mentionCount: 0,
       latestHeadline: "No direct mention in current feed.",
     });
   }
 
   for (const item of news) {
-    for (const symbol of item.relatedSymbols) {
-      const existing = impactMap.get(symbol);
+    for (const instrumentId of item.relatedInstrumentIds) {
+      const existing = impactMap.get(instrumentId);
       if (!existing) {
         continue;
       }
 
-      impactMap.set(symbol, {
-        symbol,
+      impactMap.set(instrumentId, {
+        instrumentId: existing.instrumentId,
+        symbol: existing.symbol,
         mentionCount: existing.mentionCount + 1,
         latestHeadline: item.headline,
       });
@@ -144,18 +162,31 @@ function buildMarketMovers(trades: TradeResponse[]): {
   gainers: MarketMover[];
   losers: MarketMover[];
 } {
-  const tradesBySymbol = new Map<string, TradeResponse[]>();
+  const tradesByInstrument = new Map<
+    string,
+    { instrumentId: string; displaySymbol: string; trades: TradeResponse[] }
+  >();
 
   for (const trade of trades) {
-    const list = tradesBySymbol.get(trade.asset_symbol) ?? [];
-    list.push(trade);
-    tradesBySymbol.set(trade.asset_symbol, list);
+    const identity = buildTradeIdentity(trade);
+    const existing = tradesByInstrument.get(identity.instrumentId);
+
+    if (existing) {
+      existing.trades.push(trade);
+      continue;
+    }
+
+    tradesByInstrument.set(identity.instrumentId, {
+      instrumentId: identity.instrumentId,
+      displaySymbol: identity.displaySymbol,
+      trades: [trade],
+    });
   }
 
   const movers: MarketMover[] = [];
 
-  for (const [symbol, symbolTrades] of tradesBySymbol.entries()) {
-    const sortedTrades = [...symbolTrades].sort(
+  for (const { instrumentId, displaySymbol, trades: instrumentTrades } of tradesByInstrument.values()) {
+    const sortedTrades = [...instrumentTrades].sort(
       (left, right) =>
         new Date(left.trade_timestamp).getTime() -
         new Date(right.trade_timestamp).getTime()
@@ -170,7 +201,7 @@ function buildMarketMovers(trades: TradeResponse[]): {
     const changePercent =
       previousPrice > 0 ? ((latestPrice - previousPrice) / previousPrice) * 100 : 0;
 
-    movers.push({ symbol, changePercent, latestPrice });
+    movers.push({ instrumentId, symbol: displaySymbol, changePercent, latestPrice });
   }
 
   const gainers = [...movers]
@@ -189,17 +220,57 @@ function buildMarketMovers(trades: TradeResponse[]): {
 function buildEarningsCalendar(summary: PortfolioSummary): EarningsEvent[] {
   const baseDate = new Date();
 
-  return summary.holdings.slice(0, 6).map((holding, index) => {
-    const offsetDays = ((holding.symbol.charCodeAt(0) + index * 7) % 24) + 3;
-    const earningsDate = new Date(baseDate);
-    earningsDate.setDate(baseDate.getDate() + offsetDays);
+  return summary.holdings
+    .map((holding) => ({ holding, identity: buildHoldingIdentity(holding) }))
+    .slice(0, 6)
+    .map(({ holding, identity }, index) => {
+      const offsetDays = ((holding.symbol.charCodeAt(0) + index * 7) % 24) + 3;
+      const earningsDate = new Date(baseDate);
+      earningsDate.setDate(baseDate.getDate() + offsetDays);
 
-    return {
+      return {
+        instrumentId: identity.instrumentId,
+        symbol: identity.displaySymbol,
+        earningsDate: earningsDate.toISOString(),
+        confidenceNote: "Estimated placeholder date until live earnings feed is connected.",
+      };
+    });
+}
+
+function buildHoldingIdentity(holding: HoldingSummary): InstrumentIdentity {
+  return {
+    instrumentId: buildCompositeInstrumentId({
       symbol: holding.symbol,
-      earningsDate: earningsDate.toISOString(),
-      confidenceNote: "Estimated placeholder date until live earnings feed is connected.",
-    };
-  });
+      exchange: holding.exchange,
+      assetType: holding.asset_type,
+      currency: holding.currency,
+    }),
+    displaySymbol: buildDisplaySymbol(holding.symbol, holding.exchange),
+    providerTicker: buildProviderTicker({
+      symbol: holding.symbol,
+      exchange: holding.exchange,
+      assetType: holding.asset_type,
+      currency: holding.currency,
+    }),
+  };
+}
+
+function buildTradeIdentity(trade: TradeResponse): InstrumentIdentity {
+  return {
+    instrumentId: buildCompositeInstrumentId({
+      symbol: trade.asset_symbol,
+      exchange: trade.exchange,
+      assetType: trade.asset_type,
+      currency: trade.currency,
+    }),
+    displaySymbol: buildDisplaySymbol(trade.asset_symbol, trade.exchange),
+    providerTicker: buildProviderTicker({
+      symbol: trade.asset_symbol,
+      exchange: trade.exchange,
+      assetType: trade.asset_type,
+      currency: trade.currency,
+    }),
+  };
 }
 
 function buildAiSummary(analysis: PortfolioAnalysisResponse): string {

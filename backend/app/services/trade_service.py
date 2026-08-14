@@ -8,6 +8,7 @@ from app.models.trade import Trade
 from app.repositories.position_repository import PositionRepository
 from app.repositories.trade_repository import TradeRepository
 from app.schemas.trade import TradeCreate
+from app.services.instrument_identity import canonicalize_symbol
 from app.services.position_accounting_service import PositionAccountingService
 
 
@@ -28,8 +29,18 @@ class TradeService:
 
         Trade persistence and position accounting are applied atomically.
         """
+        normalized_trade = trade.model_copy(
+            update={
+                "asset_symbol": canonicalize_symbol(
+                    symbol=trade.asset_symbol,
+                    asset_type=trade.asset_type,
+                    exchange=trade.exchange,
+                )
+            }
+        )
+
         try:
-            created_trade = self.trade_repository.create(trade, user_id)
+            created_trade = self.trade_repository.create(normalized_trade, user_id)
 
             if created_trade.status == TradeStatus.EXECUTED:
                 self._apply_executed_trade_to_position(created_trade)

@@ -9,9 +9,17 @@ function buildPortfolioSummaryLine(context: AstraPromptContext): string {
   }
 
   const holdingsCount = context.summary.holdings.length;
-  const totalValue = parseDecimal(context.summary.total_invested);
+  const totalValue =
+    context.summary.total_market_value == null
+      ? null
+      : parseDecimal(context.summary.total_market_value);
+  const valuationStatus = context.summary.valuation_status;
 
-  return `Portfolio snapshot: ${holdingsCount} holdings, total value ${totalValue.toFixed(2)} INR.`;
+  if (totalValue == null) {
+    return `Portfolio snapshot: ${holdingsCount} holdings, live valuation ${valuationStatus.toLowerCase()}.`;
+  }
+
+  return `Portfolio snapshot: ${holdingsCount} holdings, total market value ${totalValue.toFixed(2)} INR (${valuationStatus}).`;
 }
 
 function toMarkdownList(items: string[]): string {
