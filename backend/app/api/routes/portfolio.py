@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.ai import get_structured_ai_service
 from app.api.dependencies.auth import get_authenticated_user_id
 from app.db.database import get_db
 from app.repositories.portfolio_repository import PortfolioRepository
@@ -46,13 +47,13 @@ def get_portfolio_summary(
 def get_ai_workflow_service(
     db: Session = Depends(get_db),
     user_id: UUID = Depends(get_authenticated_user_id),
+    ai_service: AIService = Depends(get_structured_ai_service),
 ) -> AIWorkflowService:
     repository = PortfolioRepository(db)
 
     portfolio_service = PortfolioService(repository)
     market_service = MarketService()
     news_service = NewsService()
-    ai_service = AIService()
 
     tool_registry = ToolRegistry(
         portfolio_service=portfolio_service,

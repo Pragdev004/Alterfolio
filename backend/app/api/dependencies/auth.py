@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import Depends, Header, HTTPException, Request
 
 from app.core.config import Settings, get_settings
+from app.services.authenticated_principal import AuthenticatedPrincipal
 
 
 def _get_principal_from_request_state(request: Request) -> UUID | None:
@@ -49,4 +50,36 @@ def get_authenticated_user_id(
     raise HTTPException(
         status_code=401,
         detail="Authentication required",
+    )
+
+
+def get_astra_authenticated_principal(
+    request: Request,
+) -> AuthenticatedPrincipal:
+    candidate = getattr(request.state, "authenticated_principal", None)
+
+    if candidate is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+        )
+
+    if isinstance(candidate, AuthenticatedPrincipal):
+        return candidate
+
+    if isinstance(candidate, UUID):
+        return AuthenticatedPrincipal(user_id=candidate)
+
+    if isinstance(candidate, dict) and "user_id" in candidate:
+        try:
+            return AuthenticatedPrincipal(user_id=UUID(str(candidate["user_id"])))
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authenticated principal",
+            ) from exc
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid authenticated principal",
     )

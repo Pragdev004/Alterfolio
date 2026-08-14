@@ -318,66 +318,33 @@ def test_ai_workflow_service_mixes_success_and_failures_across_holdings() -> Non
     assert news_service.calls == ["TCS", "INFY"]
 
 
-def test_ai_service_run_agent_executes_tools_and_returns_final_text() -> None:
-    first_response = SimpleNamespace(
-        id="resp_1",
-        output=[
-            SimpleNamespace(
-                type="function_call",
-                name="get_stock_quote",
-                arguments='{"symbol":"TCS"}',
-                call_id="call_1",
+def test_ai_service_run_agent_delegates_to_orchestrator_and_returns_text() -> None:
+    captured_requests = []
+
+    class StubOrchestrator:
+        def run(self, request):
+            captured_requests.append(request)
+            return SimpleNamespace(
+                output_text="Final recommendation from model",
+                agent_run_id="run-123",
             )
-        ],
-        output_text="",
-    )
 
-    second_response = SimpleNamespace(
-        id="resp_2",
-        output=[],
-        output_text="Final recommendation from model",
-    )
-
-    fake_responses = FakeResponsesAPI([first_response, second_response])
-    fake_client = SimpleNamespace(responses=fake_responses)
-    fake_settings = SimpleNamespace(azure_openai_deployment="test-deployment")
-
-    ai_service = object.__new__(AIService)
-    ai_service._client = fake_client
-    ai_service._settings = fake_settings
-
-    portfolio_tool = SimpleNamespace(get_portfolio_summary=lambda: {"total_trades": 2})
-    market_tool = SimpleNamespace(get_stock_quote=lambda symbol: {"symbol": symbol, "price": 100})
-    news_tool = SimpleNamespace(get_company_news=lambda symbol: {"symbol": symbol, "articles": []})
+    ai_service = AIService(agent_orchestrator=StubOrchestrator())
 
     executor = ToolExecutor(
         SimpleNamespace(
-            portfolio=portfolio_tool,
-            market=market_tool,
-            news=news_tool,
+            portfolio=SimpleNamespace(get_portfolio_summary=lambda: {"total_trades": 2}),
+            market=SimpleNamespace(get_stock_quote=lambda symbol: {"symbol": symbol, "price": 100}),
+            news=SimpleNamespace(get_company_news=lambda symbol: {"symbol": symbol, "articles": []}),
         )
     )
 
-    final_text = ai_service.run_agent(
-        "Analyze my portfolio",
-        executor,
-    )
+    final_text = ai_service.run_agent("Analyze my portfolio", executor)
 
     assert final_text == "Final recommendation from model"
-    assert len(fake_responses.calls) == 2
-
-    initial_call = fake_responses.calls[0]
-    assert initial_call["input"] == "Analyze my portfolio"
-
-    followup_call = fake_responses.calls[1]
-    assert followup_call["previous_response_id"] == "resp_1"
-    assert followup_call["input"] == [
-        {
-            "type": "function_call_output",
-            "call_id": "call_1",
-            "output": '{"symbol": "TCS", "price": 100}',
-        }
-    ]
+    assert len(captured_requests) == 1
+    assert captured_requests[0].user_input == "Analyze my portfolio"
+    assert captured_requests[0].tool_executor is executor
 
 
 def test_portfolio_analysis_endpoint_returns_expected_response() -> None:

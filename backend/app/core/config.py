@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     azure_openai_deployment: str
     azure_openai_api_version: str = "v1"
 
+    # ASTRA limits
+    astra_execution_timeout_seconds: int = Field(default=45, gt=0)
+    astra_provider_max_output_tokens: int = Field(default=2000, gt=0)
+    astra_answer_max_chars: int = Field(default=12000, gt=0)
+    astra_query_max_chars: int = Field(default=4000, gt=0)
+    astra_symbol_max_chars: int = Field(default=20, gt=0)
+    astra_max_reasoning_iterations: int = Field(default=8, gt=0)
+    astra_max_cumulative_tool_calls: int = Field(default=20, gt=0)
 
     @computed_field
     @property
