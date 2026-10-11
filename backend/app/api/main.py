@@ -1,0 +1,63 @@
+from collections.abc import Callable
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+from app.api.routes import health, portfolio, trades
+from app.config import Settings
+from app.db.session import make_session_factory
+from app.services.errors import LedgerError, TradeNotFoundError
+from app.services.users import ensure_user
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+async def _ledger_error(_: Request, exc: LedgerError) -> JSONResponse:
+    status = 404 if isinstance(exc, TradeNotFoundError) else 422
+    return JSONResponse(
+        status_code=status, content={"detail": {"code": exc.code, "message": str(exc)}}
+    )
+
+
+def create_app(
+    *,
+    session_factory: Callable | None = None,
+    settings: Settings | None = None,
+    clock: Callable[[], datetime] = _utc_now,
+    id_factory: Callable[[], UUID] = uuid4,
+) -> FastAPI:
+    """Application factory; run with `uvicorn app.api.main:create_app --factory`."""
+    settings = settings or Settings()
+    if session_factory is None:
+        if not settings.database_url:
+            raise RuntimeError("ALTERFOLIO_DATABASE_URL is required to run the server")
+        if not settings.database_url.startswith("postgresql"):
+            raise RuntimeError("only PostgreSQL is supported when running the server (SQLite is test-only)")
+        session_factory = make_session_factory(settings.database_url)
+        seed_user = True
+    else:
+        seed_user = False
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        if seed_user:
+            with session_factory() as session:
+                ensure_user(session, settings.user_id)
+                session.commit()
+        yield
+
+    app = FastAPI(title="Alterfolio V2", lifespan=lifespan)
+    app.state.session_factory = session_factory
+    app.state.settings = settings
+    app.state.clock = clock
+    app.state.id_factory = id_factory
+    app.add_exception_handler(LedgerError, _ledger_error)
+    app.include_router(health.router)
+    app.include_router(trades.router)
+    app.include_router(portfolio.router)
+    return app
