@@ -9,7 +9,8 @@ only explains structured quant output. **Financial truth comes only from determi
 a source of a number.** Educational, not financial advice; no profitability claims.
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
-features 002 (Zerodha import) and 003 (quotes + summary) are not started. `quant/` is an empty package; no frontend.
+feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
+live PostgreSQL 16.14 suite); 003 (quotes + summary) is not started. `quant/` is an empty package; no frontend.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -39,19 +40,21 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
   frontend `frontend/src/{app,features/<feature>,shared/...}` (stage 3).
 - Three domain boundaries: Accounting (real ledger, long-only, append-only) / Quant (pure) / AI (read-only prose).
   Simulated portfolios never read or write the real ledger.
-- Instrument identity = `(symbol, exchange)`; NSE and BSE listings are distinct. No instruments table in stage 1.
+- Holding identity = ISIN (002): NSE and BSE listings of one ISIN are one holding; legacy NULL-ISIN trades are separate,
+  flagged holdings keyed by `(symbol, exchange)`. `Instrument(symbol, exchange)` is the listing value. No instruments table.
 
 ### Trade ledger model (cross-cutting)
 - `trades` is append-only: no UPDATE/DELETE code path. Correct = new row with `supersedes_trade_id`; void = superseding
   row with status CANCELLED. A row is superseded at most once. Effective set = EXECUTED rows not superseded.
 - A correction that would make any later sell exceed holdings is rejected. Sells above held quantity are rejected.
-- Import dedupe key = `(user_id, broker, broker_trade_id)` (partial unique index, original rows only). Never dedupe
-  on `order_id` (partial fills share it).
+- Import dedupe key = `(user_id, broker, exchange, broker_trade_id)` (partial unique index, original rows only). Never
+  dedupe on `order_id` (partial fills share it). Imported rows have `charges_provided=false` (fees/taxes unknown, stored 0).
 - `trade_timestamp` (when it happened) vs `recorded_at` (when entered). Holdings/summaries are derived, never stored.
 - Missing quote -> valuation PARTIAL/UNAVAILABLE; never estimate a price.
 - Input limits (reject, never truncate/round): text lengths in `domain/limits.py`; each trade amount and every holdings
-  running total < `MAX_AMOUNT` (10^15, `domain/numeric.py`); duplicate manual `(broker, broker_trade_id)` -> 422; no NUL in
-  text; Decimal exponent as written within [-20, 13] (zero included); `trade_timestamp` within `domain/limits.py` window.
+  running total < `MAX_AMOUNT` (10^15, `domain/numeric.py`); duplicate manual `(broker, exchange, broker_trade_id)` -> 422; no NUL in
+  text; Decimal exponent as written within [-20, 13] (zero included); `trade_timestamp` within `domain/limits.py` window;
+  tradebook upload <= 2 MiB (enforced while streaming) and <= 5,000 rows, else 422 `invalid_import_file`.
 
 ## 3. Code Style
 - Python 3.11+. Money, price, quantity, fee, tax, notional, P&L = `Decimal` in memory, `NUMERIC` in PostgreSQL,
@@ -69,7 +72,8 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
 Backend: FastAPI, SQLAlchemy 2 + Alembic, PostgreSQL, pytest. Quant: stdlib, statsmodels isolated to one adapter.
 Market data: provider interface, Yahoo adapter first. Frontend (stage 3): React + TypeScript + Vite, vitest.
 AI provider/orchestration: TBD via ADR at stage 6 (provider-neutral port, default none).
-Declared in `backend/pyproject.toml` (setuptools build; runtime + `dev` extra: pytest, httpx, uvicorn). Exact versions
+Declared in `backend/pyproject.toml` (setuptools build; runtime incl. `python-multipart` for the streaming tradebook upload;
+`dev` extra: pytest, httpx, uvicorn). Exact versions
 for the whole closure are pinned in `backend/constraints.txt` (resolved on Python 3.14.5).
 
 ## 5. Commands
@@ -104,8 +108,11 @@ Lint/type-check/frontend commands: TBD (not configured yet).
 ## 7. Context Map
 - `docs/design.md`: architecture, data model, numeric policy, invariants, decision table, development plan.
 - `docs/spec.md`: problem, FRs, data entities, endpoint contracts, edge cases, acceptance criteria.
-- `docs/v1-lineage.md`: V1 -> V2 register and user decisions U1-U9.
-- `docs/plans/001-trade-ledger-holdings.md`: Feature 001 decisions D1-D13, data model, API, tests. `docs/reports/` empty.
+- `docs/v1-lineage.md`: V1 -> V2 register and user decisions U1-U10.
+- `docs/plans/001-trade-ledger-holdings.md`: Feature 001 decisions D1-D13, data model, API, tests (002 supersedes some).
+- `docs/plans/002-zerodha-tradebook-import.md` (scope, format, flow, API), `002a-decisions.md` (owner decisions OPEN-#),
+  `002b-schema-api-tests.md` (migration, 001 contract changes, semantics, tests). `docs/reports/` empty.
+- `docs/specs/`: as-built specs per delivered feature (`README.md` index; 001, 002-1 to 002-5). They win over plans where they differ.
 - `docs/constitution.md`: 8-law V2 constitution; to be written at scaffold (does not exist yet).
 - `.claude/settings.local.json`: local permissions only; `.claude/agents/` and `.claude/hooks/` are empty.
 - Obsidian project knowledge: `Alterfolio V2/` in the `obsidian_pragadeeshwar_os` MCP vault.
@@ -116,5 +123,6 @@ Lint/type-check/frontend commands: TBD (not configured yet).
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; no commits yet (all files untracked). Never push without explicit user approval. Markdown docs must stay
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is implemented and verified in the working tree, pending review
+and commit. Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.

@@ -58,17 +58,25 @@ beyond validation of its own fields belongs in `quant/` or `services/`, not `dom
 - `trades`: append-only `[U-approved]`. Fields per spec, plus `broker_trade_id` (nullable, the broker's per-fill id),
   `recorded_at` (when the row was entered; `trade_timestamp` is when the trade happened), `supersedes_trade_id`
   (nullable FK to trades). NUMERIC for money and quantity, `timestamptz` UTC, `user_id`. No UPDATE or DELETE code path.
-- Import dedupe: partial unique index on `(user_id, broker, broker_trade_id)` WHERE `broker_trade_id IS NOT NULL AND
-  supersedes_trade_id IS NULL`, so it applies to original rows only. `order_id` is stored but never used for dedupe
-  (partial fills share an order id). Replaces the earlier `order_id` key.
+- Import dedupe (Feature 002, OPEN-2): partial unique index on `(user_id, broker, exchange, broker_trade_id)` WHERE
+  `broker_trade_id IS NOT NULL AND supersedes_trade_id IS NULL`, original rows only; the same id on NSE and BSE is two
+  trades. `order_id` is stored but never used for dedupe (partial fills share an order id). Supersedes the 001 key
+  `(user_id, broker, broker_trade_id)`.
+- Feature 002 trade fields: `isin` (nullable; required on new manual trades and corrections), `charges_provided` (false
+  for imported rows: the stored 0 fees/taxes are unknown, not zero), `import_batch_id` (nullable, same-user composite FK).
+  `name`, `asset_type`, `market_session` are nullable (NULL = not provided by the source). See plans 002, 002a, 002b.
 - Corrections `[U-approved]`: a new row with `supersedes_trade_id` and the corrected values; a void is a correcting
   row with status CANCELLED. A row is superseded at most once (unique on `supersedes_trade_id`), chains are allowed,
   and the correction must share the original's `user_id`. The effective trade set = EXECUTED rows not superseded.
   A correction is rejected if re-folding the effective set would oversell at any point. As-known-at-date queries
   (filtering `recorded_at`) are not in v1; `recorded_at` is stored so they stay possible.
-- `import_batches`: user_id, file name, file SHA-256, counts, created_at `[NEW]`.
-- Instrument identity = `(symbol, exchange)` plus asset_type and currency as columns on the trade; no instruments
-  table in stage 1; NSE and BSE listings are distinct `[V1:quant-domain.md]`. Corporate actions are out of stage 1.
+- `import_batches` `[NEW]`: user_id, file name, file SHA-256 (not unique), total_rows, imported, duplicates, rejected_total,
+  created_at. Rejected rows are not persisted.
+- Holding identity = ISIN (Feature 002, OPEN-1): one holding per ISIN across NSE and BSE; exchange is trade-level
+  metadata and a holding reports its `(symbol, exchange)` listings. Legacy trades with NULL ISIN stay as separate,
+  flagged holdings keyed by `(symbol, exchange)`, never merged. `Instrument(symbol, exchange)` remains the listing value;
+  asset_type and currency are columns on the trade; no instruments table in stage 1 `[V1:quant-domain.md]`.
+  Corporate actions are out of stage 1.
 - Holdings, summaries, observations, quant metrics: derived, not stored `[V1:quant-domain.md]`.
 - Market bars: fetched on demand, not cached; `DataProvenance` + fingerprint recorded with any stored result
   `[V1:ADR 002]`. Quant result persistence is decided per stage plan, with the first schema at stage 5 (BacktestRun).
@@ -144,7 +152,7 @@ V2 has 8 laws; retired V1 numbers 3 and 7 are not kept.
 | Product | Portfolio + quant analytics `[U2]` | AI twin; skill-vs-luck replay | Matches the supplied stage order and the AI-last principle |
 | Quant location | `app/quant/` top-level | `services/quant/` (V1) | Boundary is a layer; simpler import rule |
 | Shared types | stdlib-only `app/domain/` (enums, `Instrument`) | Quant imports `models` (V1 exception); duplicate enums in quant | One definition, no ORM in quant, no drift |
-| Import dedupe key | `broker_trade_id`, partial unique on original rows | `order_id` (partial fills collide) | Matches the spec; corrections cannot collide |
+| Import dedupe key | `(broker, exchange, broker_trade_id)`, partial unique on original rows | `order_id` (partial fills collide); key without exchange | Matches the spec; corrections cannot collide; NSE and BSE ids stay distinct (OPEN-2) |
 | Trade edits | Append-only with supersede link, `recorded_at` | In-place update; hard delete | Immutable history, auditable corrections |
 | Instrument table | Columns on trade, no table in stage 1 | Instruments table now | Corporate actions deferred; avoid premature schema |
 | Bar cache | None; provenance fingerprint | Persisted cache now | V1 judged it unjustified; revisit on restated data |
@@ -154,9 +162,10 @@ V2 has 8 laws; retired V1 numbers 3 and 7 are not kept.
 | Stage 1 UI | None (API only) | Minimal UI in stage 1 | Spec lists UI at stage 3 |
 
 ## Main flows
-1. Tradebook import: upload CSV -> parse rows -> validate (tz, side, Decimal) -> dedupe on broker trade id ->
-   insert -> `ImportResult` counts with per-row rejection reasons.
-2. Holdings as of T: select user's trades with timestamp <= T and not superseded -> fold with weighted-average
+1. Tradebook import: stream upload (2 MiB cap) -> parse rows -> validate (IST->UTC, side, Decimal, ISIN) -> user lock ->
+   one transaction: batch row, dedupe on `(broker, exchange, broker_trade_id)`, oversell check, insert -> counts with
+   per-row rejection reasons. Imported rows carry no fees or taxes (`charges_provided=false`).
+2. Holdings as of T: select user's trades with timestamp <= T and not superseded -> fold per ISIN with weighted-average
    cost -> holdings; sells above held quantity are rejected.
 3. Portfolio summary: holdings -> provider quotes -> valuation status (COMPLETE/PARTIAL/UNAVAILABLE) -> summary;
    missing quotes are reported, never estimated.
@@ -174,7 +183,7 @@ V2 has 8 laws; retired V1 numbers 3 and 7 are not kept.
 | 7 | Advanced research/signals | Per-feature plan and approval |
 
 ## Architectural commitments approved at the Design Gate
-1. Append-only trades with `supersedes_trade_id`, `broker_trade_id` dedupe, `recorded_at`.
+1. Append-only trades with `supersedes_trade_id`, `broker_trade_id` dedupe (key includes exchange since 002), `recorded_at`.
 2. Decimal for money and quantity; float only inside statistics.
 3. Top-level `app/quant/` plus stdlib-only `app/domain/`.
 4. Constitution diff (8 laws).

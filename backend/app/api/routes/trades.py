@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user_id, get_ledger, get_session
-from app.schemas.trade import TradeIn, TradeOut
-from app.services.ledger import LedgerService, TradeInput
+from app.schemas.trade import TradeCorrectionIn, TradeIn, TradeOut
+from app.services.ledger import CorrectionInput, LedgerService, TradeInput
 
 router = APIRouter(prefix="/trades")
 
@@ -42,13 +42,13 @@ def get_trade(
 @router.post("/{trade_id}/correct", status_code=201, response_model=TradeOut)
 def correct_trade(
     trade_id: UUID,
-    payload: TradeIn,
+    payload: TradeCorrectionIn,
     user_id: UUID = Depends(get_current_user_id),
     ledger: LedgerService = Depends(get_ledger),
     session: Session = Depends(get_session),
 ):
     trade = ledger.correct(
-        user_id=user_id, trade_id=trade_id, data=TradeInput(**payload.model_dump())
+        user_id=user_id, trade_id=trade_id, data=CorrectionInput(**payload.model_dump())
     )
     session.commit()
     return trade

@@ -14,7 +14,7 @@ from app.models.user import User
 from app.services.users import ensure_user
 
 BODY = {
-    "symbol": "RELIANCE", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
+    "symbol": "RELIANCE", "isin": "ZZ0RELIANCE1", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
     "side": "BUY", "quantity": "10", "price_per_unit": "100",
     "trade_timestamp": "2026-01-01T10:00:00Z", "market_session": "REGULAR",
 }

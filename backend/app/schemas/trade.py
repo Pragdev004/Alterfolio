@@ -38,9 +38,12 @@ DecimalOut = Annotated[Decimal, PlainSerializer(money_str, return_type=str, when
 
 
 class TradeIn(BaseModel):
+    """A NEW manual trade: the ISIN is required (002a 1b); the format is validated by the service."""
+
     model_config = ConfigDict(extra="forbid")
 
     symbol: str
+    isin: str
     name: str
     asset_type: AssetType
     exchange: Exchange
@@ -59,13 +62,41 @@ class TradeIn(BaseModel):
     notes: str | None = None
 
 
+class TradeCorrectionIn(BaseModel):
+    """A correction is a full replacement (002a 3a). name/asset_type/market_session may stay null only where the target's
+    value is null; brokerage_fee and taxes must both be stated when the target's charges were not provided (an explicit
+    "0" counts). Omitted and JSON null both mean "not supplied". The service checks these against the target."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: str
+    isin: str
+    exchange: Exchange
+    side: TradeSide
+    quantity: DecimalIn
+    price_per_unit: DecimalIn
+    trade_timestamp: datetime
+    name: str | None = None
+    asset_type: AssetType | None = None
+    market_session: MarketSession | None = None
+    currency: Currency = Currency.INR
+    brokerage_fee: DecimalIn | None = None
+    taxes: DecimalIn | None = None
+    status: TradeStatus = TradeStatus.EXECUTED
+    broker: str | None = None
+    broker_trade_id: str | None = None
+    order_id: str | None = None
+    notes: str | None = None
+
+
 class TradeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     symbol: str
-    name: str
-    asset_type: AssetType
+    isin: str | None
+    name: str | None
+    asset_type: AssetType | None
     exchange: Exchange
     currency: Currency
     side: TradeSide
@@ -80,14 +111,25 @@ class TradeOut(BaseModel):
     order_id: str | None
     supersedes_trade_id: UUID | None
     source: TradeSource
-    market_session: MarketSession
+    market_session: MarketSession | None
     status: TradeStatus
     notes: str | None
+    charges_provided: bool
+    import_batch_id: UUID | None
+
+
+class ListingOut(BaseModel):
+    symbol: str
+    exchange: Exchange
 
 
 class HoldingOut(BaseModel):
-    symbol: str
-    exchange: Exchange
+    """One holding per ISIN (isin=null marks a legacy holding keyed by its single listing)."""
+
+    isin: str | None
+    listings: list[ListingOut]
+    name: str | None
     quantity: DecimalOut
     average_buy_price: DecimalOut
     invested_amount: DecimalOut
+    cost_basis_complete: bool

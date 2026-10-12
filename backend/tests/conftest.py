@@ -65,6 +65,17 @@ def id_factory():
     return lambda: UUID(int=next(ids) + 0x1000)
 
 
+def make_batch(session, user_id=USER_A, **overrides):
+    """An import batch owned by `user_id`; every source=IMPORT trade must reference one."""
+    from uuid import uuid4
+
+    from app.repositories.import_batch_repository import ImportBatchRepository
+
+    fields = dict(id=uuid4(), file_name="synthetic.csv", file_sha256="0" * 64, created_at=T0)
+    fields.update(overrides)
+    return ImportBatchRepository(session).add(user_id=user_id, **fields)
+
+
 def trade_fields(**overrides):
     """Valid FR-1 field set for the repository (recorded_at/id supplied by caller)."""
     from app.domain.enums import (

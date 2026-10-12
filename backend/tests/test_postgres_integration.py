@@ -12,12 +12,12 @@ from sqlalchemy.orm import sessionmaker
 
 from app.api.main import create_app
 from app.config import Settings
-from app.domain.enums import AssetType, Exchange, MarketSession, TradeSide
+from app.domain.enums import AssetType, Exchange, MarketSession, TradeSide, TradeSource
 from app.repositories.trade_repository import TradeRepository
 from app.repositories.user_repository import UserRepository
 from app.services.errors import OversellError
-from app.services.ledger import LedgerService, TradeInput
-from tests.conftest import T0, USER_A, USER_B, trade_fields
+from app.services.ledger import CorrectionInput, LedgerService, TradeInput
+from tests.conftest import T0, USER_A, USER_B, make_batch, trade_fields
 from tests.test_migration import LIVE_URL, alembic_config, live_only, require_empty_database
 
 pytestmark = live_only
@@ -35,6 +35,9 @@ def pg_engine():
         yield engine
     finally:
         with engine.begin() as conn:
+            # Test isolation only: the tests leave rows behind (imported rows have NULL name/asset_type/market_session) and
+            # the 0002 downgrade deliberately refuses to rewrite such rows, so empty the tables before migrating down.
+            conn.execute(text("TRUNCATE trades, import_batches, users CASCADE"))
             cfg.attributes["connection"] = conn
             command.downgrade(cfg, "base")
         engine.dispose()
@@ -57,7 +60,7 @@ def ti(**kw):
     base = dict(
         symbol="RELIANCE", name="Reliance Industries", asset_type=AssetType.STOCK,
         exchange=Exchange.NSE, side=TradeSide.BUY, quantity=D("10"), price_per_unit=D("100"),
-        trade_timestamp=T0, market_session=MarketSession.REGULAR,
+        trade_timestamp=T0, market_session=MarketSession.REGULAR, isin="ZZ0RELIANCE1",
     )
     base.update(kw)
     return TradeInput(**base)
@@ -119,10 +122,35 @@ def test_dedupe_partial_unique_index_applies_to_original_rows_only(factory):
         _add(s, broker="zerodha", broker_trade_id=None)
         _add(s, broker="zerodha", broker_trade_id=None)
         _add(s, broker="zerodha", broker_trade_id="T1", supersedes_trade_id=first.id)
+        _add(s, broker="zerodha", broker_trade_id="T1", exchange=Exchange.BSE)  # same id, other exchange
         s.commit()
         with pytest.raises(IntegrityError):
             _add(s, broker="zerodha", broker_trade_id="T1")
         s.rollback()
+        assert TradeRepository(s).original_by_key(
+            user_id=USER_A, broker="zerodha", exchange=Exchange.BSE, broker_trade_id="T1"
+        ) is not None
+
+
+def test_import_columns_constraints_and_batch_foreign_key(factory):
+    with factory() as s:
+        batch_a = make_batch(s, USER_A)
+        batch_b = make_batch(s, USER_B)
+        ok = _add(
+            s, source=TradeSource.IMPORT, import_batch_id=batch_a.id, charges_provided=False, isin="ZZ0ALPHA0001",
+            name=None, asset_type=None, market_session=None,
+        )
+        s.commit()
+        assert ok.charges_provided is False
+        for bad in (
+            dict(isin="SHORT"),
+            dict(source=TradeSource.IMPORT, import_batch_id=None),
+            dict(source=TradeSource.MANUAL, import_batch_id=batch_a.id),
+            dict(source=TradeSource.IMPORT, import_batch_id=batch_b.id),  # another user's batch
+        ):
+            with pytest.raises(IntegrityError):
+                _add(s, **bad)
+            s.rollback()
 
 
 def test_supersede_uniqueness_and_same_user_foreign_key(factory):
@@ -190,7 +218,11 @@ def test_ledger_flow_with_fees_correction_void_and_oversell_rollback(factory):
         assert len(svc.list_trades(user_id=USER_A)) == 1
         fixed = svc.correct(
             user_id=USER_A, trade_id=buy.id,
-            data=ti(quantity=D("8"), brokerage_fee=D("10"), taxes=D("5")),
+            data=CorrectionInput(
+                symbol="RELIANCE", isin="ZZ0RELIANCE1", name="Reliance Industries", asset_type=AssetType.STOCK,
+                exchange=Exchange.NSE, side=TradeSide.BUY, quantity=D("8"), price_per_unit=D("100"),
+                trade_timestamp=T0, market_session=MarketSession.REGULAR, brokerage_fee=D("10"), taxes=D("5"),
+            ),
         )
         svc.void(user_id=USER_A, trade_id=fixed.id)
         s.commit()
@@ -203,8 +235,8 @@ def test_api_end_to_end_on_postgres(factory):
     app = create_app(session_factory=factory, settings=Settings(user_id=USER_A))
     client = TestClient(app)
     payload = {
-        "symbol": "RELIANCE", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
-        "side": "BUY", "quantity": "10", "price_per_unit": "100", "brokerage_fee": "10", "taxes": "5",
+        "symbol": "RELIANCE", "isin": "ZZ0RELIANCE1", "name": "Reliance Industries", "asset_type": "STOCK",
+        "exchange": "NSE", "side": "BUY", "quantity": "10", "price_per_unit": "100", "brokerage_fee": "10", "taxes": "5",
         "trade_timestamp": "2026-01-01T10:00:00Z", "market_session": "REGULAR",
     }
     r = client.post("/trades", json=payload)
@@ -219,7 +251,7 @@ def test_api_end_to_end_on_postgres(factory):
 from app.services.errors import DuplicateTradeError  # noqa: E402
 
 PG_BODY = {
-    "symbol": "RELIANCE", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
+    "symbol": "RELIANCE", "isin": "ZZ0RELIANCE1", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
     "side": "BUY", "quantity": "10", "price_per_unit": "100",
     "trade_timestamp": "2026-01-01T10:00:00Z", "market_session": "REGULAR",
 }
@@ -270,14 +302,14 @@ def test_unique_index_backstop_and_savepoint_on_postgres(factory, monkeypatch):
         data = dict(broker="zerodha", broker_trade_id="T1")
         first = svc.record(user_id=USER_A, data=ti(**data))
         s.commit()
-        real = TradeRepository.original_by_broker_trade_id
+        real = TradeRepository.original_by_key
         calls = []
 
         def racing(self, **kw):
             calls.append(kw)
             return None if len(calls) == 1 else real(self, **kw)
 
-        monkeypatch.setattr(TradeRepository, "original_by_broker_trade_id", racing)
+        monkeypatch.setattr(TradeRepository, "original_by_key", racing)
         with pytest.raises(DuplicateTradeError) as err:
             svc.record(user_id=USER_A, data=ti(trade_timestamp=T0 + timedelta(hours=1), **data))
         assert err.value.existing_trade_id == first.id and len(calls) == 2
@@ -386,3 +418,166 @@ def test_window_edge_timestamps_read_back_under_any_session_timezone(factory, pg
         assert all(reader.get(f"/trades/{i}").status_code == 200 for i in ids)
     finally:
         zone_engine.dispose()
+
+
+# ---- Feature 002c: per-user NOWAIT lock and the import service on real PostgreSQL -------------------------------
+
+from pathlib import Path  # noqa: E402
+
+from app.models.import_batch import ImportBatch  # noqa: E402
+from app.models.trade import Trade  # noqa: E402
+from app.services.errors import LedgerBusyError  # noqa: E402
+from app.services.tradebook_import import TradebookImportService  # noqa: E402
+from sqlalchemy import func, select  # noqa: E402
+
+_FIXTURE = Path(__file__).parent / "fixtures" / "tradebook_synthetic.csv"
+
+
+def _importer(session):
+    ticks = iter(range(10**6))
+    return TradebookImportService.for_session(session, clock=lambda: T0 + timedelta(days=1, seconds=next(ticks)))
+
+
+def _count(factory, model):
+    with factory() as s:
+        return s.scalar(select(func.count()).select_from(model))
+
+
+def test_nowait_lock_refuses_a_second_writer_and_releases_on_rollback(factory):
+    holder, other = factory(), factory()
+    try:
+        service(holder).lock_user(user_id=USER_A)
+        with pytest.raises(LedgerBusyError):
+            service(other).lock_user(user_id=USER_A)
+        other.rollback()
+        service(other).lock_user(user_id=USER_B)  # another user's lock is independent
+        holder.rollback()
+        service(other).lock_user(user_id=USER_A)  # free again after the holder ends its transaction
+    finally:
+        holder.close()
+        other.close()
+
+
+def test_a_manual_write_is_refused_while_an_import_holds_the_lock_and_vice_versa(factory):
+    holder, other = factory(), factory()
+    try:
+        service(holder).record(user_id=USER_A, data=ti())  # uncommitted: holds the user's lock
+        with pytest.raises(LedgerBusyError):
+            _importer(other).import_tradebook(user_id=USER_A, file_name="x.csv", content=_FIXTURE.read_bytes())
+        other.rollback()
+        assert _count(factory, ImportBatch) == 0  # a refused lock creates no batch
+        holder.rollback()
+
+        _importer(holder)._ledger.lock_user(user_id=USER_A)  # stands in for an import in its write transaction
+        with pytest.raises(LedgerBusyError):
+            service(other).record(user_id=USER_A, data=ti())
+        other.rollback()
+    finally:
+        holder.close()
+        other.close()
+    assert _count(factory, Trade) == 0
+
+
+def test_import_end_to_end_on_postgres(factory):
+    with factory() as s:
+        first = _importer(s).import_tradebook(user_id=USER_A, file_name="synthetic.csv", content=_FIXTURE.read_bytes())
+    assert (first.total_rows, first.imported, first.duplicates, first.rejected_total) == (7, 6, 0, 1)
+    with factory() as s:
+        again = _importer(s).import_tradebook(user_id=USER_A, file_name="synthetic.csv", content=_FIXTURE.read_bytes())
+    assert (again.imported, again.duplicates, again.rejected_total) == (0, 6, 1)
+    with factory() as s:
+        rows = s.scalars(select(Trade).where(Trade.user_id == USER_A)).all()
+        assert len(rows) == 6 and {t.import_batch_id for t in rows} == {first.import_batch_id}
+        assert all(t.source is TradeSource.IMPORT and t.charges_provided is False and t.name is None for t in rows)
+        assert s.scalar(select(func.count()).select_from(ImportBatch).where(ImportBatch.user_id == USER_A)) == 2
+
+
+def test_a_failed_import_leaves_no_batch_and_no_rows_on_postgres(factory, monkeypatch):
+    real = TradeRepository.add
+    calls = []
+
+    def fail_on_third(self, **kw):
+        calls.append(1)
+        if len(calls) == 3:
+            raise RuntimeError("boom")
+        return real(self, **kw)
+
+    monkeypatch.setattr(TradeRepository, "add", fail_on_third)
+    with factory() as s, pytest.raises(RuntimeError, match="boom"):
+        _importer(s).import_tradebook(user_id=USER_A, file_name="synthetic.csv", content=_FIXTURE.read_bytes())
+    assert _count(factory, ImportBatch) == 0 and _count(factory, Trade) == 0
+
+
+# ---- Feature 002 routes on real PostgreSQL (live only; skipped without ALTERFOLIO_TEST_DATABASE_URL) -------------------
+
+from tests.test_tradebook_import import csv_bytes as _csv_bytes, r as _csv_row  # noqa: E402
+
+
+def _post_csv(client, content):
+    return client.post("/imports/tradebook", files={"file": ("tradebook.csv", content, "text/csv")})
+
+
+def test_import_route_end_to_end_on_postgres_including_the_threadpool_session(factory):
+    client = _client(factory)
+    first = _post_csv(client, _csv_bytes(_csv_row(1, qty="10", price="100"), _csv_row(2, qty="5", exchange="BSE", price="110")))
+    assert first.status_code == 201 and first.json()["imported"] == 2
+    again = _post_csv(client, _csv_bytes(_csv_row(1, qty="10", price="100"), _csv_row(2, qty="5", exchange="BSE", price="110")))
+    assert again.status_code == 201 and (again.json()["imported"], again.json()["duplicates"]) == (0, 2)
+    (h,) = client.get("/portfolio/holdings").json()
+    assert (h["quantity"], h["cost_basis_complete"], len(h["listings"])) == ("15.000000", False, 2)
+    rows = client.get("/trades").json()
+    assert {t["source"] for t in rows} == {"IMPORT"} and {t["name"] for t in rows} == {None}
+    assert _count(factory, ImportBatch) == 2
+
+
+def test_import_route_is_409_while_another_transaction_holds_the_user_lock(factory):
+    holder = factory()
+    try:
+        service(holder).lock_user(user_id=USER_A)
+        resp = _post_csv(_client(factory), _csv_bytes(_csv_row(1)))
+        assert resp.status_code == 409 and resp.json()["detail"]["code"] == "ledger_busy"
+    finally:
+        holder.rollback()
+        holder.close()
+    assert _count(factory, ImportBatch) == 0 and _count(factory, Trade) == 0
+    assert _post_csv(_client(factory), _csv_bytes(_csv_row(1))).status_code == 201  # free again
+
+
+def test_manual_write_routes_are_409_while_another_transaction_holds_the_user_lock(factory):
+    client = _client(factory)
+    created = client.post("/trades", json=PG_BODY).json()
+    holder = factory()
+    try:
+        service(holder).lock_user(user_id=USER_A)
+        assert client.post("/trades", json=PG_BODY).status_code == 409
+        assert client.post(f"/trades/{created['id']}/void").status_code == 409
+        correction = {k: v for k, v in PG_BODY.items()}
+        assert client.post(f"/trades/{created['id']}/correct", json=correction).status_code == 409
+    finally:
+        holder.rollback()
+        holder.close()
+    assert len(client.get("/trades").json()) == 1
+
+
+def test_void_of_an_imported_row_on_postgres(factory):
+    client = _client(factory)
+    assert _post_csv(client, _csv_bytes(_csv_row(1))).status_code == 201
+    (imported,) = client.get("/trades").json()
+    void = client.post(f"/trades/{imported['id']}/void")
+    assert void.status_code == 201
+    assert (void.json()["isin"], void.json()["charges_provided"], void.json()["import_batch_id"]) == ("ZZ0ALPHA0001", False, None)
+
+
+def test_correcting_an_imported_row_needs_stated_fees_on_postgres(factory):
+    client = _client(factory)
+    assert _post_csv(client, _csv_bytes(_csv_row(1))).status_code == 201
+    (imported,) = client.get("/trades").json()
+    body = {k: PG_BODY[k] for k in ("symbol", "exchange", "side", "quantity", "price_per_unit", "trade_timestamp")}
+    body["isin"] = "ZZ0ALPHA0001"
+    url = f"/trades/{imported['id']}/correct"
+    for fees in ({}, {"brokerage_fee": "0"}, {"taxes": None, "brokerage_fee": "0"}, {"brokerage_fee": None, "taxes": "0"}):
+        assert client.post(url, json={**body, **fees}).status_code == 422
+    ok = client.post(url, json={**body, "brokerage_fee": "0", "taxes": "0"})
+    assert ok.status_code == 201
+    assert (ok.json()["charges_provided"], ok.json()["source"], ok.json()["import_batch_id"]) == (True, "MANUAL", None)
+    assert len(client.get("/trades").json()) == 2

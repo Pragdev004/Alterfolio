@@ -88,3 +88,27 @@ def test_money_paths_do_not_use_float():
                     raise AssertionError(f"{path.name}: float() call")
                 if isinstance(node, ast.Constant) and isinstance(node.value, float):
                     raise AssertionError(f"{path.name}: float literal {node.value}")
+
+
+def test_tradebook_parser_is_pure():
+    path = APP / "services" / "tradebook_parser.py"
+    assert path.exists(), "services/tradebook_parser.py must exist"
+    banned = {
+        "sqlalchemy", "fastapi", "starlette", "pydantic", "uuid", "time", "app.models", "app.repositories",
+        "app.schemas", "app.api", "app.db",
+    }
+    for name in _imports(path):
+        assert not any(name == b or name.startswith(b + ".") for b in banned), f"tradebook_parser imports {name}"
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Attribute):
+            assert node.attr not in {"now", "utcnow", "today", "open", "read_text", "read_bytes"}, node.attr
+        if isinstance(node, ast.Name):
+            assert node.id not in {"open", "print"}, node.id
+
+
+def test_tradebook_import_service_stays_in_the_service_layer():
+    path = APP / "services" / "tradebook_import.py"
+    assert path.exists(), "services/tradebook_import.py must exist"
+    banned = ("fastapi", "starlette", "pydantic", "app.api", "app.schemas")
+    for name in _imports(path):
+        assert not name.startswith(banned), f"tradebook_import imports {name}"

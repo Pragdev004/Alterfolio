@@ -6,10 +6,10 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import health, portfolio, trades
+from app.api.routes import health, imports, portfolio, trades
 from app.config import Settings
 from app.db.session import make_session_factory
-from app.services.errors import LedgerError, TradeNotFoundError
+from app.services.errors import LedgerBusyError, LedgerError, TradeNotFoundError
 from app.services.users import ensure_user
 
 
@@ -18,7 +18,12 @@ def _utc_now() -> datetime:
 
 
 async def _ledger_error(_: Request, exc: LedgerError) -> JSONResponse:
-    status = 404 if isinstance(exc, TradeNotFoundError) else 422
+    if isinstance(exc, TradeNotFoundError):
+        status = 404
+    elif isinstance(exc, LedgerBusyError):
+        status = 409
+    else:
+        status = 422
     return JSONResponse(
         status_code=status, content={"detail": {"code": exc.code, "message": str(exc)}}
     )
@@ -59,5 +64,6 @@ def create_app(
     app.add_exception_handler(LedgerError, _ledger_error)
     app.include_router(health.router)
     app.include_router(trades.router)
+    app.include_router(imports.router)
     app.include_router(portfolio.router)
     return app

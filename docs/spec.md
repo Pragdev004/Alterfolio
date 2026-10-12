@@ -30,15 +30,20 @@ Out of scope for v1:
 
 ## Functional requirements (stage 1 detail)
 - FR-1: Record a trade manually with the V1 field set (symbol, name, asset type, exchange, side, quantity, price,
-  timestamp, fees, taxes, broker, order id, source, session, status) `[V1:API.md]`. The system adds `recorded_at`.
+  timestamp, fees, taxes, broker, order id, source, session, status) `[V1:API.md]`. The system adds `recorded_at`. ISIN is required on new
+  manual trades and corrections (Feature 002).
 - FR-1a: Correct a trade by recording a new row that supersedes the original (`supersedes_trade_id`); void a trade
   with a superseding row of status CANCELLED. Trades are never updated or deleted `[U-approved]`.
 - FR-2: List trades and fetch one trade by id `[V1:API.md]`.
 - FR-3: Import a Zerodha Console tradebook CSV into trades with source = import, scoped to the user `[V1:build-plan M1]`.
-- FR-4: Re-importing the same file creates no new rows. Dedupe uses `broker_trade_id` (the broker's per-fill id),
-  not `order_id`, because partial fills share an order id `[V1:build-plan M1, U-approved]`.
+  Each valid upload creates one `import_batches` row; file-level failures create nothing (422 `invalid_import_file`).
+- FR-4: Re-importing the same file creates no new rows. Dedupe uses `(broker, exchange, broker_trade_id)` (the broker's
+  per-fill id; the same id on NSE and BSE is two trades), not `order_id`, because partial fills share an order id `[V1:build-plan M1, U-approved]`.
 - FR-5: Import returns counts of imported, duplicate and rejected rows, with a reason per rejected row `[V1:build-plan M1]`.
-- FR-6: Reconstruct holdings per instrument from trades (quantity, average buy price, invested amount) `[V1:API.md]`.
+  A key match with different content is `conflicting_duplicate` and counts as rejected. Imported rows have no fees or
+  taxes (`charges_provided=false`), so cost basis is understated until corrected.
+- FR-6: Reconstruct holdings per ISIN from trades (listings, name, quantity, average buy price, invested amount,
+  `cost_basis_complete`) `[V1:API.md]`; legacy NULL-ISIN trades are separate flagged holdings keyed by `(symbol, exchange)`.
   Buy-side brokerage and taxes are part of acquisition cost (average buy price, invested amount). Sell-side brokerage
   and taxes reduce net sale proceeds and realized P&L and do not change the remaining average cost `[U-approved]`.
   Realized P&L is computed in the pure fold; no route exposes it in feature 001.
@@ -53,23 +58,24 @@ Out of scope for v1:
 ## Data (stage 1)
 | Entity | Key fields | Rules |
 | --- | --- | --- |
-| Trade | id, user_id, symbol, name, asset_type, exchange, currency, side, quantity, price_per_unit, trade_timestamp, recorded_at, brokerage_fee, taxes, broker, broker_trade_id, order_id, supersedes_trade_id, source, market_session, status, notes | Append-only, never updated or deleted; Decimal money and quantity; timestamps tz-aware UTC; currency INR; unique `(user_id, broker, broker_trade_id)` among original rows only; a row is superseded at most once |
-| Holding (derived) | symbol, exchange, quantity, average_buy_price, invested_amount | Recomputable from trades; never hand-edited |
+| Trade | id, user_id, symbol, name, asset_type, exchange, currency, side, quantity, price_per_unit, trade_timestamp, recorded_at, brokerage_fee, taxes, broker, broker_trade_id, order_id, supersedes_trade_id, source, market_session, status, notes, isin, charges_provided, import_batch_id | Append-only, never updated or deleted; Decimal money and quantity; timestamps tz-aware UTC; currency INR; unique `(user_id, broker, exchange, broker_trade_id)` among original rows only; a row is superseded at most once; name, asset_type, market_session nullable for imports |
+| Holding (derived) | isin or null, listings[{symbol, exchange}], name, quantity, average_buy_price, invested_amount, cost_basis_complete | One per ISIN; NULL-ISIN legacy holdings keyed by `(symbol, exchange)`; recomputable from trades; never hand-edited |
 | MarketQuote | symbol, exchange, price, price_timestamp, source | A missing price is never estimated |
-| ImportResult | file name, imported, duplicates, rejected[row, reason] | Re-import is idempotent |
+| ImportResult | import_batch_id, file name, file_sha256, total_rows, imported, duplicates, rejected_total, rejected[row, code, message] (first 200), quarantined_isins, fees_taxes_provided | Re-import is idempotent; imported + duplicates + rejected_total = total_rows |
 Enums carried from V1 `[V1:API.md]`: asset_type limited to STOCK and ETF in v1 `[U4]`; exchange NSE, BSE; side BUY, SELL;
 source MANUAL, IMPORT; status EXECUTED, PENDING, CANCELLED, REJECTED. Other V1 values are out of scope.
 
 ## Contracts (stage 1, from V1 and TBD for V2 paths)
 | Endpoint / screen | Input | Output | Errors |
 | --- | --- | --- | --- |
-| POST /trades | Trade fields | Trade with id and timestamps | 422 on validation |
+| POST /trades | Trade fields incl. required `isin` | Trade with id and timestamps | 422 on validation |
 | GET /trades, GET /trades/{id} | optional id | Trade list or one Trade | 404 unknown id, 422 bad UUID |
-| POST /imports/tradebook | Zerodha CSV file | imported / duplicates / rejected counts with reasons | 422 unreadable file |
+| POST /imports/tradebook | multipart, one part `file` (Zerodha CSV, max 2 MiB, 5,000 rows) | 201 ImportResult | 422 `invalid_import_file`, 409 `ledger_busy` |
 | GET /portfolio/summary | none | total trades, total invested, holdings, valuation status | Missing quotes appear as valuation PARTIAL/UNAVAILABLE, not hidden |
 | GET /health | none | status ok | none |
 Feature 001 adds (see `docs/plans/001-trade-ledger-holdings.md`): `POST /trades/{id}/correct`, `POST /trades/{id}/void`,
-`GET /portfolio/holdings?as_of=`. Business-rule errors are 422 with `{"detail": {"code", "message"}}`; another user's id is 404.
+`GET /portfolio/holdings?as_of=`. Feature 002 changes (BREAKING): `isin` required on `POST /trades` and `/correct`; the holdings
+item shape is per ISIN; all write routes can return 409 `ledger_busy`. Business-rule errors are 422 with `{"detail": {"code", "message"}}`; another user's id is 404.
 Versioning is still TBD.
 
 ## Edge cases and error handling
@@ -82,7 +88,9 @@ Versioning is still TBD.
 - Correcting a trade twice -> rejected; correct the latest superseding row instead.
 - Quote missing for a holding -> valuation PARTIAL; market-value figures are not computed from guesses `[V1:ADR 009]`.
 - Empty portfolio -> zeros and an empty holdings list, not an error `[V1:progress 2026-10-08]`.
-- Trade with BSE and NSE listing of the same company -> separate instruments (identity = `(symbol, exchange)`).
+- BSE and NSE listings of the same ISIN -> one holding with two listings; NULL-ISIN legacy trades stay separate and flagged.
+- Import row with an empty ISIN -> rejected `missing_isin`. A sell with no earlier buy in the ledger -> rejected `oversell`;
+  later rows of that ISIN in the same import -> `after_oversell`. Nothing is estimated or opened automatically.
 - Corporate actions, splits and dividends -> TBD, not specified in V1 docs.
 - Duplicate `(broker, broker_trade_id)` among a user's original rows on manual create -> 422 `duplicate_trade`; the unique
   index stays the race-safe final enforcement. Corrections may keep the original's ids.
@@ -108,15 +116,16 @@ Versioning is still TBD.
 ## Open questions (carried to design)
 1. One-sentence success statement for V2.
 2. Frontend/design-system direction (no V1 design doc exists; frontend skills decide in design).
-3. Corporate actions (splits, bonuses, dividends) handling.
+3. Corporate actions (splits, bonuses, dividends) handling. Until decided, an import that cannot be explained by plain
+   buys and sells shows up as `oversell` rejections, never as adjusted quantities.
 4. Market-data provider beyond Yahoo, and whether to persist a bar cache.
 5. As-known-at-date queries (need `recorded_at` filtering; not in v1).
-Resolved: trade correction policy (FR-1a); instrument identity = `(symbol, exchange)`; constitution wording
+Resolved: trade correction policy (FR-1a); holding identity = ISIN (Feature 002); constitution wording
 (8 laws, see `docs/design.md`).
 
 ## Acceptance criteria (stage 1 is done when)
 Feature split: 001 = isolation, point-in-time, oversell, append-only/correction, hand-computed holdings, import-boundary,
-no-DB-env suite; 002 = parser, duplicate-import, partial-fill; 003 = summary and quotes.
+no-DB-env suite; 002 = parser, duplicate-import, partial-fill, ISIN identity, oversell quarantine; 003 = summary and quotes.
 - [ ] Parser tests pass on a fixture CSV with buys, sells, partial fills, NSE and BSE rows and one malformed row.
 - [ ] A duplicate-import test shows zero new rows on re-import.
 - [ ] Isolation tests pass at repository, service and route level.

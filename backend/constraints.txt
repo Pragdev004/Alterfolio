@@ -1,5 +1,5 @@
 # Exact pins for the full runtime + dev dependency closure of backend/pyproject.toml.
-# Resolved and tested on Python 3.14.5 (see CLAUDE.md > Commands). Used only as a pip constraint file:
+# Resolved on Python 3.14.5; install + full suite verified on 3.14.5 and 3.12 (see CLAUDE.md > Commands). Used only as a pip constraint file:
 # platform-specific entries (colorama, tzdata) are ignored where not needed. Regenerate from a fresh venv:
 #   python -m pip install -e ".[dev]" && python -m pip freeze --exclude-editable
 alembic==1.20.0
@@ -28,6 +28,7 @@ pydantic_core==2.50.0
 Pygments==2.21.0
 pytest==9.1.1
 python-dotenv==1.2.4
+python-multipart==0.0.32
 SQLAlchemy==2.1.4
 starlette==1.7.0
 typing-inspection==0.4.4

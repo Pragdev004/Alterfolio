@@ -57,3 +57,18 @@ class DuplicateTradeError(LedgerError):
     def __init__(self, broker: str, broker_trade_id: str, existing_trade_id: UUID | None = None):
         self.existing_trade_id = existing_trade_id
         super().__init__(f"a trade with broker {broker!r} and broker_trade_id {broker_trade_id!r} already exists")
+
+
+class InvalidImportFileError(LedgerError):
+    """File-level import failure (transport, encoding, header, limits). Nothing is persisted."""
+
+    code = "invalid_import_file"
+
+
+class LedgerBusyError(LedgerError):
+    """Another write holds this user's ledger lock; nothing was written. Retry later (409)."""
+
+    code = "ledger_busy"
+
+    def __init__(self) -> None:
+        super().__init__("another ledger write is in progress for this user; retry shortly")

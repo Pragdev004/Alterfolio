@@ -8,8 +8,9 @@ from app.api.main import create_app
 from app.config import Settings
 from tests.conftest import USER_A, USER_B
 
+ISIN = "ZZ0RELIANCE1"
 BUY = {
-    "symbol": "RELIANCE", "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
+    "symbol": "RELIANCE", "isin": ISIN, "name": "Reliance Industries", "asset_type": "STOCK", "exchange": "NSE",
     "side": "BUY", "quantity": "10", "price_per_unit": "100",
     "trade_timestamp": "2026-01-01T10:00:00Z", "market_session": "REGULAR",
 }
@@ -174,8 +175,9 @@ def test_holdings_values_as_of_and_empty(client):
     client.post("/trades", json=body(price_per_unit="200", trade_timestamp="2026-01-02T10:00:00Z"))
     (h,) = client.get("/portfolio/holdings").json()
     assert h == {
-        "symbol": "RELIANCE", "exchange": "NSE", "quantity": "20.000000",
-        "average_buy_price": "150.000000", "invested_amount": "3000.000000",
+        "isin": ISIN, "listings": [{"symbol": "RELIANCE", "exchange": "NSE"}], "name": "Reliance Industries",
+        "quantity": "20.000000", "average_buy_price": "150.000000", "invested_amount": "3000.000000",
+        "cost_basis_complete": True,
     }
     (past,) = client.get("/portfolio/holdings", params={"as_of": "2026-01-01T10:00:00Z"}).json()
     assert past["quantity"] == "10.000000" and past["average_buy_price"] == "100.000000"
@@ -353,8 +355,8 @@ def test_timestamps_whose_utc_instant_overflows_are_422_not_500(client, ts):
 
 
 def test_window_boundary_timestamps_round_trip(client):
-    low = client.post("/trades", json=body(trade_timestamp="0001-01-02T00:00:00Z", symbol="LOW"))
-    high = client.post("/trades", json=body(trade_timestamp="9999-12-30T23:59:59.999999Z", symbol="HIGH"))
+    low = client.post("/trades", json=body(trade_timestamp="0001-01-02T00:00:00Z", symbol="LOW", isin="ZZ0LOW000000"))
+    high = client.post("/trades", json=body(trade_timestamp="9999-12-30T23:59:59.999999Z", symbol="HIGH", isin="ZZ0HIGH00000"))
     assert low.status_code == 201 and high.status_code == 201
     assert client.get(f"/trades/{low.json()['id']}").json()["trade_timestamp"].startswith("0001-01-02T00:00:00")
     assert client.get(f"/trades/{high.json()['id']}").json()["trade_timestamp"].startswith("9999-12-30T23:59:59")

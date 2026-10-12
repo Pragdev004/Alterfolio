@@ -5,6 +5,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from app.services.ledger import LedgerService
+from app.services.tradebook_import import TradebookImportService
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -22,5 +23,11 @@ def get_current_user_id(request: Request) -> UUID:
 
 def get_ledger(request: Request, session: Session = Depends(get_session)) -> LedgerService:
     return LedgerService.for_session(
+        session, clock=request.app.state.clock, id_factory=request.app.state.id_factory
+    )
+
+
+def get_import_service(request: Request, session: Session = Depends(get_session)) -> TradebookImportService:
+    return TradebookImportService.for_session(
         session, clock=request.app.state.clock, id_factory=request.app.state.id_factory
     )

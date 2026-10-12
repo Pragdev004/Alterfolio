@@ -51,6 +51,15 @@ Covers FR-1, 1a, 2, 6, 7, 10, 11 [D1]. `investment_horizon` (V1) is dropped; it 
   instrument in canonical order; reject if any prefix goes negative. Rejected writes change nothing.
 - D13 `GET /portfolio/holdings` ships in 001; fully exited instruments are omitted.
 
+## Superseded by Feature 002 (see `002-zerodha-tradebook-import.md`, `002a`, `002b`)
+- D7 routes: `POST /trades` and `/correct` now require `isin` (BREAKING); `/correct` takes `TradeCorrectionIn`; all write
+  routes can return 409 `ledger_busy`.
+- D11 required fields: `isin` is required; imported trades may have NULL `name`, `asset_type`, `market_session`.
+- D12 identity: the fold and oversell check group by ISIN (`HoldingKey`), not `(symbol, exchange)`; legacy NULL-ISIN rows
+  stay separate. Dedupe index now includes `exchange`.
+- D13 holdings shape: `{isin, listings, name, quantity, average_buy_price, invested_amount, cost_basis_complete}`.
+- D8 gains `ledger_busy` and `invalid_import_file`. "Concurrent-write locking" below is resolved by 002 OPEN-11.
+
 ## Still TBD
 Corporate actions; symbol canonicalization (003); as-known-at-date queries; real auth; API versioning and pagination
 (`GET /trades` returns all rows, history included); concurrent-write locking; voiding an already CANCELLED row (allowed,

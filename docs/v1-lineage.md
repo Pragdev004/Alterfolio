@@ -23,6 +23,10 @@ User decisions that shape this register (Day 0 interview, 2026-10-08):
 - U9 (review approvals): trades append-only with `supersedes_trade_id` and `recorded_at`; dedupe on `broker_trade_id`
   via a partial unique index on original rows; Decimal-everywhere with float only in statistics; top-level
   `app/quant/`; stdlib-only `app/domain/` for shared enums and `Instrument`.
+- U10 (Feature 002 owner decisions, 2026-10-11; details in `docs/plans/002a-decisions.md`): ISIN is the holding identity
+  (NSE and BSE merge; legacy NULL-ISIN separate); dedupe key includes exchange; imports store zero fees with
+  `charges_provided=false`; nullable name/type/session for imports; IST timestamps; 2 MiB / 5,000-row limits; per-user
+  `NOWAIT` lock; oversell quarantine per ISIN; no estimated opening balances. Refines U9 dedupe and `(symbol, exchange)` identity.
 
 ## Preserved (proposed-inherited)
 

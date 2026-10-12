@@ -13,3 +13,11 @@ MAX_NOTES_LENGTH = 2000
 # session timezone, and the instants 0001-01-01T00:00Z and 9999-12-31T23:59:59Z fail to read back in some zones.
 MIN_TRADE_TIMESTAMP = datetime(1, 1, 2, tzinfo=timezone.utc)
 MAX_TRADE_TIMESTAMP = datetime(9999, 12, 30, 23, 59, 59, 999999, tzinfo=timezone.utc)
+
+# Tradebook import (plan 002a OPEN-8). The row cap is an implementation safety limit, not a performance guarantee.
+MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024
+MAX_IMPORT_ROWS = 5000
+MAX_IMPORT_FILE_NAME_LENGTH = 255
+MAX_LISTED_REJECTIONS = 200
+ISIN_LENGTH = 12
+MAX_FILE_SHA256_LENGTH = 64

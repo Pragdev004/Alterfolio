@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal as D
 from uuid import uuid4
@@ -11,8 +12,13 @@ from app.repositories.trade_repository import TradeRepository
 from app.services.errors import (
     AlreadySupersededError, InvalidTradeError, OversellError, TradeNotFoundError,
 )
-from app.services.ledger import LedgerService, TradeInput
-from tests.conftest import T0, USER_A, USER_B, trade_fields
+from app.services.ledger import CorrectionInput, LedgerService, TradeInput
+from tests.conftest import T0, USER_A, USER_B, make_batch, trade_fields
+
+
+def isin_of(symbol):
+    """A synthetic 12-character ISIN per symbol, so different symbols are different holdings."""
+    return ("ZZ0" + re.sub("[^A-Z0-9]", "", symbol.upper()) + "0" * 12)[:12]
 
 
 def ti(**kw):
@@ -22,7 +28,25 @@ def ti(**kw):
         price_per_unit=D("100"), trade_timestamp=T0, market_session=MarketSession.REGULAR,
     )
     base.update(kw)
+    base.setdefault("isin", isin_of(base["symbol"]))
     return TradeInput(**base)
+
+
+def ci(**kw):
+    """A correction body that keeps the known descriptive fields of a manual trade."""
+    base = dict(
+        symbol="RELIANCE", name="Reliance Industries", asset_type=AssetType.STOCK,
+        exchange=Exchange.NSE, side=TradeSide.BUY, quantity=D("10"),
+        price_per_unit=D("100"), trade_timestamp=T0, market_session=MarketSession.REGULAR,
+    )
+    base.update(kw)
+    base.setdefault("isin", isin_of(base["symbol"]))
+    return CorrectionInput(**base)
+
+
+def legacy(session, user=USER_A, **kw):
+    """A pre-Feature-002 row: manual, NULL ISIN. The service can no longer create these, so tests write them directly."""
+    return TradeRepository(session).add(user_id=user, id=uuid4(), **trade_fields(isin=None, **kw))
 
 
 @pytest.fixture
@@ -31,7 +55,8 @@ def svc(session, clock, id_factory):
 
 
 def hold(svc, user=USER_A, **kw):
-    return {(h.instrument.symbol, h.instrument.exchange): h for h in svc.holdings(user_id=user, **kw)}
+    """Holdings indexed by each of their listings, so a single-listing holding is found by (symbol, exchange)."""
+    return {(i.symbol, i.exchange): h for h in svc.holdings(user_id=user, **kw) for i in h.listings}
 
 
 def at(hours):
@@ -135,7 +160,7 @@ def test_other_users_trades_never_cover_a_sell(svc):
 def test_correct_adds_a_superseding_row_and_leaves_the_original_untouched(svc, session):
     original = svc.record(user_id=USER_A, data=ti())
     before = {c.name: getattr(original, c.name) for c in original.__table__.columns}
-    fixed = svc.correct(user_id=USER_A, trade_id=original.id, data=ti(quantity=D("8"), price_per_unit=D("101")))
+    fixed = svc.correct(user_id=USER_A, trade_id=original.id, data=ci(quantity=D("8"), price_per_unit=D("101")))
     assert fixed.id != original.id and fixed.supersedes_trade_id == original.id
     assert fixed.source is TradeSource.MANUAL and fixed.recorded_at > original.recorded_at
     session.expire_all()
@@ -148,16 +173,16 @@ def test_correct_adds_a_superseding_row_and_leaves_the_original_untouched(svc, s
 
 def test_correct_may_change_instrument_and_side(svc):
     original = svc.record(user_id=USER_A, data=ti())
-    svc.correct(user_id=USER_A, trade_id=original.id, data=ti(symbol="TCS", exchange=Exchange.BSE))
+    svc.correct(user_id=USER_A, trade_id=original.id, data=ci(symbol="TCS", exchange=Exchange.BSE))
     assert list(hold(svc)) == [("TCS", Exchange.BSE)]
 
 
 def test_correct_chain_requires_the_latest_row(svc):
     first = svc.record(user_id=USER_A, data=ti())
-    second = svc.correct(user_id=USER_A, trade_id=first.id, data=ti(quantity=D("9")))
+    second = svc.correct(user_id=USER_A, trade_id=first.id, data=ci(quantity=D("9")))
     with pytest.raises(AlreadySupersededError):
-        svc.correct(user_id=USER_A, trade_id=first.id, data=ti(quantity=D("7")))
-    third = svc.correct(user_id=USER_A, trade_id=second.id, data=ti(quantity=D("7")))
+        svc.correct(user_id=USER_A, trade_id=first.id, data=ci(quantity=D("7")))
+    third = svc.correct(user_id=USER_A, trade_id=second.id, data=ci(quantity=D("7")))
     assert third.supersedes_trade_id == second.id
     assert hold(svc)[("RELIANCE", Exchange.NSE)].quantity == D(7)
 
@@ -165,9 +190,9 @@ def test_correct_chain_requires_the_latest_row(svc):
 def test_correct_unknown_or_foreign_trade_is_not_found(svc):
     a = svc.record(user_id=USER_A, data=ti())
     with pytest.raises(TradeNotFoundError):
-        svc.correct(user_id=USER_B, trade_id=a.id, data=ti())
+        svc.correct(user_id=USER_B, trade_id=a.id, data=ci())
     with pytest.raises(TradeNotFoundError):
-        svc.correct(user_id=USER_A, trade_id=uuid4(), data=ti())
+        svc.correct(user_id=USER_A, trade_id=uuid4(), data=ci())
     assert len(svc.list_trades(user_id=USER_B)) == 0
 
 
@@ -175,7 +200,7 @@ def test_correction_that_causes_a_later_oversell_is_rejected(svc):
     buy = svc.record(user_id=USER_A, data=ti(trade_timestamp=at(0)))
     svc.record(user_id=USER_A, data=ti(side=TradeSide.SELL, trade_timestamp=at(1)))
     with pytest.raises(OversellError):
-        svc.correct(user_id=USER_A, trade_id=buy.id, data=ti(quantity=D("5"), trade_timestamp=at(0)))
+        svc.correct(user_id=USER_A, trade_id=buy.id, data=ci(quantity=D("5"), trade_timestamp=at(0)))
     assert len(svc.list_trades(user_id=USER_A)) == 2
     assert svc.holdings(user_id=USER_A) == []
 
@@ -184,16 +209,21 @@ def test_moving_a_buy_to_another_instrument_checks_the_old_instrument(svc):
     buy = svc.record(user_id=USER_A, data=ti(trade_timestamp=at(0)))
     svc.record(user_id=USER_A, data=ti(side=TradeSide.SELL, trade_timestamp=at(1)))
     with pytest.raises(OversellError):
-        svc.correct(user_id=USER_A, trade_id=buy.id, data=ti(symbol="TCS", trade_timestamp=at(0)))
+        svc.correct(user_id=USER_A, trade_id=buy.id, data=ci(symbol="TCS", trade_timestamp=at(0)))
 
 
 def test_correcting_an_imported_row_yields_a_manual_row(svc, session):
+    batch = make_batch(session)
     imported = TradeRepository(session).add(
         user_id=USER_A, id=uuid4(),
-        **trade_fields(source=TradeSource.IMPORT, broker="zerodha", broker_trade_id="T1"),
+        **trade_fields(
+            source=TradeSource.IMPORT, broker="zerodha", broker_trade_id="T1", import_batch_id=batch.id,
+            charges_provided=False,
+        ),
     )
-    fixed = svc.correct(user_id=USER_A, trade_id=imported.id, data=ti(quantity=D("4")))
+    fixed = svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(quantity=D("4"), brokerage_fee=D("0"), taxes=D("0")))
     assert imported.source is TradeSource.IMPORT and fixed.source is TradeSource.MANUAL
+    assert fixed.import_batch_id is None  # a correction of an imported row is MANUAL and carries no batch
 
 
 # ---- void -----------------------------------------------------------------
@@ -231,7 +261,7 @@ def test_void_of_a_foreign_trade_is_not_found(svc):
 def test_a_voided_trade_can_be_restored_by_correcting_the_void_row(svc):
     original = svc.record(user_id=USER_A, data=ti())
     void = svc.void(user_id=USER_A, trade_id=original.id)
-    svc.correct(user_id=USER_A, trade_id=void.id, data=ti())
+    svc.correct(user_id=USER_A, trade_id=void.id, data=ci())
     assert hold(svc)[("RELIANCE", Exchange.NSE)].quantity == D(10)
 
 
@@ -274,7 +304,7 @@ def test_sell_fees_do_not_change_the_remaining_average_via_the_service(svc):
 
 def test_a_correction_that_changes_fees_changes_the_cost(svc):
     t = svc.record(user_id=USER_A, data=ti(brokerage_fee=D("10")))
-    svc.correct(user_id=USER_A, trade_id=t.id, data=ti(brokerage_fee=D("20")))
+    svc.correct(user_id=USER_A, trade_id=t.id, data=ci(brokerage_fee=D("20")))
     (h,) = svc.holdings(user_id=USER_A)
     assert h.invested_amount == D(1020)
 
@@ -375,7 +405,7 @@ def test_cumulative_sale_proceeds_cannot_reach_the_ceiling(svc):
 def test_a_correction_cannot_breach_the_ceiling_either(svc):
     t = svc.record(user_id=USER_A, data=ti())
     with pytest.raises(NumericLimitError):
-        svc.correct(user_id=USER_A, trade_id=t.id, data=ti(quantity=BIG, price_per_unit=BIG))
+        svc.correct(user_id=USER_A, trade_id=t.id, data=ci(quantity=BIG, price_per_unit=BIG))
     assert len(svc.list_trades(user_id=USER_A)) == 1
 
 
@@ -412,20 +442,20 @@ def test_duplicate_detection_mirrors_the_database_index(svc):
 
 def test_a_correction_may_keep_the_same_broker_trade_id(svc):
     first = svc.record(user_id=USER_A, data=dup())
-    fixed = svc.correct(user_id=USER_A, trade_id=first.id, data=dup(quantity=D("4")))
+    fixed = svc.correct(user_id=USER_A, trade_id=first.id, data=ci(broker="zerodha", broker_trade_id="T1", quantity=D("4")))
     assert fixed.broker_trade_id == "T1" and fixed.supersedes_trade_id == first.id
 
 
 def test_the_database_constraint_is_the_race_safe_backstop(svc, monkeypatch):
     first = svc.record(user_id=USER_A, data=dup())
-    real = TradeRepository.original_by_broker_trade_id
+    real = TradeRepository.original_by_key
     calls = []
 
     def racing(self, **kw):  # first call (the pre-check) misses as if the other request had not committed yet
         calls.append(kw)
         return None if len(calls) == 1 else real(self, **kw)
 
-    monkeypatch.setattr(TradeRepository, "original_by_broker_trade_id", racing)
+    monkeypatch.setattr(TradeRepository, "original_by_key", racing)
     with pytest.raises(DuplicateTradeError):
         svc.record(user_id=USER_A, data=dup(trade_timestamp=at(1)))
     assert len(calls) == 2  # pre-check missed, the unique index fired, the follow-up lookup found the winner
@@ -530,3 +560,264 @@ def test_the_supported_timestamp_window_keeps_a_day_of_margin_from_the_calendar_
 def test_timestamps_outside_the_supported_window_are_rejected(ts):
     with pytest.raises(InvalidTradeError, match="trade_timestamp"):
         ti(trade_timestamp=ts)
+
+
+# ---- per-user write lock (plan 002a OPEN-11) -------------------------------------------------------------------
+
+def _recording_lock(monkeypatch):
+    calls = []
+    real = TradeRepository.lock_user_ledger
+
+    def spy(self, **kw):
+        calls.append(kw["user_id"])
+        return real(self, **kw)
+
+    monkeypatch.setattr(TradeRepository, "lock_user_ledger", spy)
+    return calls
+
+
+def test_record_correct_and_void_each_take_the_user_lock_first(svc, monkeypatch):
+    calls = _recording_lock(monkeypatch)
+    first = svc.record(user_id=USER_A, data=ti())
+    second = svc.correct(user_id=USER_A, trade_id=first.id, data=ci(quantity=D("11")))
+    svc.void(user_id=USER_A, trade_id=second.id)
+    assert calls == [USER_A, USER_A, USER_A]
+
+
+def test_reads_do_not_take_the_lock(svc, monkeypatch):
+    calls = _recording_lock(monkeypatch)
+    trade = svc.record(user_id=USER_A, data=ti())
+    calls.clear()
+    svc.list_trades(user_id=USER_A)
+    svc.get_trade(user_id=USER_A, trade_id=trade.id)
+    svc.holdings(user_id=USER_A)
+    assert calls == []
+
+
+def test_a_held_lock_refuses_every_write_with_ledger_busy_and_writes_nothing(svc, session, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    from app.services.errors import LedgerBusyError
+
+    trade = svc.record(user_id=USER_A, data=ti())
+
+    class Orig(Exception):
+        sqlstate = "55P03"
+
+    def refuse(self, **kw):
+        raise OperationalError("SELECT ... FOR UPDATE NOWAIT", {}, Orig("lock not available"))
+
+    monkeypatch.setattr(TradeRepository, "lock_user_ledger", refuse)
+    with pytest.raises(LedgerBusyError):
+        svc.record(user_id=USER_A, data=ti())
+    with pytest.raises(LedgerBusyError):
+        svc.correct(user_id=USER_A, trade_id=trade.id, data=ci())
+    with pytest.raises(LedgerBusyError):
+        svc.void(user_id=USER_A, trade_id=trade.id)
+    assert [t.id for t in svc.list_trades(user_id=USER_A)] == [trade.id]
+
+
+def test_a_missing_user_row_is_a_setup_error(svc):
+    with pytest.raises(RuntimeError, match="users row"):
+        svc.record(user_id=uuid4(), data=ti())
+
+
+def test_ledger_busy_has_a_stable_code():
+    from app.services.errors import LedgerBusyError, LedgerError
+
+    assert LedgerBusyError.code == "ledger_busy" and issubclass(LedgerBusyError, LedgerError)
+
+
+# ---- ISIN on manual rows, corrections and voids (Feature 002) ----------------------------------------------------
+
+ISIN = "ZZ0ALPHA0001"
+OTHER_ISIN = "ZZ0BETACO001"
+
+
+def imported_row(session, user=USER_A, **kw):
+    """An imported ISIN row as the import service writes it (no name/type/session, charges unknown)."""
+    batch = make_batch(session, user)
+    fields = dict(
+        symbol="RELIANCE", isin=ISIN, name=None, asset_type=None, market_session=None, source=TradeSource.IMPORT,
+        broker="ZERODHA", broker_trade_id="T1", import_batch_id=batch.id, charges_provided=False,
+    )
+    fields.update(kw)
+    return TradeRepository(session).add(user_id=user, id=uuid4(), **trade_fields(**fields))
+
+
+def test_record_stores_a_valid_isin_and_affirms_charges(svc):
+    t = svc.record(user_id=USER_A, data=ti(isin=ISIN))
+    assert (t.isin, t.charges_provided, t.source, t.import_batch_id) == (ISIN, True, TradeSource.MANUAL, None)
+
+
+def test_record_requires_an_isin(svc):
+    with pytest.raises(InvalidTradeError, match="isin is required"):
+        svc.record(user_id=USER_A, data=ti(isin=None))
+    assert svc.list_trades(user_id=USER_A) == []
+
+
+@pytest.mark.parametrize("bad", ["", "short", ISIN + "X", ISIN.lower(), "ZZ0ALPHA000É", "ZZ0ALPHA000 ", "١" * 12, 123456789012])
+def test_a_malformed_isin_is_rejected_never_normalized(bad):
+    with pytest.raises(InvalidTradeError, match="isin"):
+        ti(isin=bad)
+
+
+def test_correct_with_an_explicit_isin_uses_it(svc):
+    original = svc.record(user_id=USER_A, data=ti(isin=ISIN))
+    fixed = svc.correct(user_id=USER_A, trade_id=original.id, data=ci(isin=OTHER_ISIN))
+    assert fixed.isin == OTHER_ISIN
+
+
+def test_a_correction_always_carries_an_isin(svc):
+    with pytest.raises(InvalidTradeError, match="isin is required"):
+        ci(isin=None)
+
+
+@pytest.mark.parametrize("bad", ["", "short", ISIN.lower(), ISIN + "X"])
+def test_a_correction_validates_the_isin_format(bad):
+    with pytest.raises(InvalidTradeError, match="isin"):
+        ci(isin=bad)
+
+
+def test_a_correction_can_move_a_legacy_row_onto_an_isin(svc, session):
+    original = legacy(session)
+    fixed = svc.correct(user_id=USER_A, trade_id=original.id, data=ci(isin=ISIN))
+    assert fixed.isin == ISIN and fixed.charges_provided is True and original.isin is None
+
+
+def test_correcting_an_imported_row_carries_the_isin_and_drops_the_batch(svc, session):
+    imported = imported_row(session)
+    fixed = svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(isin=ISIN, name="Reliance", quantity=D("4"), brokerage_fee=D("0"), taxes=D("0")))
+    assert (fixed.isin, fixed.source, fixed.import_batch_id, fixed.charges_provided) == (ISIN, TradeSource.MANUAL, None, True)
+    assert imported.source is TradeSource.IMPORT and imported.import_batch_id is not None and imported.charges_provided is False
+
+
+def test_void_copies_isin_and_charges_provided_of_an_imported_row(svc, session):
+    imported = imported_row(session)
+    void = svc.void(user_id=USER_A, trade_id=imported.id)
+    assert void.status is TradeStatus.CANCELLED and void.supersedes_trade_id == imported.id
+    assert (void.isin, void.charges_provided) == (ISIN, False)
+    assert (void.source, void.import_batch_id) == (TradeSource.MANUAL, None)
+    assert (void.name, void.asset_type, void.market_session) == (None, None, None)  # NULLs are copied, never invented
+
+
+def test_void_of_a_manual_isin_row_keeps_its_isin_and_charges(svc):
+    original = svc.record(user_id=USER_A, data=ti(isin=ISIN))
+    void = svc.void(user_id=USER_A, trade_id=original.id)
+    assert (void.isin, void.charges_provided) == (ISIN, True)
+
+
+def test_a_correction_never_breaks_the_source_batch_invariant(svc, session):
+    imported = imported_row(session)
+    svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(brokerage_fee=D("0"), taxes=D("0")))
+    session.flush()  # the CHECK (source = IMPORT) = (import_batch_id IS NOT NULL) accepts the new MANUAL row
+
+
+# ---- oversell is checked per ISIN, not per listing --------------------------------------------------------------
+
+def test_voiding_an_nse_buy_that_covers_a_bse_sell_of_the_same_isin_is_refused(svc, session):
+    buy = imported_row(session, broker_trade_id="B1", side=TradeSide.BUY, quantity=D("10"), trade_timestamp=at(0))
+    imported_row(session, broker_trade_id="S1", exchange=Exchange.BSE, side=TradeSide.SELL, quantity=D("10"), trade_timestamp=at(1))
+    with pytest.raises(OversellError):
+        svc.void(user_id=USER_A, trade_id=buy.id)
+    assert TradeRepository(session).superseder_of(user_id=USER_A, trade_id=buy.id) is None
+
+
+def test_shrinking_an_nse_buy_below_a_bse_sell_of_the_same_isin_is_refused(svc, session):
+    buy = imported_row(session, broker_trade_id="B1", side=TradeSide.BUY, quantity=D("10"), trade_timestamp=at(0))
+    imported_row(session, broker_trade_id="S1", exchange=Exchange.BSE, side=TradeSide.SELL, quantity=D("10"), trade_timestamp=at(1))
+    with pytest.raises(OversellError):
+        svc.correct(user_id=USER_A, trade_id=buy.id, data=ci(quantity=D("9"), trade_timestamp=at(0), brokerage_fee=D("0"), taxes=D("0")))
+
+
+def test_a_cross_exchange_sell_of_the_same_isin_is_allowed_manually(svc, session):
+    imported_row(session, broker_trade_id="B1", side=TradeSide.BUY, quantity=D("10"), trade_timestamp=at(0))
+    sell = svc.record(user_id=USER_A, data=ti(isin=ISIN, exchange=Exchange.BSE, side=TradeSide.SELL, trade_timestamp=at(1)))
+    assert sell.exchange is Exchange.BSE
+
+
+def test_a_manual_sell_of_another_isin_is_not_covered(svc, session):
+    imported_row(session, broker_trade_id="B1", side=TradeSide.BUY, quantity=D("10"), trade_timestamp=at(0))
+    with pytest.raises(OversellError):
+        svc.record(user_id=USER_A, data=ti(isin=OTHER_ISIN, side=TradeSide.SELL, trade_timestamp=at(1)))
+
+
+def test_legacy_and_isin_rows_never_offset_each_other(svc, session):
+    legacy(session, quantity=D("10"), trade_timestamp=at(0))  # legacy buy, NULL ISIN
+    with pytest.raises(OversellError):
+        svc.record(user_id=USER_A, data=ti(isin=ISIN, side=TradeSide.SELL, trade_timestamp=at(1)))
+
+
+def test_moving_a_legacy_row_onto_an_isin_rechecks_both_keys(svc, session):
+    buy = legacy(session, quantity=D("10"), trade_timestamp=at(0))
+    legacy(session, side=TradeSide.SELL, quantity=D("10"), trade_timestamp=at(1))  # a legacy sell, covered by that buy
+    with pytest.raises(OversellError):  # the legacy key would lose its buy
+        svc.correct(user_id=USER_A, trade_id=buy.id, data=ci(isin=ISIN, quantity=D("10"), trade_timestamp=at(0)))
+
+
+def test_another_users_isin_rows_never_cover_a_sell(svc, session):
+    imported_row(session, user=USER_B, broker_trade_id="B1", quantity=D("10"), trade_timestamp=at(0))
+    with pytest.raises(OversellError):
+        svc.record(user_id=USER_A, data=ti(isin=ISIN, side=TradeSide.SELL, trade_timestamp=at(1)))
+
+
+# ---- correction rules against the target (plan 002a 3a) ----------------------------------------------------------
+
+def test_a_correction_cannot_erase_a_known_descriptive_value(svc):
+    original = svc.record(user_id=USER_A, data=ti())
+    for field in ("name", "asset_type", "market_session"):
+        with pytest.raises(InvalidTradeError, match=f"{field} cannot be erased"):
+            svc.correct(user_id=USER_A, trade_id=original.id, data=ci(**{field: None}))
+    assert len(svc.list_trades(user_id=USER_A)) == 1
+
+
+def test_a_correction_may_leave_values_null_only_where_the_target_is_null(svc, session):
+    imported = imported_row(session)  # name, asset_type, market_session are NULL
+    fixed = svc.correct(
+        user_id=USER_A, trade_id=imported.id,
+        data=ci(name=None, asset_type=None, market_session=None, brokerage_fee=D("0"), taxes=D("0")),
+    )
+    assert (fixed.name, fixed.asset_type, fixed.market_session) == (None, None, None)
+
+
+def test_a_correction_may_supply_a_value_where_the_target_has_none(svc, session):
+    imported = imported_row(session)
+    fixed = svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(name="Reliance", brokerage_fee=D("1"), taxes=D("2")))
+    assert fixed.name == "Reliance" and (fixed.brokerage_fee, fixed.taxes) == (D(1), D(2))
+
+
+@pytest.mark.parametrize("given", [{}, {"brokerage_fee": D("0")}, {"taxes": D("0")}])
+def test_correcting_unprovided_charges_needs_both_fees_stated(svc, session, given):
+    imported = imported_row(session)
+    with pytest.raises(InvalidTradeError, match="brokerage_fee and taxes must both be stated"):
+        svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(**given))
+    assert [t.id for t in svc.list_trades(user_id=USER_A)] == [imported.id]
+
+
+def test_an_explicit_zero_counts_as_stated_and_the_new_row_affirms_its_charges(svc, session):
+    imported = imported_row(session)
+    fixed = svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(brokerage_fee=D("0"), taxes=D("0")))
+    assert (fixed.brokerage_fee, fixed.taxes, fixed.charges_provided) == (D(0), D(0), True)
+
+
+def test_omitted_fees_default_to_zero_when_the_target_charges_were_provided(svc):
+    original = svc.record(user_id=USER_A, data=ti(brokerage_fee=D("3"), taxes=D("1")))
+    fixed = svc.correct(user_id=USER_A, trade_id=original.id, data=ci())
+    assert (fixed.brokerage_fee, fixed.taxes, fixed.charges_provided) == (D(0), D(0), True)
+
+
+def test_a_correction_of_a_correction_stays_affirmed(svc, session):
+    imported = imported_row(session)
+    first = svc.correct(user_id=USER_A, trade_id=imported.id, data=ci(brokerage_fee=D("1"), taxes=D("1")))
+    second = svc.correct(user_id=USER_A, trade_id=first.id, data=ci(quantity=D("3")))  # target charges are provided now
+    assert second.charges_provided is True and second.brokerage_fee == D(0)
+
+
+def test_correction_input_validates_like_a_new_trade():
+    with pytest.raises(InvalidTradeError, match="quantity"):
+        ci(quantity=D("0"))
+    with pytest.raises(InvalidTradeError, match="fees and taxes must not be negative"):
+        ci(brokerage_fee=D("-1"))
+    with pytest.raises(InvalidTradeError, match="timezone-aware"):
+        ci(trade_timestamp=datetime(2026, 1, 1))
+    assert ci(trade_timestamp=datetime(2026, 1, 1, 5, 30, tzinfo=timezone(timedelta(hours=5, minutes=30)))).trade_timestamp == datetime(2026, 1, 1, tzinfo=timezone.utc)

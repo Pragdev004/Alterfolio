@@ -6,6 +6,7 @@ from uuid import UUID
 import pytest
 
 from app.domain.enums import Exchange, TradeSide
+from app.domain.holding_key import HoldingKey
 from app.domain.instrument import Instrument
 from app.services.errors import OversellError
 from app.services.holdings import (
@@ -45,7 +46,7 @@ def test_empty_portfolio_is_an_empty_list():
 
 def test_weighted_average_cost_of_two_buys():
     (h,) = fold_holdings([entry("BUY", 10, 100, 0), entry("BUY", 10, 120, 1)])
-    assert h.instrument == RELIANCE_NSE
+    assert h.key == HoldingKey.legacy("RELIANCE", Exchange.NSE) and h.listings == (RELIANCE_NSE,)
     assert h.quantity == D(20)
     assert h.invested_amount == D(2200)
     assert h.average_buy_price == D(110)
@@ -90,15 +91,15 @@ def test_nse_and_bse_listings_are_separate_instruments():
     holdings = fold_holdings(
         [entry("BUY", 1, 10, 0, RELIANCE_NSE), entry("BUY", 2, 20, 1, RELIANCE_BSE)]
     )
-    assert [(h.instrument, h.quantity) for h in holdings] == [
-        (RELIANCE_BSE, D(2)),
-        (RELIANCE_NSE, D(1)),
+    assert [(h.listings, h.quantity) for h in holdings] == [
+        ((RELIANCE_BSE,), D(2)),
+        ((RELIANCE_NSE,), D(1)),
     ]
 
 
 def test_holdings_sorted_by_symbol_then_exchange():
     holdings = fold_holdings([entry("BUY", 1, 1, 0, TCS), entry("BUY", 1, 1, 1, RELIANCE_NSE)])
-    assert [h.instrument.symbol for h in holdings] == ["RELIANCE", "TCS"]
+    assert [h.key.symbol for h in holdings] == ["RELIANCE", "TCS"]
 
 
 def test_sell_above_held_is_an_oversell():
@@ -189,7 +190,7 @@ def test_sell_fees_reduce_net_proceeds_and_realized_pnl_not_average_cost():
     (h,) = summary.holdings
     assert (h.quantity, h.invested_amount, h.average_buy_price) == (D(15), D("1661.25"), D("110.75"))
     (r,) = summary.realized
-    assert r.instrument == RELIANCE_NSE
+    assert r.key == HoldingKey.legacy("RELIANCE", Exchange.NSE)
     assert r.net_sale_proceeds == D(970)
     assert r.cost_of_sold == D("553.75")
     assert r.realized_pnl == D("416.25")
@@ -230,7 +231,7 @@ def test_realized_is_per_instrument_and_sorted():
             entry("BUY", 1, 10, 2, RELIANCE_NSE), entry("SELL", 1, 11, 3, RELIANCE_NSE),
         ]
     )
-    assert [(r.instrument.symbol, r.realized_pnl) for r in summary.realized] == [
+    assert [(r.key.symbol, r.realized_pnl) for r in summary.realized] == [
         ("RELIANCE", D(1)),
         ("TCS", D(2)),
     ]
@@ -293,3 +294,173 @@ def test_cumulative_net_proceeds_are_bounded():
 def test_held_quantity_is_bounded():
     with pytest.raises(NumericLimitError):
         fold_ledger([entry("BUY", MAX_AMOUNT, "0.000001", 0)])
+
+
+# ---- group_key (Feature 002c): grouping other than by listing, default unchanged ---------------------------------
+
+def test_find_oversell_groups_by_listing_unless_told_otherwise():
+    entries = [entry("BUY", 10, 100, 0, inst=RELIANCE_NSE), entry("SELL", 10, 100, 1, inst=RELIANCE_BSE)]
+    assert find_oversell(entries).instrument == RELIANCE_BSE  # NSE and BSE listings are separate groups by default
+    assert find_oversell(entries, group_key=None).instrument == RELIANCE_BSE
+
+
+def test_find_oversell_can_group_by_a_caller_supplied_key():
+    entries = [entry("BUY", 10, 100, 0, inst=RELIANCE_NSE), entry("SELL", 10, 100, 1, inst=RELIANCE_BSE)]
+    assert find_oversell(entries, group_key=lambda e: "one-isin") is None
+
+
+def test_a_custom_key_still_finds_an_oversell_inside_its_group():
+    entries = [entry("BUY", 10, 100, 0, inst=RELIANCE_NSE), entry("SELL", 11, 100, 1, inst=RELIANCE_BSE)]
+    over = find_oversell(entries, group_key=lambda e: "one-isin")
+    assert over is not None and over.held == D(10) and over.requested == D(11)
+
+
+def test_different_keys_never_offset_each_other():
+    entries = [entry("BUY", 10, 100, 0, inst=RELIANCE_NSE), entry("SELL", 1, 100, 1, inst=RELIANCE_NSE)]
+    keys = {entries[0].id: "a", entries[1].id: "b"}
+    assert find_oversell(entries, group_key=lambda e: keys[e.id]).entry_id == entries[1].id
+
+
+# ---- ISIN identity, listings, name and cost_basis_complete (Feature 002, plan 002a OPEN-1, 1b-1d) ------------------
+
+import dataclasses  # noqa: E402
+
+ISIN_A = "ZZ0ALPHA0001"
+ISIN_B = "ZZ0BETACO001"
+ALPHA_NSE = Instrument("ALPHACO", Exchange.NSE)
+ALPHA_BSE = Instrument("ALPHACO", Exchange.BSE)
+
+
+def ie(side, qty, price, minutes=0, inst=ALPHA_NSE, isin=ISIN_A, name=None, charges=True, **kw):
+    """A ledger entry that carries the Feature 002 fields."""
+    return dataclasses.replace(entry(side, qty, price, minutes, inst, **kw), isin=isin, name=name, charges_provided=charges)
+
+
+def at_minute(minutes):
+    return T0 + timedelta(minutes=minutes)
+
+
+def test_one_isin_across_nse_and_bse_is_one_holding():
+    (h,) = fold_holdings([ie("BUY", 1, 10, 0, ALPHA_NSE), ie("BUY", 2, 20, 1, ALPHA_BSE)])
+    assert h.key == HoldingKey.for_isin(ISIN_A)
+    assert (h.quantity, h.invested_amount) == (D(3), D(50))
+    assert h.listings == (ALPHA_BSE, ALPHA_NSE)
+
+
+def test_a_sell_on_one_exchange_reduces_the_isin_position_bought_on_the_other():
+    (h,) = fold_holdings([ie("BUY", 10, 10, 0, ALPHA_NSE), ie("SELL", 4, 12, 1, ALPHA_BSE)])
+    assert h.quantity == D(6) and h.invested_amount == D(60)  # 100 cost less 4 x average 10
+    assert find_oversell([ie("BUY", 10, 10, 0, ALPHA_NSE), ie("SELL", 10, 12, 1, ALPHA_BSE)]) is None
+    assert find_oversell([ie("BUY", 10, 10, 0, ALPHA_NSE), ie("SELL", 11, 12, 1, ALPHA_BSE)]) is not None
+
+
+def test_listings_are_distinct_and_sorted_by_exchange_then_symbol():
+    zeta_nse, zeta_bse = Instrument("ZETA", Exchange.NSE), Instrument("ZETA", Exchange.BSE)
+    (h,) = fold_holdings(
+        [ie("BUY", 1, 1, 0, zeta_nse), ie("BUY", 1, 1, 1, ALPHA_NSE), ie("BUY", 1, 1, 2, zeta_bse), ie("BUY", 1, 1, 3, zeta_nse)]
+    )
+    assert h.listings == (zeta_bse, ALPHA_NSE, zeta_nse)
+
+
+def test_legacy_null_isin_holdings_are_separate_flagged_and_never_merged():
+    legacy = entry("BUY", 5, 10, 0, ALPHA_NSE)  # no ISIN
+    holdings = fold_holdings([ie("BUY", 3, 10, 1, ALPHA_NSE), legacy])
+    assert [(h.key.isin, h.quantity) for h in holdings] == [(ISIN_A, D(3)), (None, D(5))]
+    assert holdings[1].key == HoldingKey.legacy("ALPHACO", Exchange.NSE) and holdings[1].listings == (ALPHA_NSE,)
+    assert find_oversell([legacy, ie("SELL", 1, 1, 1, ALPHA_NSE)]) is not None  # a legacy buy never covers an ISIN sell
+
+
+def test_holdings_are_ordered_by_isin_then_legacy_by_symbol_and_exchange():
+    holdings = fold_holdings(
+        [
+            entry("BUY", 1, 1, 0, TCS), entry("BUY", 1, 1, 1, RELIANCE_BSE),
+            ie("BUY", 1, 1, 2, ALPHA_NSE, isin=ISIN_B), ie("BUY", 1, 1, 3, ALPHA_NSE, isin=ISIN_A),
+        ]
+    )
+    assert [(h.key.isin, h.listings[0].symbol, h.listings[0].exchange) for h in holdings] == [
+        (ISIN_A, "ALPHACO", Exchange.NSE), (ISIN_B, "ALPHACO", Exchange.NSE),
+        (None, "RELIANCE", Exchange.BSE), (None, "TCS", Exchange.NSE),
+    ]
+
+
+def test_name_is_the_most_recent_non_null_name_in_canonical_order():
+    entries = [ie("BUY", 1, 1, 0, name="Old Name"), ie("BUY", 1, 1, 5, name="New Name"), ie("BUY", 1, 1, 9, name=None)]
+    assert fold_holdings(entries)[0].name == "New Name"
+    assert fold_holdings([ie("BUY", 1, 1, 0), ie("BUY", 1, 1, 1)])[0].name is None
+
+
+def test_name_and_listings_follow_as_of_like_the_position():
+    entries = [ie("BUY", 1, 1, 0, ALPHA_NSE, name="Old Name"), ie("BUY", 1, 1, 10, ALPHA_BSE, name="New Name")]
+    (early,) = fold_holdings(entries, as_of=at_minute(5))
+    assert (early.name, early.listings, early.quantity) == ("Old Name", (ALPHA_NSE,), D(1))
+    (late,) = fold_holdings(entries, as_of=at_minute(10))
+    assert (late.name, late.listings, late.quantity) == ("New Name", (ALPHA_BSE, ALPHA_NSE), D(2))
+    assert fold_holdings(entries, as_of=at_minute(-1)) == []
+
+
+def test_listings_include_exchanges_traded_in_an_earlier_exited_epoch():
+    (h,) = fold_holdings(
+        [ie("BUY", 1, 1, 0, ALPHA_NSE), ie("SELL", 1, 2, 1, ALPHA_NSE), ie("BUY", 1, 1, 2, ALPHA_BSE)]
+    )
+    assert h.listings == (ALPHA_BSE, ALPHA_NSE) and h.quantity == D(1)
+
+
+def test_cost_basis_is_complete_when_every_buy_provided_its_charges():
+    assert fold_holdings([ie("BUY", 1, 1, 0), ie("BUY", 1, 1, 1)])[0].cost_basis_complete is True
+    assert fold_holdings([entry("BUY", 1, 1, 0)])[0].cost_basis_complete is True  # legacy rows default to provided
+
+
+def test_one_buy_without_charges_makes_the_cost_basis_incomplete():
+    (h,) = fold_holdings([ie("BUY", 1, 1, 0), ie("BUY", 1, 1, 1, charges=False)])
+    assert h.cost_basis_complete is False
+
+
+def test_a_partial_sell_does_not_reset_the_epoch():
+    (h,) = fold_holdings([ie("BUY", 2, 1, 0, charges=False), ie("SELL", 1, 2, 1)])
+    assert h.cost_basis_complete is False
+
+
+def test_missing_charges_on_a_sell_never_count():
+    (h,) = fold_holdings([ie("BUY", 2, 1, 0), ie("SELL", 1, 2, 1, charges=False)])
+    assert h.cost_basis_complete is True
+
+
+def test_a_full_exit_starts_a_new_position_epoch():
+    after_exit = fold_holdings(
+        [ie("BUY", 1, 1, 0, charges=False), ie("SELL", 1, 2, 1, charges=False), ie("BUY", 1, 1, 2)]
+    )
+    assert after_exit[0].cost_basis_complete is True
+    again = fold_holdings([ie("BUY", 1, 1, 0), ie("SELL", 1, 2, 1), ie("BUY", 1, 1, 2, charges=False)])
+    assert again[0].cost_basis_complete is False
+
+
+def test_cost_basis_completeness_is_computed_as_of():
+    entries = [ie("BUY", 1, 1, 0), ie("BUY", 1, 1, 10, charges=False)]
+    assert fold_holdings(entries, as_of=at_minute(5))[0].cost_basis_complete is True
+    assert fold_holdings(entries, as_of=at_minute(10))[0].cost_basis_complete is False
+
+
+def test_the_epoch_follows_canonical_order_not_insertion_order():
+    entries = [ie("BUY", 1, 1, 2), ie("SELL", 1, 2, 1), ie("BUY", 1, 1, 0, charges=False)]
+    (h,) = fold_holdings(entries)  # canonical: unknown buy, full exit, then a buy with charges
+    assert h.quantity == D(1) and h.cost_basis_complete is True
+
+
+def test_fully_exited_isin_holdings_are_omitted_and_empty_is_a_list():
+    assert fold_holdings([ie("BUY", 1, 1, 0), ie("SELL", 1, 2, 1)]) == []
+    assert fold_holdings([]) == []
+
+
+def test_realized_results_are_keyed_per_isin_across_exchanges():
+    summary = fold_ledger([ie("BUY", 2, 10, 0, ALPHA_NSE), ie("SELL", 1, 12, 1, ALPHA_BSE)])
+    (r,) = summary.realized
+    assert r.key == HoldingKey.for_isin(ISIN_A) and r.realized_pnl == D(2)
+
+
+def test_the_default_key_and_an_explicit_group_key_agree():
+    entries = [
+        ie("BUY", 5, 1, 0, ALPHA_NSE), ie("SELL", 6, 1, 1, ALPHA_BSE),
+        entry("BUY", 1, 1, 2, ALPHA_NSE), ie("BUY", 3, 1, 3, ALPHA_NSE, isin=ISIN_B),
+    ]
+    explicit = find_oversell(entries, group_key=lambda e: HoldingKey.of(e.isin, e.instrument.symbol, e.instrument.exchange))
+    assert find_oversell(entries) == explicit and explicit is not None
