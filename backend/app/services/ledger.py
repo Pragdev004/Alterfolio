@@ -250,6 +250,10 @@ class LedgerService:
         entries = [_to_entry(t) for t in self._repo.list_effective(user_id=user_id)]
         return fold_holdings(entries, as_of=as_of)
 
+    def effective_trade_count(self, *, user_id: UUID) -> int:
+        """Effective trades: EXECUTED rows that are not superseded (the set holdings are folded from)."""
+        return len(self._repo.list_effective(user_id=user_id))
+
     # ---- writes --------------------------------------------------------------
 
     def lock_user(self, *, user_id: UUID) -> None:

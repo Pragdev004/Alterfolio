@@ -27,6 +27,9 @@ User decisions that shape this register (Day 0 interview, 2026-10-08):
   (NSE and BSE merge; legacy NULL-ISIN separate); dedupe key includes exchange; imports store zero fees with
   `charges_provided=false`; nullable name/type/session for imports; IST timestamps; 2 MiB / 5,000-row limits; per-user
   `NOWAIT` lock; oversell quarantine per ISIN; no estimated opening balances. Refines U9 dedupe and `(symbol, exchange)` identity.
+- U11 (Feature 003 owner decisions, 2026-10-12; `docs/plans/003-market-data-portfolio-summary.md`): httpx-direct Yahoo
+  adapter; ISIN holdings quote NSE then BSE; summary adds market value and unrealized P&L (not in FR-8); quotes fetched
+  per request, no cache or persistence, stale after 7 days; valuation is current-only (`as_of` rejected).
 
 ## Preserved (proposed-inherited)
 

@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from app.api.routes import health, imports, portfolio, trades
 from app.config import Settings
 from app.db.session import make_session_factory
+from app.providers.market.port import MarketDataProvider
+from app.providers.market.yahoo import YahooProvider
 from app.services.errors import LedgerBusyError, LedgerError, TradeNotFoundError
 from app.services.users import ensure_user
 
@@ -35,6 +37,7 @@ def create_app(
     settings: Settings | None = None,
     clock: Callable[[], datetime] = _utc_now,
     id_factory: Callable[[], UUID] = uuid4,
+    market_data: MarketDataProvider | None = None,
 ) -> FastAPI:
     """Application factory; run with `uvicorn app.api.main:create_app --factory`."""
     settings = settings or Settings()
@@ -61,6 +64,7 @@ def create_app(
     app.state.settings = settings
     app.state.clock = clock
     app.state.id_factory = id_factory
+    app.state.market_data = market_data or YahooProvider(timeout_seconds=settings.market_timeout_seconds)
     app.add_exception_handler(LedgerError, _ledger_error)
     app.include_router(health.router)
     app.include_router(trades.router)

@@ -72,6 +72,7 @@ def test_layer_direction_is_respected():
         "repositories": ("app.services", "app.api", "app.schemas"),
         "models": ("app.services", "app.repositories", "app.api", "app.schemas"),
         "schemas": ("app.services", "app.repositories", "app.models", "app.api"),
+        "providers": ("app.services", "app.repositories", "app.models", "app.schemas", "app.api", "app.db"),
     }
     for package, banned in forbidden.items():
         for path in _files(package):
@@ -80,7 +81,7 @@ def test_layer_direction_is_respected():
 
 
 def test_money_paths_do_not_use_float():
-    for package in ("domain", "services", "repositories", "models", "schemas"):
+    for package in ("domain", "services", "repositories", "models", "schemas", "providers"):
         for path in _files(package):
             tree = ast.parse(path.read_text(encoding="utf-8"))
             for node in ast.walk(tree):
@@ -112,3 +113,31 @@ def test_tradebook_import_service_stays_in_the_service_layer():
     banned = ("fastapi", "starlette", "pydantic", "app.api", "app.schemas")
     for name in _imports(path):
         assert not name.startswith(banned), f"tradebook_import imports {name}"
+
+
+def test_provider_code_is_isolated_behind_the_market_port():
+    """Feature 003: only providers/ knows httpx/Yahoo; services see the port; lower layers never see providers."""
+    for path in sorted(APP.rglob("*.py")):
+        rel = path.relative_to(APP).parts
+        for name in _imports(path):
+            if _top(name) == "httpx":
+                assert rel == ("providers", "market", "yahoo.py"), f"{path.name} imports {name}"
+            if rel[0] == "providers":
+                continue
+            if name.startswith("app.providers.market.yahoo"):
+                assert rel == ("api", "main.py"), f"{path.name} imports the concrete provider"
+            if name.startswith("app.providers"):
+                assert rel[0] in ("services", "api"), f"{path.name} imports {name}"
+                if rel[0] == "services":
+                    assert name == "app.providers.market.port", f"{path.name} imports {name}"
+    for path in _files("providers"):
+        for name in _imports(path):
+            assert _top(name) in STDLIB | {"httpx", "app"}, f"{path.name} imports {name}"
+
+
+def test_portfolio_summary_logic_is_framework_free():
+    path = APP / "services" / "portfolio_summary.py"
+    assert path.exists()
+    for name in _imports(path):
+        assert _top(name) not in {"sqlalchemy", "fastapi", "pydantic", "httpx"}, f"portfolio_summary imports {name}"
+        assert not name.startswith(("app.models", "app.repositories", "app.schemas", "app.api")), name

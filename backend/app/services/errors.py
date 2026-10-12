@@ -72,3 +72,12 @@ class LedgerBusyError(LedgerError):
 
     def __init__(self) -> None:
         super().__init__("another ledger write is in progress for this user; retry shortly")
+
+
+class HistoricalValuationUnsupportedError(LedgerError):
+    """Valuation is current-only: the provider cannot supply historical quotes, so none are invented."""
+
+    code = "historical_valuation_unsupported"
+
+    def __init__(self) -> None:
+        super().__init__("portfolio valuation is current-only; as_of is not supported on /portfolio/summary")

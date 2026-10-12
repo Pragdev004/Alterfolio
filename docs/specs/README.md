@@ -12,8 +12,9 @@ the approved decisions live in `docs/plans/`, the product-level requirements in 
 | `002-3-import-persistence-foundation.md` | Migration 0002, models, repositories, `HoldingKey` | Delivered (live PostgreSQL unverified) |
 | `002-4-import-service.md` | Import service: dedupe, quarantine, oversell, batches, user lock | Delivered (live PostgreSQL unverified) |
 | `002-5-api-and-holdings.md` | Import route, ISIN-required manual API, corrections, ISIN-grouped holdings | Delivered (live PostgreSQL unverified) |
+| `003-market-data-portfolio-summary.md` | Market-data port, Yahoo adapter, `GET /portfolio/summary` | Delivered (live Yahoo unverified) |
 
-Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Features 003+ are not started.
+Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Features 004+ are not started.
 
 Rules for these files: Markdown under 200 lines; no real tradebook data, symbols, ids or prices; update the matching spec
 in the same change as the code.

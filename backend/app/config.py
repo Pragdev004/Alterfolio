@@ -13,3 +13,5 @@ class Settings(BaseSettings):
 
     database_url: str | None = None
     user_id: UUID = DEFAULT_USER_ID
+    quote_stale_after_days: int = 7  # a quote older than this is reported STALE and not valued
+    market_timeout_seconds: float = 3.0
