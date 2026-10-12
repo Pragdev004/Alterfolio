@@ -10,7 +10,7 @@ a source of a number.** Educational, not financial advice; no profitability clai
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
 feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
-live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is implemented in the working tree, pending commit. `quant/` is an empty package; no frontend.
+live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is implemented in the working tree, pending commit. `quant/` holds only `market_data/`; no frontend.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -36,12 +36,16 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
   features -> risk | pairs -> strategy -> sizing -> execution -> backtest -> evaluation. Inputs arrive as value
   objects from `services/`; quant never reads user tables.
 - Built: `api/` (factory `create_app`, routes), `services/` (`holdings.py` pure fold, `ledger.py`), `repositories/`,
-  `models/`, `schemas/`, `db/` (`column_types.py` portable Decimal/UTC types). `providers/market/` (port + Yahoo adapter). Planned: `ai/`;
+  `models/`, `schemas/`, `db/` (`column_types.py` portable Decimal/UTC types). `providers/market/` (quote port, daily-bar `history_port`, Yahoo adapter), `quant/market_data/`, `services/market_series.py`. Planned: `ai/`;
   frontend `frontend/src/{app,features/<feature>,shared/...}` (stage 3).
 - Three domain boundaries: Accounting (real ledger, long-only, append-only) / Quant (pure) / AI (read-only prose).
   Simulated portfolios never read or write the real ledger.
 - Holding identity = ISIN (002): NSE and BSE listings of one ISIN are one holding; legacy NULL-ISIN trades are separate,
   flagged holdings keyed by `(symbol, exchange)`. `Instrument(symbol, exchange)` is the listing value. No instruments table.
+- Daily bars (004): provider numbers stay exact Decimals (no rounding; `to_dict`/fingerprint use canonical Decimal text);
+  provider timestamps are kept as aware UTC. The service reads its clock once, passes that instant to the provider, requires
+  `batch.retrieved_at` to equal it, and a bar is eligible only if its session date is before the exchange-local date of that
+  instant. `MarketSeries.truncated_to` only narrows. Detail: `docs/specs/004-quant-market-data-foundation.md`.
 
 ### Trade ledger model (cross-cutting)
 - `trades` is append-only: no UPDATE/DELETE code path. Correct = new row with `supersedes_trade_id`; void = superseding
@@ -108,11 +112,11 @@ Lint/type-check/frontend commands: TBD (not configured yet).
 ## 7. Context Map
 - `docs/design.md`: architecture, data model, numeric policy, invariants, decision table, development plan.
 - `docs/spec.md`: problem, FRs, data entities, endpoint contracts, edge cases, acceptance criteria.
-- `docs/v1-lineage.md`: V1 -> V2 register and user decisions U1-U10.
+- `docs/v1-lineage.md`: V1 -> V2 register and user decisions U1-U12.
 - `docs/plans/001-trade-ledger-holdings.md`: Feature 001 decisions D1-D13, data model, API, tests (002 supersedes some).
 - `docs/plans/002-zerodha-tradebook-import.md` (scope, format, flow, API), `002a-decisions.md` (owner decisions OPEN-#),
   `002b-schema-api-tests.md` (migration, 001 contract changes, semantics, tests). `docs/reports/` empty.
-- `docs/specs/`: as-built specs per delivered feature (`README.md` index; 001, 002-1 to 002-5, 003). They win over plans where they differ.
+- `docs/specs/`: as-built specs per delivered feature (`README.md` index; 001, 002-1 to 002-5, 003, 004). They win over plans where they differ.
 - `docs/constitution.md`: 8-law V2 constitution; to be written at scaffold (does not exist yet).
 - `.claude/settings.local.json`: local permissions only; `.claude/agents/` and `.claude/hooks/` are empty.
 - Obsidian project knowledge: `Alterfolio V2/` in the `obsidian_pragadeeshwar_os` MCP vault.
@@ -123,6 +127,6 @@ Lint/type-check/frontend commands: TBD (not configured yet).
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is implemented and verified in the working tree, pending review
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is implemented and verified in the working tree, pending review
 and commit. Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.

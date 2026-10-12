@@ -30,6 +30,11 @@ User decisions that shape this register (Day 0 interview, 2026-10-08):
 - U11 (Feature 003 owner decisions, 2026-10-12; `docs/plans/003-market-data-portfolio-summary.md`): httpx-direct Yahoo
   adapter; ISIN holdings quote NSE then BSE; summary adds market value and unrealized P&L (not in FR-8); quotes fetched
   per request, no cache or persistence, stale after 7 days; valuation is current-only (`as_of` rejected).
+- U12 (Feature 004 owner decisions, 2026-10-12; `docs/plans/004-quant-market-data-foundation.md`, F1-F6): provider-verbatim
+  Decimal prices (no rounding); a short history is a valid partial series; any provider timestamp is kept and
+  `session_date` comes from the exchange offset; all-null rows are excluded and counted; zero volume is valid; no `events=`
+  request. A bar is eligible only if its session date is before the exchange-local date of the service's own retrieval
+  instant. `truncated_to` only narrows. NSE then BSE fallback, never on a provider error, never spliced.
 
 ## Preserved (proposed-inherited)
 
@@ -38,7 +43,7 @@ User decisions that shape this register (Day 0 interview, 2026-10-08):
 | P1 | AI optional, provider-neutral, behind an orchestration port; never authoritative for financial calculations | constitution.md Law 9; ai-provider-architecture.md | Matches the V2 core principle |
 | P2 | Quant package pure and framework-free; library code isolated to one adapter | quant-domain.md "Mathematical boundary rule"; ADR 003 | Enforce with an import-boundary test |
 | P3 | Point-in-time safety is structural; `MarketSeries.truncated_to(T)` is the only narrowing | market-data.md; quant-domain.md | Each layer gets a "future data cannot change the result" test |
-| P4 | Bar timestamp = close, UTC, tz-aware; fill at next bar open; settle-then-mark-then-decide loop | ADR 002; backtesting.md | Applies from the Backtesting stage |
+| P4 | Bar timestamp = close, UTC, tz-aware; fill at next bar open; settle-then-mark-then-decide loop | ADR 002; backtesting.md | Applies from the Backtesting stage; Feature 004 keeps the provider's bar timestamp (no invented close), Stage 5 revisits this |
 | P5 | Invalid bars rejected at construction; inner-join alignment; explicit `adjusted` flag; `DataProvenance` fingerprint | market-data.md; pairs-research.md | Fingerprint detects drift, does not prevent it |
 | P6 | Decimal for money; one documented Decimal-to-float crossing for statistics; undefined = `None`/`Unavailable(reason)` | features.md; performance-evaluation.md | See C1 for the sizing/execution caveat |
 | P7 | Research accounting separate from the real user ledger | research-accounting.md; ADR 002 | Backtests never read or write live tables |
