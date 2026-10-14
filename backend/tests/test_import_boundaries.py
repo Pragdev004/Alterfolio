@@ -43,7 +43,9 @@ def test_quant_imports_only_stdlib_and_domain():
         for name in _imports(path):
             ok = _top(name) in STDLIB or name == "app.domain" or name.startswith("app.domain.")
             # Feature 005 (D9): quant/backtest may import the market-data value types; nothing else inside quant.
-            ok = ok or (path.parent.name == "backtest" and (name == "app.quant.market_data" or name.startswith("app.quant.market_data.")))
+            ok = ok or (path.parent.name in ("backtest", "bias_cost", "luck_test") and (name == "app.quant.market_data" or name.startswith("app.quant.market_data.")))
+            # Feature 008: quant/regime_split consumes the Feature 006 and 007 packages and the market-data value types.
+            ok = ok or (path.parent.name == "regime_split" and (name in ("app.quant.market_data", "app.quant.bias_cost", "app.quant.luck_test") or name.startswith(("app.quant.market_data.", "app.quant.bias_cost.", "app.quant.luck_test."))))
             assert ok, f"{path.name} imports {name}"
 
 
