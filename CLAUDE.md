@@ -10,7 +10,7 @@ a source of a number.** Educational, not financial advice; no profitability clai
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
 feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
-live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is implemented in the working tree, pending commit. `quant/` holds only `market_data/`; no frontend.
+live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is in progress (steps 1-2 committed). `quant/` holds `market_data/` and `backtest/`; no frontend.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -127,6 +127,21 @@ Lint/type-check/frontend commands: TBD (not configured yet).
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is implemented and verified in the working tree, pending review
-and commit. Never push without explicit user approval. Markdown docs must stay
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is in progress (steps 1-2 committed, `acac749`).
+Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+
+## 9. Operating rules
+**Operating rules — SPRINT MODE (valid until 2026-10-18, then revert)**
+- Inspect the repo before acting; verified repo state beats this handoff.
+- Owner approves at spec review, design review, and end of feature only.
+- Accept-edits mode permitted. Plans under 10 lines unless writing a design doc.
+- Per step: focused tests, then full suite (.venv/Scripts/python.exe -m pytest -q
+  from backend/). Commit only when both are green, conventional commits.
+  Never push, amend, or add remotes.
+- Never weaken or edit an approved test to make code pass; stop and ask instead.
+- Never claim a test or inspection you didn't perform. Report discrepancies.
+- Every Markdown file stays under 200 lines.
+- Feature numbering: 006 bias cost + behaviour profile, 007 luck test, 008 regime
+  split, 009 RAG date-cutoff, 010 LangGraph analyst, 011 MCP server, 012 demo
+  report. Persistence/trial registry is deferred until after 012.
