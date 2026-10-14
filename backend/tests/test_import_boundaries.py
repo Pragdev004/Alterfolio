@@ -42,6 +42,8 @@ def test_quant_imports_only_stdlib_and_domain():
     for path in _files("quant"):
         for name in _imports(path):
             ok = _top(name) in STDLIB or name == "app.domain" or name.startswith("app.domain.")
+            # Feature 005 (D9): quant/backtest may import the market-data value types; nothing else inside quant.
+            ok = ok or (path.parent.name == "backtest" and (name == "app.quant.market_data" or name.startswith("app.quant.market_data.")))
             assert ok, f"{path.name} imports {name}"
 
 

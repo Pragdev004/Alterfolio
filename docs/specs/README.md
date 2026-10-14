@@ -13,9 +13,10 @@ the approved decisions live in `docs/plans/`, the product-level requirements in 
 | `002-4-import-service.md` | Import service: dedupe, quarantine, oversell, batches, user lock | Delivered (live PostgreSQL unverified) |
 | `002-5-api-and-holdings.md` | Import route, ISIN-required manual API, corrections, ISIN-grouped holdings | Delivered (live PostgreSQL unverified) |
 | `003-market-data-portfolio-summary.md` | Market-data port, Yahoo adapter, `GET /portfolio/summary` | Delivered (live Yahoo unverified) |
-| `004-quant-market-data-foundation.md` | Daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service | Delivered in the working tree, pending commit (live Yahoo unverified) |
+| `004-quant-market-data-foundation.md` | Daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service | Delivered, committed as `e7010bc` (live Yahoo unverified) |
+| `005-backtesting-foundation.md` | Pure point-in-time daily-bar backtest engine (implementation contract) | Proposed / awaiting implementation review (not delivered) |
 
-Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Features 005+ are not started.
+Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Feature 005 is proposed (step 1 exists uncommitted in the working tree; nothing is delivered); 006+ are not started.
 
 Rules for these files: Markdown under 200 lines; no real tradebook data, symbols, ids or prices; update the matching spec
 in the same change as the code.
