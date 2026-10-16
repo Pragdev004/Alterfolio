@@ -120,10 +120,8 @@ def _recording(tool, used):
     return call
 
 
-def main() -> int:
-    if not (FIX / "analyst_demo_bars.json").exists():
-        print("missing fixture analyst_demo_bars.json; run tests/fixtures/build_demo_fixture.py", file=sys.stderr)
-        return 2
+def collect() -> dict:
+    """Run the offline demo and return everything a renderer needs (no files written)."""
     sys.path.insert(0, str(FIX))
     from build_demo_fixture import tradebook_bytes
     ids = iter(range(1, 10_000))
@@ -143,20 +141,31 @@ def main() -> int:
         retriever = DemoRetriever()
         questions = ["Was my last buy skill or luck?", "What did my behaviour cost me?", "How did I do in each regime?",
                      "What did the November 2026 results announcement say?"]
-        sections, unverified = [], 0
+        sections = []
         for q in questions:
             used: list = []
             tools = {k: _recording(t, used) for k, t in quant_tools_from(service.analyse).items()}
             retriever.returned = []
             answer = ask(USER, q, AS_OF, llm=TemplateLLM(), tools=tools, retriever=retriever)
-            unverified += 0 if answer.verified else 1
             sections.append((q, answer, [f"{c.kind}:{c.ref}" for c in answer.citations], used, list(retriever.returned)))
-        provenance = service.analyse(USER, AS_OF).provenance
+        facts = service.analyse(USER, AS_OF)
+    return {"sections": sections, "facts": facts, "imported": result.imported, "as_of": AS_OF, "clock": CLOCK_NOW}
 
-    out = REPORTS / f"demo-analyst-{date.today().isoformat()}.md"
+
+def main(argv: list[str] | None = None) -> int:
+    """`python scripts/demo_analyst.py [OUT_DIR]`: OUT_DIR defaults to docs/reports."""
+    if not (FIX / "analyst_demo_bars.json").exists():
+        print("missing fixture analyst_demo_bars.json; run tests/fixtures/build_demo_fixture.py", file=sys.stderr)
+        return 2
+    argv = sys.argv[1:] if argv is None else argv
+    out_dir = Path(argv[0]) if argv else REPORTS
+    data = collect()
+    sections, provenance, imported = data["sections"], data["facts"].provenance, data["imported"]
+    unverified = sum(0 if a.verified else 1 for _, a, *_ in sections)
+    out = out_dir / f"demo-analyst-{date.today().isoformat()}.md"
     lines = [f"# Demo: analyst on real facts ({date.today().isoformat()})", "",
              f"Offline run. As-of D = {AS_OF}; injected clock {CLOCK_NOW:%Y-%m-%d %H:%M}Z; provider none (TemplateLLM); "
-             f"fixtures: tradebook built in memory by `build_demo_fixture.py` in the `tradebook_synthetic.csv` format ({result.imported} rows imported, 2 of them after D and must be ignored) and "
+             f"fixtures: tradebook built in memory by `build_demo_fixture.py` in the `tradebook_synthetic.csv` format ({imported} rows imported, 2 of them after D and must be ignored) and "
              "recorded `analyst_demo_bars.json` (bars run to 2026-11-30; none after D may be used). All data is synthetic.", "",
              f"Seeds: {provenance['seeds']}. Luck universe: 12 synthetic NSE listings; corporate-action coverage declared for the fixture only.",
              f"Trades used: {provenance['user_trade_count']}. Late-recorded rows: {provenance['late_recorded_row_count']} "
@@ -169,6 +178,7 @@ def main() -> int:
             late = [r for r in returned if r.split("(")[-1].rstrip(")") > AS_OF.isoformat()]
             lines += [f"Retriever returned: {', '.join(returned)}. Dated after D and dropped by the analyst: {len(late)}; cited: {len(kept)}.", ""]
         lines += ["Facts used (" + str(len(used)) + "): " + (", ".join(f"{f.name}={f.value}" for f in used) if used else "none (documents only)"), ""]
+    out_dir.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {out}; {len(sections) - unverified}/{len(sections)} answers verified")
     return 0

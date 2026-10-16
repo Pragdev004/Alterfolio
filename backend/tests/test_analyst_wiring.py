@@ -105,10 +105,11 @@ def test_a8_import_boundaries():
             assert not [m for m in _imports(path) if m.startswith("app.analyst")], path
 
 
-def test_a10_demo_runs_offline_and_every_answer_is_verified():
+def test_a10_demo_runs_offline_and_every_answer_is_verified(tmp_path):
     import subprocess
     import sys
     root = Path(__file__).resolve().parents[1]
-    run = subprocess.run([sys.executable, "scripts/demo_analyst.py"], cwd=root, capture_output=True, text=True, timeout=300)
+    run = subprocess.run([sys.executable, "scripts/demo_analyst.py", str(tmp_path)], cwd=root, capture_output=True, text=True, timeout=300)
     assert run.returncode == 0, run.stderr[-500:]
     assert "4/4 answers verified" in run.stdout
+    assert list(tmp_path.glob("demo-analyst-*.md"))  # written to tmp_path, never into docs/reports
