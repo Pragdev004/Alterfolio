@@ -32,7 +32,7 @@ def svc(session, **cfg):
 
 def test_shipped_universe_file_is_flagged_and_loads():
     u = load_universe(ROOT / "config" / "analysis_universe.toml")
-    assert u.static is True and u.note == NOTE and 15 <= len(u.candidates) <= 20
+    assert u.static is True and u.note == NOTE and len(u.candidates) == 22
     assert len({c.isin for c in u.candidates}) == len(u.candidates)
 
 
@@ -43,11 +43,17 @@ def test_universe_file_without_the_flag_is_rejected(tmp_path):
         load_universe(p)
 
 
-def test_shipped_register_is_empty_so_everything_is_unreviewed():
+def test_shipped_register_matches_the_owner_review_and_leaves_the_banks_unreviewed():
     windows = load_reviewed(ROOT / "config" / "corporate_actions_reviewed.toml")
-    assert windows == ()
-    reviewed, known = resolve_corporate_actions(windows, {TRADED}, date(2025, 1, 1), D_ASOF)
-    assert reviewed == frozenset() and known == frozenset()
+    by = {w.instrument.symbol: w for w in windows}
+    assert len(windows) == 24 and all(w.from_date == date(2024, 7, 29) and w.to_date == date(2026, 10, 15) for w in windows)
+    assert {s: [d for d, _ in by[s].actions] for s in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR")} == {
+        "RELIANCE": [date(2024, 10, 28)], "WIPRO": [date(2024, 12, 3)], "ITC": [date(2025, 1, 6)],
+        "HDFCBANK": [date(2025, 8, 27)], "HINDUNILVR": [date(2025, 12, 5)]}
+    assert all(not w.actions for s, w in by.items() if s not in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR"))
+    unverified = {"PNB", "BANKBARODA", "UNIONBANK", "BANKINDIA", "MAHABANK"}
+    assert unverified.isdisjoint(by)  # in the universe, deliberately not reviewed
+    assert unverified <= {c.instrument.symbol for c in load_universe(ROOT / "config" / "analysis_universe.toml").candidates}
 
 
 def test_review_window_must_cover_the_whole_range_and_actions_exclude():

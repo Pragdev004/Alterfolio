@@ -55,3 +55,20 @@ isin = "INE481G01011"
 [[instrument]]
 symbol = "WIPRO"
 isin = "INE075A01022"
+
+# Added 2026-10-16: UNVERIFIED ISINs (from memory) and NOT in the corporate-actions register, so luck stays Unavailable for them until reviewed.
+[[instrument]]
+symbol = "PNB"
+isin = "INE160A01022"  # UNVERIFIED
+[[instrument]]
+symbol = "BANKBARODA"
+isin = "INE028A01039"  # UNVERIFIED
+[[instrument]]
+symbol = "UNIONBANK"
+isin = "INE692A01016"  # UNVERIFIED
+[[instrument]]
+symbol = "BANKINDIA"
+isin = "INE084A01016"  # UNVERIFIED
+[[instrument]]
+symbol = "MAHABANK"
+isin = "INE457A01014"  # UNVERIFIED
