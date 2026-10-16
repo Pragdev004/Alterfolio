@@ -8,3 +8,5 @@
 - 1-spec-plan | tier sonnet | in/out 4/577 | switches 0 | write spec and plan docs
 - 2-review | tier opus | in/out 12/5074 | switches 0 | single opus review of spec and plan
 - 3-tests-first | tier sonnet | in/out 24/9411 | switches 0 | write failing tests
+- 1-spec-plan | tier sonnet | in/out 2/164 | switches 0 | write 011 spec and plan
+- 2-review | tier opus | in/out 28/11027 | switches 0 | the one allowed opus review of spec/plan

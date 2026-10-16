@@ -35,6 +35,16 @@ analyses on that user's real effective trades and market data, and give the 010 
 - `backend/scripts/demo_analyst.py`: offline, fixture tradebook + recorded bar fixture, 4 questions, report
   `docs/reports/demo-analyst-YYYY-MM-DD.md`.
 
+## Review amendments (opus, applied; override text above)
+- Single boundary B = IST midnight of D+1 (UTC): used for `truncated_to`, `LuckParameters.as_of`, 006 `window_end`, 008
+  `as_of`, and trade cutoff (`trade_timestamp < B`). Series fetched with end=D. D >= today IST (injected clock) -> 422.
+- As-known-at: trades recorded after B, and superseders recorded after B, are ignored (new additive repo method).
+- One frozen clock reading per `analyse()`; fetch start = first trade date - 300 days; truncation on every series.
+- 006/007/008 input errors become `unavailable[analysis]`, never a 500. 006 gets known + unreviewed traded listings.
+- Facts carry lower-bound/fee_status/survivorship flags; None fields map to Unavailable+reason, counts stay numeric.
+- Statistic floats: `format(Decimal(repr(x)).normalize(), "f")`, -0 -> "0"; no float anywhere in `to_dict()`.
+- Tools take user_id per call; request body forbids extras; separate `LuckParameters` for 007 and 008 seeds.
+
 ## Acceptance criteria
 - A1 A trade after D never reaches any analysis.
 - A2 No bar after D reaches any analysis: perturbing post-D bars leaves the facts identical.

@@ -22,3 +22,8 @@ Spec: `docs/specs/011-portfolio-analysis-wiring.md`. Steps commit separately; fo
 ## Steps
 1 types + seed + trade loading/mapping (tests A1, A3, A5 seeds). 2 series + truncation (A2). 3 006/007/008 facts
 (A4, A9). 4 analyst wiring (A6). 5 endpoint (A7). 6 demo (A10). Review, acceptance report, run report.
+
+## Review additions (tests)
+post-D void/late-recorded trade leaves facts unchanged (A1); trip closed on D is evaluated (A2); D=today/tomorrow -> 422;
+180/181 bar boundary via service (A4); lowercase stored ISIN -> Unavailable not 500; per-None-field parametrised
+"no 0" test; recursive no-float walk (A9); two users on one app (A7); seeds use separate params (A5).
