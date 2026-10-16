@@ -7,6 +7,7 @@ an input answers Unavailable with a reason; nothing is invented, estimated or tu
 
 import hashlib
 import json
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
@@ -124,7 +125,7 @@ def _why(u) -> str:
 
 def _stat(x: float | None) -> str | None:
     """A statistic float -> canonical decimal text, once. NaN/inf/None -> None (Unavailable)."""
-    if x is None or x != x or x in (float("inf"), float("-inf")):
+    if x is None or not math.isfinite(x):
         return None
     text = canonical_decimal(Decimal(repr(x)))
     return "0" if text in ("-0", "-0.0") else text
