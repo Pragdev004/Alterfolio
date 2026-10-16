@@ -10,7 +10,7 @@ a source of a number.** Educational, not financial advice; no profitability clai
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
 feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
-live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is in progress (steps 1-2 committed). `quant/` holds `market_data/` and `backtest/`; no frontend.
+live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is implemented and committed (steps 1-6, `acac749` + `55a03de`), awaiting owner review; D7 trial-count gate OPEN — OWNER DECISION. `quant/` holds `market_data/` and `backtest/`; no frontend.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -24,7 +24,8 @@ Stages: 1 portfolio/trades/Zerodha import -> 2 Quant V1 (risk) -> 3 analytics UI
 Dependency direction (anything not listed is forbidden; enforced by an AST import test):
 ```
 api -> services -> repositories -> models
-services -> quant, services -> providers (market data; only `providers/market/port.py`)
+services -> quant, services -> providers (ports only: `providers/market/port.py`, `providers/market/history_port.py`;
+  Feature 009 embeddings: `providers/embedding/port.py`, imported only by `services/retrieval.py`; never an adapter)
 (implemented extras, see plan 001: services -> models for read types; api -> schemas, db; schemas -> domain only)
 ai -> quant result schemas (stage 6);  api -> ai (stage 6)
 domain: stdlib only; every layer may import it
@@ -62,7 +63,9 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
 
 ## 3. Code Style
 - Python 3.11+. Money, price, quantity, fee, tax, notional, P&L = `Decimal` in memory, `NUMERIC` in PostgreSQL,
-  string in API JSON. Float only for statistics (returns, vol, z-scores, regressions) and dimensionless ratios.
+  string in API JSON. Float only for statistics (returns, vol, z-scores, regressions) and dimensionless ratios;
+  Feature 009 retrieval only: embedding vectors and cosine scores in `providers/embedding/ollama.py`,
+  `services/retrieval.py`, `repositories/chunks.py`, which may not import money modules (boundary test enforced).
   Never round-trip Decimal through float; convert float->Decimal at most once with an explicit rounding rule.
 - Timestamps are tz-aware UTC; reject naive timestamps.
 - Undefined quant values are `None` or `Unavailable(reason)`; never NaN, inf, or silent zero.
@@ -74,7 +77,10 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
 
 ## 4. Preferred Libraries
 Backend: FastAPI, SQLAlchemy 2 + Alembic, PostgreSQL, pytest. Quant: stdlib, statsmodels isolated to one adapter.
-Market data: provider port, Yahoo adapter via httpx (runtime dep; httpx imported only in `providers/market/yahoo.py`). Frontend (stage 3): React + TypeScript + Vite, vitest.
+Market data: provider port, Yahoo adapter via httpx (runtime dep; httpx imported only in `providers/market/yahoo.py` and
+`providers/embedding/ollama.py`). Frontend (stage 3): React + TypeScript + Vite, vitest.
+Embeddings (009): provider port + local Ollama adapter (`nomic-embed-text`) via httpx; pgvector is a PostgreSQL extension, not a
+Python dependency.
 AI provider/orchestration: TBD via ADR at stage 6 (provider-neutral port, default none).
 Declared in `backend/pyproject.toml` (setuptools build; runtime incl. `python-multipart` for the streaming tradebook upload;
 `dev` extra: pytest, httpx, uvicorn). Exact versions
@@ -127,7 +133,7 @@ Lint/type-check/frontend commands: TBD (not configured yet).
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is in progress (steps 1-2 committed, `acac749`).
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is committed (steps 1-6: `acac749`, `55a03de`; owner review and D7 pending).
 Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
