@@ -25,9 +25,13 @@ APP = Path(__file__).resolve().parents[1] / "app"
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    def blocked(*a, **k):
-        raise AssertionError("network access in a test")
-    monkeypatch.setattr(socket.socket, "connect", blocked)
+    original = socket.socket.connect
+
+    def guarded(self, address, *a, **k):  # loopback is allowed: the test client's event loop uses a socketpair
+        if not (isinstance(address, tuple) and address[0] in ("127.0.0.1", "::1", "localhost")):
+            raise AssertionError(f"network access in a test: {address!r}")
+        return original(self, address, *a, **k)
+    monkeypatch.setattr(socket.socket, "connect", guarded)
 
 
 def service(session, provider=None):
@@ -37,7 +41,7 @@ def service(session, provider=None):
 def test_a6_end_to_end_real_wiring_is_verified_and_cites_facts(session):
     seed_round_trips(session, USER_A, 14)
     svc = service(session)
-    facts = {f.name for f in svc.analyse(USER_A, D_ASOF).facts}
+    facts = {f.source for f in svc.analyse(USER_A, D_ASOF).facts}  # citations name the fact source
     for question in ("Was my last buy skill or luck?", "What did my behaviour cost me?", "How did I do in each regime?"):
         answer = ask(USER_A, question, D_ASOF, llm=TemplateLLM(), tools=quant_tools_from(svc.analyse), retriever=None)
         assert answer.verified is True and answer.attempts == 1

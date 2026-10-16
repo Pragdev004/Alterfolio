@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from app.providers.market.port import MarketDataProvider
 from app.services.ledger import LedgerService
+from app.services.portfolio_analysis import PortfolioAnalysisService
 from app.services.portfolio_summary import PortfolioSummaryService
 from app.services.tradebook_import import TradebookImportService
 
@@ -51,4 +52,11 @@ def get_summary_service(
         market_data,
         clock=request.app.state.clock,
         stale_after=timedelta(days=request.app.state.settings.quote_stale_after_days),
+    )
+
+
+def get_analysis_service(request: Request, session: Session = Depends(get_session)) -> PortfolioAnalysisService:
+    return PortfolioAnalysisService.for_session(
+        session, provider=request.app.state.history_provider, clock=request.app.state.clock,
+        config=request.app.state.analysis_config,
     )

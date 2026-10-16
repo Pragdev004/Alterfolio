@@ -228,14 +228,26 @@ class PortfolioAnalysisService:
                  config: AnalysisConfig) -> None:
         self._repo, self._provider, self._clock, self._config = repo, provider, clock, config
 
-    def analyse(self, user_id: UUID, as_of: date) -> AnalysisFacts:
+    @classmethod
+    def for_session(cls, session, *, provider, clock: Callable[[], datetime], config: AnalysisConfig) -> "PortfolioAnalysisService":
+        return cls(repo=TradeRepository(session), provider=provider, clock=clock, config=config)
+
+    def require_sealed(self, as_of: date) -> None:
+        """Raise AsOfNotSealedError unless D is before today's IST date (callable without running an analysis)."""
+        self._require_sealed(as_of, self._clock())
+
+    @staticmethod
+    def _require_sealed(as_of: date, now: datetime) -> None:
         if isinstance(as_of, datetime) or not isinstance(as_of, date):
             raise TypeError("as_of must be a date")
-        now = self._clock()  # the one clock reading of this run
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("the clock must return a timezone-aware datetime")
         if as_of >= local_date(now, timedelta(hours=5, minutes=30)):
             raise AsOfNotSealedError(as_of)
+
+    def analyse(self, user_id: UUID, as_of: date) -> AnalysisFacts:
+        now = self._clock()  # the one clock reading of this run
+        self._require_sealed(as_of, now)
         boundary = datetime.combine(as_of + timedelta(days=1), time.min, IST).astimezone(timezone.utc)  # IST midnight of D+1
         rows = [t for t in self._repo.list_effective_as_known(user_id=user_id, cutoff=boundary)
                 if t.user_id == user_id and t.trade_timestamp < boundary]
