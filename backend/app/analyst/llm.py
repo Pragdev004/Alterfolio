@@ -1,8 +1,9 @@
 """The AnalystLLM port and its two offline implementations (the HTTP one lives in llm_openai.py)."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
+from app.analyst.numbers import numeric_tokens
 from app.analyst.types import UNAVAILABLE, Claim, Draft, Fact, Passage
 
 
@@ -15,7 +16,9 @@ class AnalystLLM(Protocol):
               errors: Sequence[str]) -> Draft: ...
 
 
-def fact_line(fact: Fact) -> str:
+def fact_line(fact: Fact, render: Callable[[Fact], str] | None = None) -> str:
+    if render is not None:
+        return f"{fact.name}: {render(fact)}"
     unit = f" {fact.unit}" if fact.unit and fact.value != UNAVAILABLE else ""
     return f"{fact.name}: {fact.value}{unit}"
 
@@ -40,11 +43,15 @@ class FakeLLM:
 
 
 class TemplateLLM:
-    """No model: states each fact verbatim, one line per fact, and points at each retrieved document."""
+    """No model: states each fact, one line per fact, and points at each retrieved document.
+    With `render` (a display formatter) values are shown rounded and the claims carry the displayed number."""
+
+    def __init__(self, render: Callable[[Fact], str] | None = None) -> None:
+        self._render = render
 
     def draft(self, question, facts, passages, errors) -> Draft:
-        lines = [fact_line(f) for f in facts]
-        claims = [Claim(f.value, f.name) for f in facts if f.value != UNAVAILABLE]
+        lines = [fact_line(f, self._render) for f in facts]
+        claims = [Claim(numeric_tokens(self._render(f))[0] if self._render else f.value, f.name) for f in facts if f.value != UNAVAILABLE]
         lines += [f"See document {p.chunk_id}." for p in passages]
         if not lines:
             lines = ["No quantitative facts or documents were available for this question."]

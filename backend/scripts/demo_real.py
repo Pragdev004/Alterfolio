@@ -23,6 +23,8 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 from app.analyst.llm import TemplateLLM  # noqa: E402
 from app.analyst.service import ask  # noqa: E402
 from app.api.analyst_wiring import apply_caveats, quant_tools_with_caveats  # noqa: E402
+from app.api.display import render_fact  # noqa: E402
+from app.domain.timezones import IST_OFFSET  # noqa: E402
 from app.domain.instrument import Instrument  # noqa: E402
 from app.models.base import Base  # noqa: E402
 from app.quant.regime_split.types import RegimeParameters  # noqa: E402
@@ -35,7 +37,6 @@ from app.services.tradebook_import import TradebookImportService  # noqa: E402
 from bar_cache import AliasingBars, CachingBars  # noqa: E402
 
 USER = UUID(int=0xD1)
-IST = timedelta(hours=5, minutes=30)
 REPORTS = BACKEND.parent / "docs" / "reports"
 QUESTIONS = ["Was my last buy skill or luck?", "What did my behaviour cost me?", "How did I do in each regime?",
              "What did the latest annual report say?"]
@@ -55,6 +56,22 @@ def _engine():
 
     Base.metadata.create_all(engine)
     return engine
+
+
+def coverage_summary(facts: list[dict], prov: dict) -> dict:
+    """Coverage exactly as the AnalysisFacts state it (luck coverage facts + provenance); nothing recomputed."""
+    by = {f["name"]: f["value"] for f in facts}
+    reviewed = {tuple(x.rsplit(".", 1)) for x in prov.get("corporate_action_reviewed") or []}
+    unreviewed = sorted(f"{s}.{e}" for s, e, _ in prov["universe"] if (s, e) not in reviewed)
+    return {"trips_analysed": by.get("luck.coverage.trips_analysed", "Unavailable"),
+            "trips_total": by.get("luck.coverage.trips_total", "Unavailable"),
+            "excluded_listings": by.get("luck.coverage.excluded_listing_count", "Unavailable"),
+            "unreviewed_universe": unreviewed}
+
+
+def summary_line(cov: dict) -> str:
+    return (f"trips analysed {cov['trips_analysed']} of {cov['trips_total']}; excluded listings {cov['excluded_listings']}; "
+            f"unreviewed universe listings {len(cov['unreviewed_universe'])}")
 
 
 def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetime, out_path: Path, *,
@@ -94,11 +111,12 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
         sections = []
         for q in QUESTIONS:
             tools, caveats = quant_tools_with_caveats(service.analyse)
-            answer = apply_caveats(ask(USER, q, as_of, llm=TemplateLLM(), tools=tools, retriever=None), caveats())
+            answer = apply_caveats(ask(USER, q, as_of, llm=TemplateLLM(render_fact), tools=tools, retriever=None, render=render_fact), caveats())
             sections.append((q, answer))
         facts_all = service.analyse(USER, as_of)
         prov = facts_all.provenance
-    unreviewed = sorted(f"{i.symbol}.{i.exchange.value}" for i in listings - reviewed)
+    cov = coverage_summary([f.to_dict() for f in facts_all.facts], prov)
+    unreviewed = cov["unreviewed_universe"]
     lines = [f"# Real-data demo ({now.date().isoformat()})", "",
              f"As-of D = {as_of}; provider Yahoo via cache; TemplateLLM (no model). Tradebooks merged and imported once: {len(tradebooks)}. "
              f"Rows imported {imported}, skipped as duplicates {duplicates}, rejected {rejected}. "
@@ -108,14 +126,14 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
              "Rejected rows (row of the merged file, symbol, reason): "
              + ("; ".join(f"{n} {sym} {code} ({msg})" for n, sym, code, msg in rejected_rows) or "none") + ".",
              f"Market-data symbol aliases (lookup only): {', '.join(f'{k}->{v}' for k, v in aliases.items()) or 'none'}.",
-             f"Not reviewed (their luck/regime results are Unavailable): {', '.join(unreviewed) or 'none'}.",
-             f"Seeds: {prov['seeds']}. Nifty 50 membership is not configured, so the NIFTY baseline is Unavailable.", ""]
+             f"Not reviewed (universe listings; their luck/regime results are Unavailable): {', '.join(unreviewed) or 'none'}.",
+             f"Coverage: {summary_line(cov)}. Seeds: {prov['seeds']}. Nifty 50 membership is not configured, so the NIFTY baseline is Unavailable.", ""]
     for n, (q, a) in enumerate(sections, 1):
         lines += [f"## Q{n}. {q}", "", f"verified: **{a.verified}** (attempts {a.attempts})", "", "```", a.text, "```", "",
                   f"Citations: {', '.join(f'{c.kind}:{c.ref}' for c in a.citations) or 'none'}", ""]
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {"answers": [(q, a) for q, a in sections], "unavailable": [list(u) for u in facts_all.unavailable],
-            "facts": [f.to_dict() for f in facts_all.facts], "provenance": prov, "imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed}
+            "facts": [f.to_dict() for f in facts_all.facts], "provenance": prov, "imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed, "coverage": cov}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,12 +143,12 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     from app.providers.market.yahoo import YahooProvider  # network adapter: this script only
     now = datetime.now(timezone.utc)
-    as_of = args.as_of or ((now + IST).date() - timedelta(days=1))
+    as_of = args.as_of or ((now + IST_OFFSET).date() - timedelta(days=1))
     cache = CachingBars(YahooProvider(timeout_seconds=10, total_budget_seconds=60), BACKEND / ".cache")
     out = REPORTS / f"demo-real-{date.today().isoformat()}.md"
     summary = run([(p.name, p.read_bytes()) for p in args.tradebooks], cache, as_of, now, out)
     print(f"wrote {out}; {summary['verified']}/{summary['total']} verified; rows {summary['imported']} imported, {summary['duplicates']} duplicate, {summary['rejected']} rejected; cache hits {cache.hits}, misses {cache.misses}; "
-          f"{len(summary['unreviewed'])} listing(s) unreviewed")
+          f"{summary_line(summary['coverage'])}")
     return 0
 
 

@@ -1,6 +1,7 @@
 """The LangGraph state machine: classify -> quant_tools -> retrieve -> draft -> number_check -> (draft | finalize)."""
 
-from datetime import date, datetime, time, timedelta, timezone
+from collections.abc import Callable
+from datetime import date, datetime, time
 from typing import TypedDict
 from uuid import UUID
 
@@ -12,12 +13,10 @@ from app.analyst.numbers import check
 from app.analyst.tools import QuantTools, Retriever, unwired_tools
 from app.analyst.types import AnalystAnswer, Citation, Draft, Fact, Passage
 from app.domain.retrieval import Unavailable, to_utc, validate_text
+from app.domain.timezones import IST
 
 MAX_ATTEMPTS = 2
 SEARCH_K = 5
-
-
-IST = timezone(timedelta(hours=5, minutes=30))  # same fixed offset as tradebook_parser.IST / yahoo (no DST, no tzdata)
 
 
 def cutoff_for(as_of: date) -> datetime:
@@ -38,7 +37,8 @@ class State(TypedDict, total=False):
     answer: AnalystAnswer
 
 
-def build_graph(llm: AnalystLLM, tools: QuantTools | None, retriever: Retriever | None):
+def build_graph(llm: AnalystLLM, tools: QuantTools | None, retriever: Retriever | None,
+                render: Callable[[Fact], str] | None = None):
     tools = unwired_tools() if tools is None else tools
 
     def classify_node(state: State) -> dict:
@@ -91,7 +91,7 @@ def build_graph(llm: AnalystLLM, tools: QuantTools | None, retriever: Retriever 
         draft = state["draft"]
         if draft is None:
             return {}
-        errors = check(draft, state["facts"], state["passages"], state["as_of"])
+        errors = check(draft, state["facts"], state["passages"], state["as_of"], render)
         if not draft.text.strip():
             errors.append("the draft text is empty")
         return {"errors": tuple(errors)}
@@ -105,7 +105,7 @@ def build_graph(llm: AnalystLLM, tools: QuantTools | None, retriever: Retriever 
         if verified:
             text = draft.text
         elif facts:
-            text = "\n".join(fact_line(f) for f in facts)
+            text = "\n".join(fact_line(f, render) for f in facts)
         else:
             text = "No verified facts are available for this question."
         citations = [Citation("tool", s) for s in dict.fromkeys(f.source for f in facts)]

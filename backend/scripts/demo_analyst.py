@@ -37,6 +37,8 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 from app.analyst.llm import TemplateLLM  # noqa: E402
 from app.analyst.service import ask  # noqa: E402
 from app.api.analyst_wiring import quant_tools_from  # noqa: E402
+from app.api.display import render_fact  # noqa: E402
+from app.domain.timezones import IST_OFFSET  # noqa: E402
 from app.domain.enums import Currency, Exchange  # noqa: E402
 from app.domain.instrument import Instrument  # noqa: E402
 from app.models.base import Base  # noqa: E402
@@ -53,7 +55,6 @@ REPORTS = BACKEND.parent / "docs" / "reports"
 USER = UUID(int=0xD0)
 CLOCK_NOW = datetime(2026, 12, 1, 10, 0, tzinfo=timezone.utc)
 AS_OF = date(2026, 9, 30)
-IST = timedelta(hours=5, minutes=30)
 TRADED = "DEMOCO"
 
 
@@ -74,7 +75,7 @@ class ReplayBars:
             d = self._start + timedelta(days=i)
             if start <= d <= end:
                 bars.append(RawBar(datetime(d.year, d.month, d.day, 3, 45, tzinfo=timezone.utc), d, c, c, c, c, c, 1000))
-        return RawBarBatch(instrument, tuple(bars), Currency.INR, "recorded-fixture", retrieved_at, IST, len(bars), 0)
+        return RawBarBatch(instrument, tuple(bars), Currency.INR, "recorded-fixture", retrieved_at, IST_OFFSET, len(bars), 0)
 
 
 class DemoRetriever:
@@ -146,7 +147,7 @@ def collect() -> dict:
             used: list = []
             tools = {k: _recording(t, used) for k, t in quant_tools_from(service.analyse).items()}
             retriever.returned = []
-            answer = ask(USER, q, AS_OF, llm=TemplateLLM(), tools=tools, retriever=retriever)
+            answer = ask(USER, q, AS_OF, llm=TemplateLLM(render_fact), tools=tools, retriever=retriever, render=render_fact)
             sections.append((q, answer, [f"{c.kind}:{c.ref}" for c in answer.citations], used, list(retriever.returned)))
         facts = service.analyse(USER, AS_OF)
     return {"sections": sections, "facts": facts, "imported": result.imported, "as_of": AS_OF, "clock": CLOCK_NOW}

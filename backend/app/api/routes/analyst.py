@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.analyst.service import ask
 from app.api.analyst_wiring import apply_caveats, quant_tools_with_caveats
+from app.api.display import render_fact
 from app.api.deps import get_analysis_service, get_current_user_id
 from app.services.portfolio_analysis import PortfolioAnalysisService
 
@@ -35,5 +36,5 @@ def ask_route(
     analysis.require_sealed(body.as_of)  # rejected even when the question needs no quant tool
     tools, caveats = quant_tools_with_caveats(analysis.analyse)
     answer = ask(user_id, body.question, body.as_of, llm=request.app.state.analyst_llm, tools=tools,
-                 retriever=request.app.state.retriever)
+                 retriever=request.app.state.retriever, render=render_fact)
     return apply_caveats(answer, caveats()).to_dict()

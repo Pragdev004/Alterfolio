@@ -16,6 +16,9 @@ sys.path.insert(0, str(BACKEND))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 DOCS = BACKEND.parent / "docs"
 
+from app.api.display import display_value  # noqa: E402
+from app.domain.timezones import IST_OFFSET  # noqa: E402
+
 CSS = """
 :root{--bg:#f7f6f2;--fg:#1d1f24;--mut:#5b6068;--card:#fff;--line:#dcdad2;--ok:#1f7a4d;--bad:#b3261e;--na:#8a5a00;--acc:#27408b}
 @media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8e6df;--mut:#9aa0a8;--card:#1c1f25;--line:#2f333b;--ok:#5fcf9a;--bad:#ff8a80;--na:#e0b04a;--acc:#9db4ff}}
@@ -38,7 +41,7 @@ CROSS = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><cir
 
 def _facts_table(rows) -> str:
     body = "".join(
-        f'<tr><td>{escape(r["name"])}</td><td class="v{" na" if r["value"] == "Unavailable" else ""}">{escape(r["value"])}</td>'
+        f'<tr><td>{escape(r["name"])}</td><td class="v{" na" if r["value"] == "Unavailable" else ""}" title="exact: {escape(r["value"])}">{escape(display_value(r["name"], r["value"], r.get("unit", "")))}</td>'
         f'<td>{escape(r.get("unit", ""))}</td><td>{escape(r.get("source", ""))}</td></tr>' for r in rows)
     return f'<div class="wrap"><table><thead><tr><th>Fact</th><th>Value</th><th>Unit</th><th>Source</th></tr></thead><tbody>{body}</tbody></table></div>'
 
@@ -120,7 +123,7 @@ def real_model(paths: list[Path]) -> dict:
     from app.services.analysis_toml import load_aliases  # noqa: F401  (aliases are applied inside demo_real.run)
     from bar_cache import CachingBars
     now = datetime.now(timezone.utc)
-    as_of = (now + timedelta(hours=5, minutes=30)).date() - timedelta(days=1)
+    as_of = (now + IST_OFFSET).date() - timedelta(days=1)
     cache = CachingBars(YahooProvider(timeout_seconds=10, total_budget_seconds=60), BACKEND / ".cache")
     scratch = DOCS / "reports" / f"demo-real-{date.today().isoformat()}.md"
     s = demo_real.run([(p.name, p.read_bytes()) for p in paths], cache, as_of, now, scratch)
@@ -128,12 +131,13 @@ def real_model(paths: list[Path]) -> dict:
 
 
 def model_from_run(s: dict, as_of: date) -> dict:
+    import demo_real
     prov = s["provenance"]
     sections = [{"q": q, "text": a.text, "verified": a.verified, "attempts": a.attempts,
                  "citations": [f"{c.kind}:{c.ref}" for c in a.citations], "note": "", "used": []} for q, a in s["answers"]]
     return {"title": "Alterfolio: your trades, skill or luck", "subtitle": "Real-data run (private). Do not share or commit.",
             "meta": [f"As-of day {as_of}; rows imported {s['imported']}, duplicates {s['duplicates']}, rejected {s['rejected']}.",
-                     f"Trades used: {prov['user_trade_count']}; trips analysed {prov['trips_total'] - sum(e[3] for e in prov['excluded_listings'])} of {prov['trips_total']}.",
+                     f"Trades used: {prov['user_trade_count']}; {demo_real.summary_line(s['coverage'])}.",
                      "Excluded: " + ("; ".join(f"{a}.{b} ({c})" for a, b, c, _ in prov["excluded_listings"]) or "none"),
                      prov.get("universe_note", ""), prov.get("price_proxy_note", "")],
             "sections": sections, "facts": s["facts"], "unavailable": s["unavailable"]}

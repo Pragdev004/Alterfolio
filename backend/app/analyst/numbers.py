@@ -2,19 +2,20 @@
 
 import re
 import unicodedata
-from datetime import date, timedelta, timezone
+from collections.abc import Callable
+from datetime import date, timezone
 from decimal import Decimal, InvalidOperation
 
 from app.analyst.types import UNAVAILABLE, Draft, Fact, Passage
+from app.domain.timezones import IST_OFFSET
 
-_TOKEN = re.compile(r"[+-]?(?:\d[\d,]*(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?%?")
+_TOKEN = re.compile(r"[+-]?₹?(?:\d[\d,]*(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?%?")
 _SCALE = re.compile(r"\d\s*(?:lakhs?|crores?|thousand|million|billion|trillion|mn|bn|bps|k|m|x)\b", re.IGNORECASE)
 _WORDS = re.compile(
     r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|"
     r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|"
     r"billion|half|third|quarter|double|triple|twice|dozen)\b", re.IGNORECASE)
 _MAX_EXPONENT = 40
-_IST_OFFSET = timedelta(hours=5, minutes=30)
 
 
 def numeric_tokens(text: str) -> list[str]:
@@ -23,7 +24,7 @@ def numeric_tokens(text: str) -> list[str]:
 
 def canonical(token: str) -> str | None:
     """Plain decimal text of a numeric token (commas and % sign dropped, exponent expanded), or None if not a number."""
-    raw = unicodedata.normalize("NFKC", token).strip().replace(",", "")
+    raw = unicodedata.normalize("NFKC", token).strip().replace(",", "").replace("₹", "")
     if raw.endswith("%"):
         raw = raw[:-1]
     try:
@@ -37,6 +38,13 @@ def canonical(token: str) -> str | None:
     return format(d.normalize(), "f")
 
 
+def _displayed(fact: Fact, render: Callable[[Fact], str] | None) -> str | None:
+    if render is None:
+        return None
+    tokens = numeric_tokens(render(fact))
+    return canonical(tokens[0]) if tokens else None
+
+
 def _strip(text: str, names: list[str]) -> str:
     for name in sorted(set(names), key=len, reverse=True):
         text = text.replace(name, " ")
@@ -44,8 +52,10 @@ def _strip(text: str, names: list[str]) -> str:
 
 
 def check(draft: Draft, facts: list[Fact] | tuple[Fact, ...], passages: list[Passage] | tuple[Passage, ...],
-          as_of: date) -> list[str]:
-    """Errors found in a draft; an empty list means every number is traceable. Order is deterministic."""
+          as_of: date, render: Callable[[Fact], str] | None = None) -> list[str]:
+    """Errors found in a draft; an empty list means every number is traceable. Order is deterministic.
+
+    `render` is the display formatter: a claim may equal the exact fact value or the number in its rounded display text."""
     by_name = {f.name: f for f in facts}
     by_chunk = {p.chunk_id: p for p in passages}
     errors: list[str] = []
@@ -58,7 +68,7 @@ def check(draft: Draft, facts: list[Fact] | tuple[Fact, ...], passages: list[Pas
             fact = by_name[claim.source]
             if fact.value == UNAVAILABLE:
                 errors.append(f"claim {claim.value!r} cites {claim.source}, which is Unavailable")
-            elif value != canonical(fact.value):
+            elif value != canonical(fact.value) and value != _displayed(fact, render):
                 errors.append(f"claim {claim.value!r} does not equal {claim.source} = {fact.value}")
             else:
                 allowed.add(value)
@@ -75,7 +85,7 @@ def check(draft: Draft, facts: list[Fact] | tuple[Fact, ...], passages: list[Pas
     for p in cited:  # a cited passage's own date (UTC or IST calendar day, or the full instant) is not a data number
         utc = p.published_at.astimezone(timezone.utc)
         dates += [utc.isoformat(), p.published_at.isoformat(), utc.date().isoformat(),
-                  (utc + _IST_OFFSET).date().isoformat()]
+                  (utc + IST_OFFSET).date().isoformat()]
     text = _strip(text, [as_of.isoformat(), *dates, *by_name, *by_chunk])
     if _SCALE.search(text):
         errors.append("scaled numbers (lakh, crore, k, bn, bps, ...) are not allowed; state the exact value")

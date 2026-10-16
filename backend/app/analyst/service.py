@@ -1,13 +1,14 @@
 """Entry point: `ask(user_id, question, as_of)`. Provider selection follows AI_PROVIDER (default none, offline)."""
 
 import os
+from collections.abc import Callable
 from datetime import date, datetime
 from uuid import UUID
 
 from app.analyst.graph import build_graph
 from app.analyst.llm import AnalystLLM, TemplateLLM
 from app.analyst.tools import QuantTools, Retriever
-from app.analyst.types import AnalystAnswer
+from app.analyst.types import AnalystAnswer, Fact
 
 
 def llm_from_provider(provider: str) -> AnalystLLM:
@@ -20,7 +21,7 @@ def llm_from_provider(provider: str) -> AnalystLLM:
 
 
 def ask(user_id: UUID, question: str, as_of: date, *, llm: AnalystLLM | None = None, tools: QuantTools | None = None,
-        retriever: Retriever | None = None) -> AnalystAnswer:
+        retriever: Retriever | None = None, render: Callable[[Fact], str] | None = None) -> AnalystAnswer:
     """Answer `question` using only facts and documents dated on or before `as_of` (a UTC calendar day)."""
     if not isinstance(user_id, UUID):
         raise TypeError("user_id must be a UUID")
@@ -30,5 +31,5 @@ def ask(user_id: UUID, question: str, as_of: date, *, llm: AnalystLLM | None = N
         raise TypeError("as_of must be a date, not a datetime or text")
     if llm is None:
         llm = llm_from_provider(os.environ.get("AI_PROVIDER", "none"))
-    graph = build_graph(llm, tools, retriever)
+    graph = build_graph(llm, tools, retriever, render)
     return graph.invoke({"user_id": user_id, "question": question, "as_of": as_of})["answer"]
