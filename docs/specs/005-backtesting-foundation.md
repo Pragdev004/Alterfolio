@@ -2,7 +2,7 @@
 
 **Status: IMPLEMENTED, AWAITING OWNER REVIEW.** Steps 1-2 are committed (`acac749`); steps 3-6 (calendar, execution, engine, result)
 and the step-7 purity test are committed (`55a03de`, full suite green: 2130 passed, 83 skipped). The stage-5 trial-count gate
-(plan D7) is OPEN — OWNER DECISION (not decided by the implementer). Owner review is pending. This is the implementation contract for Feature 005. It is not an
+(plan D7) is DECIDED: recorded in result, persisted later (`BacktestConfig.trial_count`, required int >= 1, in `inputs.config` and the fingerprint). Owner review is pending. This is the implementation contract for Feature 005. It is not an
 as-built spec yet; it becomes one when the code is delivered. The plan (`docs/plans/005-backtesting-foundation.md`)
 holds the reasoning, risks and decisions; where they differ, report it to the owner rather than choosing.
 **Baseline:** `e7010bc` (Feature 004). **Scope:** pure, deterministic, point-in-time daily-bar simulation.

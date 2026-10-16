@@ -14,7 +14,7 @@ the approved decisions live in `docs/plans/`, the product-level requirements in 
 | `002-5-api-and-holdings.md` | Import route, ISIN-required manual API, corrections, ISIN-grouped holdings | Delivered (live PostgreSQL unverified) |
 | `003-market-data-portfolio-summary.md` | Market-data port, Yahoo adapter, `GET /portfolio/summary` | Delivered (live Yahoo unverified) |
 | `004-quant-market-data-foundation.md` | Daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service | Delivered, committed as `e7010bc` (live Yahoo unverified) |
-| `005-backtesting-foundation.md` | Pure point-in-time daily-bar backtest engine (implementation contract) | Steps 1-6 committed (`acac749`, `55a03de`); awaiting owner review; D7 trial-count gate OPEN — OWNER DECISION |
+| `005-backtesting-foundation.md` | Pure point-in-time daily-bar backtest engine (implementation contract) | Steps 1-6 committed (`acac749`, `55a03de`); awaiting owner review; D7 DECIDED: recorded in result, persisted later (`trial_count`) |
 | `006-bias-cost-behaviour-profile.md` | Bias costs (disposition, chasing, overtrading) in INR and rule-based behaviour archetype | Proposed / awaiting spec review (not implemented) |
 | `007-luck-test.md` | Seeded luck test: closed round trips vs similar-alternative and Nifty 50 random portfolios, bootstrap interval | Implemented, awaiting owner review (not committed) |
 | `008-regime-split.md` | Per-regime Feature 007 and 006 results; rule-based own-listing volatility regimes, expanding 33/67 percentiles | Implemented, awaiting owner review (not committed) |

@@ -40,8 +40,9 @@ def make_series(instrument=A, prices=PRICES, retrieved_at=RETRIEVED):
     )
 
 
-def config(cash="10000", start=WEEK[0], end=WEEK[-1]):
-    return BacktestConfig(start_date=start, end_date=end, initial_cash=D(cash), currency=Currency.INR)
+def config(cash="10000", start=WEEK[0], end=WEEK[-1], trial_count=1):
+    return BacktestConfig(start_date=start, end_date=end, initial_cash=D(cash), currency=Currency.INR,
+                          trial_count=trial_count)
 
 
 class Scripted:

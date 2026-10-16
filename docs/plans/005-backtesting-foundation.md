@@ -1,6 +1,6 @@
 # Feature 005: Backtesting Foundation
 
-**Status: PROPOSED (revision 4). Section 9 decisions are resolved EXCEPT the open stage-5 trial-count gate (D7); NOT implemented.**
+**Status: PROPOSED (revision 4). Section 9 decisions are all resolved (D7 DECIDED: recorded in result, persisted later).**
 Authoritative contract: `docs/specs/005-backtesting-foundation.md` (it wins over this plan). Step 1 exists in the working
 tree, uncommitted; steps 2-7 are pending. Rev 2: deterministic `as_of`, share units, read-only views, strategy identity.
 Rev 3: cutoffs rejected, `Unavailable` semantics, D4/D5/D7/D8. Rev 4: trial-count gate kept OPEN; Step 2 review fixes.
@@ -165,7 +165,7 @@ unit choice; per-share prices and quantities are. Bonus/rights/dividends are not
 - Holiday gap and one instrument missing a date: join drops it and the fill goes to the next common date.
 - Run-twice and permuted-input-order equality; no `adjusted_close` read in the engine (AST/behavior test).
 
-## 9. Decisions (D4, D5, D8 RESOLVED; D7 deferral approved but its stage-5 gate is UNRESOLVED; rest as in the spec)
+## 9. Decisions (D4, D5, D7, D8 RESOLVED; rest as in the spec)
 D1 Price basis: fill at `open`, mark at `close`, both split-adjusted, dividends excluded; `adjusted_close` unused
    (mixing open with dividend-adjusted close would be inconsistent). Alternative: adjusted basis, needs a derived open.
 D2 Timing: decide on D's close, fill at next common session's open (matches lineage P4; supersedes "bar timestamp = close").
@@ -173,7 +173,7 @@ D3 Quantities: whole shares only (the fractional rounding rule is an open TBD); 
 D4 RESOLVED: no transaction costs, taxes or slippage in 005; results are labelled gross. A cost model is its own feature.
 D5 RESOLVED: inner-join common session dates; excluded dates are counted and reported.
 D6 Engine returns `BacktestResult | Unavailable` (mirrors `ResolvedSeries | SeriesUnavailable`); input defects raise `BacktestInputError`.
-D7 Persistence (`BacktestRun`) and the trial registry are deferred to 006; 005 records strategy identity and parameters.
+D7 DECIDED: recorded in result, persisted later. `BacktestConfig.trial_count` (required int >= 1, not bool) is carried into `BacktestResult` and `to_dict()["inputs"]["config"]`, so it is part of the fingerprint. Persistence (`BacktestRun`) and the trial registry are deferred to the trial-registry feature; 005 records strategy identity and parameters.
    GATE UNRESOLVED: deferring persistence does NOT by itself satisfy the stage-5 gate "trial counts recorded"
    (`design.md`). It stays open until a reviewed design says how trial counts are recorded without building persistence early.
 D8 RESOLVED: build the strategy-agnostic engine now; concrete strategies stay out of scope.

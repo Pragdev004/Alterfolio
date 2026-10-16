@@ -20,7 +20,7 @@ START, END = date(2026, 1, 1), date(2026, 3, 31)
 
 
 def cfg(**over):
-    kw = dict(start_date=START, end_date=END, initial_cash=D("100000"), currency=Currency.INR)
+    kw = dict(start_date=START, end_date=END, initial_cash=D("100000"), currency=Currency.INR, trial_count=1)
     kw.update(over)
     return BacktestConfig(**kw)
 

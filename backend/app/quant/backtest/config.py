@@ -54,9 +54,12 @@ class BacktestConfig:
     end_date: date  # inclusive
     initial_cash: Decimal
     currency: Currency
+    trial_count: int  # how many strategy variants were tried before this one (>= 1); recorded, not persisted (D7)
     price_basis: str = PRICE_BASIS
 
     def __post_init__(self) -> None:
+        if isinstance(self.trial_count, bool) or not isinstance(self.trial_count, int) or self.trial_count < 1:
+            raise BacktestInputError("trial_count must be an int >= 1 (not bool)")
         for name in ("start_date", "end_date"):
             value = getattr(self, name)
             if isinstance(value, datetime) or not isinstance(value, date):

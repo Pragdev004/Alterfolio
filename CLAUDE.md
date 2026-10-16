@@ -10,7 +10,7 @@ a source of a number.** Educational, not financial advice; no profitability clai
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
 feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
-live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is implemented and committed (steps 1-6, `acac749` + `55a03de`), awaiting owner review; D7 trial-count gate OPEN — OWNER DECISION; 009 (RAG date-cutoff; plan `docs/plans/009*.md`, spec `docs/specs/009*.md`) is COMPLETE (owner-verified, live: full suite 2222 passed, 0 skipped). `quant/` holds `market_data/` and `backtest/`; no frontend.
+live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is implemented and committed (steps 1-6, `acac749` + `55a03de`), awaiting owner review; D7 DECIDED: recorded in result, persisted later (`trial_count`); 009 (RAG date-cutoff; plan `docs/plans/009*.md`, spec `docs/specs/009*.md`) is COMPLETE (owner-verified, live: full suite 2222 passed, 0 skipped). `quant/` holds `market_data/` and `backtest/`; no frontend.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -133,7 +133,7 @@ Lint/type-check/frontend commands: TBD (not configured yet).
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is committed (steps 1-6: `acac749`, `55a03de`; owner review and D7 pending).
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is committed (steps 1-6: `acac749`, `55a03de`; owner review pending; D7 decided, `trial_count` recorded).
 Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 

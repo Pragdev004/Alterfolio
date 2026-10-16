@@ -95,7 +95,7 @@ class BacktestResult:
             "inputs": {
                 "config": {"start_date": c.start_date.isoformat(), "end_date": c.end_date.isoformat(),
                            "initial_cash": canonical_decimal(c.initial_cash), "currency": c.currency.value,
-                           "price_basis": c.price_basis},
+                           "price_basis": c.price_basis, "trial_count": c.trial_count},
                 "strategy": {"strategy_id": self.strategy.strategy_id, "version": self.strategy.version,
                              "parameters": [[k, v] for k, v in self.strategy.parameters]},
             },

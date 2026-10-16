@@ -26,7 +26,7 @@ def series_for(instrument, dates, offset=IST_OFFSET, retrieved_at=RETRIEVED, cur
 
 
 def cfg(start=date(2026, 3, 2), end=date(2026, 3, 13)):
-    return BacktestConfig(start_date=start, end_date=end, initial_cash=D("1000"), currency=Currency.INR)
+    return BacktestConfig(start_date=start, end_date=end, initial_cash=D("1000"), currency=Currency.INR, trial_count=1)
 
 
 def span(first, last):
