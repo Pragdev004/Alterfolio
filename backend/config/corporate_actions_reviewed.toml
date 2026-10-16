@@ -3,173 +3,173 @@
 # (earliest bar fetched .. as-of day). Unlisted or partly covered instruments stay Unavailable (CORPORATE_ACTION_UNKNOWN).
 # An empty `actions` list means "reviewed, none". Any action dated inside the range excludes that listing (known action).
 #
-# Filled 2024-07-29..2026-10-15 from the owner-reviewed list: see docs/reports/corporate-actions-review-2026-10-16.md.
+# Filled 2023-10-01..2026-10-15 from the owner-reviewed list: see docs/reports/corporate-actions-review-2026-10-16.md.
 # July to mid-September 2026 was NOT fully verified against NSE. PNB, BANKBARODA, UNIONBANK, BANKINDIA, MAHABANK are deliberately absent.
 
 [[reviewed]]
 symbol = "RELIANCE"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = [{ date = "2024-10-28", kind = "bonus 1:1" }]
 
 [[reviewed]]
 symbol = "WIPRO"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = [{ date = "2024-12-03", kind = "bonus 1:1" }]
 
 [[reviewed]]
 symbol = "ITC"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = [{ date = "2025-01-06", kind = "demerger (ITC Hotels)" }]
 
 [[reviewed]]
 symbol = "HDFCBANK"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = [{ date = "2025-08-27", kind = "bonus 1:1" }]
 
 [[reviewed]]
 symbol = "HINDUNILVR"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = [{ date = "2025-12-05", kind = "demerger 1:1 (Kwality Walls)" }]
 
 [[reviewed]]
 symbol = "ONGC"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "INFY"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "IDEA"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "TRIDENT"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "CENTRALBK"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "IOB"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "CANBK"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
-actions = []
+actions = [{ date = "2024-05-15", kind = "stock split 1:5" }]
 
 [[reviewed]]
 symbol = "ZOMATO"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "TCS"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "ICICIBANK"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "SBIN"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "BHARTIARTL"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "LT"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "AXISBANK"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "ASIANPAINT"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "MARUTI"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "SUNPHARMA"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "TITAN"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []
 
 [[reviewed]]
 symbol = "ULTRACEMCO"
 exchange = "NSE"
-from = "2024-07-29"
+from = "2023-10-01"
 to = "2026-10-15"
 actions = []

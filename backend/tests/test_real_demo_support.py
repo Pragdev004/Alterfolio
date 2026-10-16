@@ -46,11 +46,11 @@ def test_universe_file_without_the_flag_is_rejected(tmp_path):
 def test_shipped_register_matches_the_owner_review_and_leaves_the_banks_unreviewed():
     windows = load_reviewed(ROOT / "config" / "corporate_actions_reviewed.toml")
     by = {w.instrument.symbol: w for w in windows}
-    assert len(windows) == 24 and all(w.from_date == date(2024, 7, 29) and w.to_date == date(2026, 10, 15) for w in windows)
-    assert {s: [d for d, _ in by[s].actions] for s in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR")} == {
+    assert len(windows) == 24 and all(w.from_date == date(2023, 10, 1) and w.to_date == date(2026, 10, 15) for w in windows)
+    assert {s: [d for d, _ in by[s].actions] for s in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR", "CANBK")} == {
         "RELIANCE": [date(2024, 10, 28)], "WIPRO": [date(2024, 12, 3)], "ITC": [date(2025, 1, 6)],
-        "HDFCBANK": [date(2025, 8, 27)], "HINDUNILVR": [date(2025, 12, 5)]}
-    assert all(not w.actions for s, w in by.items() if s not in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR"))
+        "HDFCBANK": [date(2025, 8, 27)], "HINDUNILVR": [date(2025, 12, 5)], "CANBK": [date(2024, 5, 15)]}
+    assert all(not w.actions for s, w in by.items() if s not in ("RELIANCE", "WIPRO", "ITC", "HDFCBANK", "HINDUNILVR", "CANBK"))
     unverified = {"PNB", "BANKBARODA", "UNIONBANK", "BANKINDIA", "MAHABANK"}
     assert unverified.isdisjoint(by)  # in the universe, deliberately not reviewed
     assert unverified <= {c.instrument.symbol for c in load_universe(ROOT / "config" / "analysis_universe.toml").candidates}
