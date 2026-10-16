@@ -14,3 +14,9 @@
 - 4-build | tier sonnet | in/out 62/40519 | switches 0 | implement service, wiring, endpoint
 - 5-demo | tier sonnet | in/out 94/64912 | switches 0 | offline demo script and report
 - 6-validate | tier sonnet | in/out 130/88683 | switches 0 | full suite, acceptance and run reports
+- 012-build | tier sonnet | in/out 140/93755 | switches 0 | real-data demo config, script, tests
+- 012-followups | tier sonnet | in/out 178/119912 | switches 0 | multi-tradebook and symbol aliases
+- config-fill | tier haiku | in/out 190/124762 | switches 0 | mechanical config and doc edit, no code
+- 012-window-extend | tier sonnet | in/out 210/129855 | switches 0 | config edit, tests, real-data demo run
+- 012-real-fixes | tier sonnet | in/out 232/137578 | switches 0 | ISIN review, proxy, partial coverage, order bug
+- v0.1-wrapup | tier sonnet | in/out 266/170218 | switches 0 | test fix, docs, html report, tag
