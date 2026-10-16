@@ -21,3 +21,13 @@ MAX_IMPORT_FILE_NAME_LENGTH = 255
 MAX_LISTED_REJECTIONS = 200
 ISIN_LENGTH = 12
 MAX_FILE_SHA256_LENGTH = 64
+
+# Feature 009 retrieval (docs/specs/009-rag-date-cutoff.md section 4). The text cap is an owner-confirmed product limit on the
+# caller's original chunk or query text in Python characters, counted before the embedding role prefix; it is not a guarantee
+# that the embedding model accepts the text (its context limit is enforced separately, spec section 7).
+MAX_CHUNK_TEXT_LENGTH = 4000
+MAX_SOURCE_ID_LENGTH = 256
+MAX_CHUNK_INDEX = 2**31 - 1  # fits a PostgreSQL INTEGER column
+MIN_SEARCH_K = 1
+MAX_SEARCH_K = 50
+MAX_EMBEDDING_MODEL_LENGTH = 128
