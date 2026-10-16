@@ -1,10 +1,13 @@
-"""Portable column types: exact Decimal and aware-UTC datetimes on PostgreSQL and SQLite."""
-from datetime import timezone
+"""Portable column types: exact Decimal and aware-UTC datetimes on PostgreSQL and SQLite.
+
+`UTCDateTime` and the Feature 009 `Vector` live in `app.db.portable_types` (they need no money module) and are re-exported.
+"""
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Numeric, String
+from sqlalchemy import Numeric, String
 from sqlalchemy.types import TypeDecorator
 
+from app.db.portable_types import UTCDateTime, Vector  # noqa: F401  (re-exported)
 from app.domain.numeric import SCALE
 
 PRECISION = 20
@@ -34,26 +37,4 @@ class ExactDecimal(TypeDecorator):
         if value is None:
             return None
         return Decimal(value)
-
-
-class UTCDateTime(TypeDecorator):
-    """Timestamp stored as UTC; naive values are refused; results are always aware UTC."""
-
-    impl = DateTime(timezone=True)
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("naive timestamps are not accepted")
-        value = value.astimezone(timezone.utc)
-        return value.replace(tzinfo=None) if dialect.name == "sqlite" else value
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
 

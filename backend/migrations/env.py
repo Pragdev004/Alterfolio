@@ -2,7 +2,7 @@ from alembic import context
 from sqlalchemy import create_engine
 
 from app.config import Settings
-from app.models import import_batch, trade, user  # noqa: F401  (register tables on the metadata)
+from app.models import chunk, import_batch, trade, user  # noqa: F401  (register tables on the metadata)
 from app.models.base import Base
 
 config = context.config
