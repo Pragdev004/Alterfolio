@@ -103,3 +103,12 @@ def test_a8_import_boundaries():
     for layer in ("domain", "quant", "models", "repositories", "services"):
         for path in (APP / layer).rglob("*.py"):
             assert not [m for m in _imports(path) if m.startswith("app.analyst")], path
+
+
+def test_a10_demo_runs_offline_and_every_answer_is_verified():
+    import subprocess
+    import sys
+    root = Path(__file__).resolve().parents[1]
+    run = subprocess.run([sys.executable, "scripts/demo_analyst.py"], cwd=root, capture_output=True, text=True, timeout=300)
+    assert run.returncode == 0, run.stderr[-500:]
+    assert "4/4 answers verified" in run.stdout
