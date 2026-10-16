@@ -28,6 +28,8 @@ services -> quant, services -> providers (ports only: `providers/market/port.py`
   Feature 009 embeddings: `providers/embedding/port.py`, imported only by `services/retrieval.py`; never an adapter)
 (implemented extras, see plan 001: services -> models for read types; api -> schemas, db; schemas -> domain only)
 ai -> quant result schemas (stage 6);  api -> ai (stage 6)
+analyst (010, service layer): imports domain only (never quant, services, adapters, ORM); langgraph/langchain only in
+  `analyst/graph.py`; httpx only in `analyst/llm_openai.py`; nothing in domain/quant/models/repositories/services imports it
 domain: stdlib only; every layer may import it
 quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/repositories/models/db/ai/providers/ORM)
 ```
@@ -77,7 +79,7 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
 
 ## 4. Preferred Libraries
 Backend: FastAPI, SQLAlchemy 2 + Alembic, PostgreSQL, pytest. Quant: stdlib, statsmodels isolated to one adapter.
-Market data: provider port, Yahoo adapter via httpx (runtime dep; httpx imported only in `providers/market/yahoo.py` and
+Market data: provider port, Yahoo adapter via httpx (runtime dep; httpx imported only in `providers/market/yahoo.py`, `analyst/llm_openai.py` and
 `providers/embedding/ollama.py`). Frontend (stage 3): React + TypeScript + Vite, vitest.
 Embeddings (009): provider port + local Ollama adapter (`nomic-embed-text`) via httpx; pgvector is a PostgreSQL extension, not a
 Python dependency.

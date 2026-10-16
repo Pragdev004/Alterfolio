@@ -5,3 +5,6 @@
 - final-report | tier sonnet | in/out 64/25687 | switches 1 | write run report and stop
 - 009-live-docs | tier sonnet | in/out 74/31163 | switches 2 | docs-only status update after live run
 - 005-d7 | tier sonnet | in/out 86/34798 | switches 2 | implement trial_count per owner decision
+- 1-spec-plan | tier sonnet | in/out 4/577 | switches 0 | write spec and plan docs
+- 2-review | tier opus | in/out 12/5074 | switches 0 | single opus review of spec and plan
+- 3-tests-first | tier sonnet | in/out 24/9411 | switches 0 | write failing tests
