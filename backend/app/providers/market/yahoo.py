@@ -16,12 +16,13 @@ import httpx
 from app.domain.enums import Currency, Exchange
 from app.domain.instrument import Instrument
 from app.domain.numeric import MAX_AMOUNT, MAX_INPUT_EXPONENT, MIN_INPUT_EXPONENT
+from app.domain.timezones import IST_OFFSET
 from app.providers.market.history_port import BarFailure, BarFailureKind, BarOutcome, RawBar, RawBarBatch
 from app.providers.market.port import MarketQuote, QuoteFailure, QuoteFailureKind, QuoteOutcome
 
 SOURCE = "yahoo"
 MAX_INSTRUMENTS = 200
-EXCHANGE_GMT_OFFSET_SECONDS = 19800  # NSE/BSE (IST); checked on every daily-bar response and used to build the request
+EXCHANGE_GMT_OFFSET_SECONDS = int(IST_OFFSET.total_seconds())  # NSE/BSE (IST); checked on every daily-bar response and used to build the request
 MAX_BAR_SPAN_DAYS = 3660
 MAX_BARS = 6000
 _BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/"

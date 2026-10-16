@@ -20,6 +20,7 @@ from decimal import Decimal
 from app.domain import limits
 from app.domain.enums import Exchange, TradeSide
 from app.domain.numeric import EXACT_CONTEXT, MAX_AMOUNT, SCALE
+from app.domain.timezones import IST
 from app.services.errors import InvalidImportFileError
 
 BROKER = "ZERODHA"
@@ -28,7 +29,6 @@ COLUMNS = (
     "trade_id", "order_id", "order_execution_time",
 )
 
-IST = timezone(timedelta(hours=5, minutes=30))  # fixed offset: India has no DST; no tzdata dependency (OPEN-5)
 _SERIES_BY_EXCHANGE = {Exchange.NSE: "EQ", Exchange.BSE: "A"}
 _SIDES = {"buy": TradeSide.BUY, "sell": TradeSide.SELL}
 _MAX_INTEGER_DIGITS = 14  # NUMERIC(20, 6), same bound as the 001 validator

@@ -17,6 +17,7 @@ from uuid import UUID
 
 from app.domain.enums import Exchange, TradeSide
 from app.domain.instrument import Instrument
+from app.domain.timezones import IST, IST_OFFSET
 from app.quant.bias_cost.analysis import analyze_biases
 from app.quant.bias_cost.cost_basis import fold_positions
 from app.quant.bias_cost.errors import BiasInputError
@@ -37,7 +38,6 @@ from app.services.errors import AsOfNotSealedError
 from app.services.market_series import MarketSeriesService, ResolvedSeries
 
 UNAVAILABLE = "Unavailable"
-IST = timezone(timedelta(hours=5, minutes=30))
 HISTORY_DAYS = 300  # bars fetched before the first trade (chasing 21, luck 61, regime 181 sessions need history)
 BIAS_WINDOW_START = datetime(2000, 1, 1, tzinfo=timezone.utc)
 RULE_SET_VERSION = "archetype-v1"
@@ -274,7 +274,7 @@ class PortfolioAnalysisService:
             raise TypeError("as_of must be a date")
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("the clock must return a timezone-aware datetime")
-        if as_of >= local_date(now, timedelta(hours=5, minutes=30)):
+        if as_of >= local_date(now, IST_OFFSET):
             raise AsOfNotSealedError(as_of)
 
     def analyse(self, user_id: UUID, as_of: date) -> AnalysisFacts:
