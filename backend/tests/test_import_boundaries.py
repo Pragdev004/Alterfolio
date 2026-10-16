@@ -6,7 +6,8 @@ from pathlib import Path
 APP = Path(__file__).resolve().parent.parent / "app"
 STDLIB = set(sys.stdlib_module_names)
 # The only files that may import httpx (Feature 003 Yahoo adapter; Feature 009 Ollama embedding adapter).
-HTTPX_FILES = frozenset({("providers", "market", "yahoo.py"), ("providers", "embedding", "ollama.py")})
+HTTPX_FILES = frozenset({("providers", "market", "yahoo.py"), ("providers", "embedding", "ollama.py"),
+                         ("analyst", "llm_openai.py")})  # Feature 010: OpenAI-compatible analyst LLM adapter
 # Feature 009: the only files exempt from the float scan (embedding vectors and cosine scores). They may never reach money
 # code; see `test_retrieval_float_files_cannot_reach_money_code`.
 RETRIEVAL_FLOAT_FILES = frozenset({
@@ -261,6 +262,7 @@ RETRIEVAL_IMPORTERS = {
     "app.domain.retrieval": frozenset({
         "app.services.retrieval", "app.repositories.chunks", "app.models.chunk", "app.providers.embedding.port",
         "app.providers.embedding.ollama",
+        "app.analyst.graph",  # Feature 010: re-checks the cutoff with domain `to_utc`/`validate_text`/`Unavailable`
     }),
 }
 MONEY_PREFIXES = ("app.quant", "app.schemas", "app.api", "app.providers.market")
