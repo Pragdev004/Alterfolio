@@ -18,7 +18,7 @@ the approved decisions live in `docs/plans/`, the product-level requirements in 
 | `006-bias-cost-behaviour-profile.md` | Bias costs (disposition, chasing, overtrading) in INR and rule-based behaviour archetype | Proposed / awaiting spec review (not implemented) |
 | `007-luck-test.md` | Seeded luck test: closed round trips vs similar-alternative and Nifty 50 random portfolios, bootstrap interval | Implemented, awaiting owner review (not committed) |
 | `008-regime-split.md` | Per-regime Feature 007 and 006 results; rule-based own-listing volatility regimes, expanding 33/67 percentiles | Implemented, awaiting owner review (not committed) |
-| `009-rag-date-cutoff.md` | Date-cutoff retrieval: embedding port, pgvector chunks, user-scoped ingestion, search, cutoff audit | Implemented, live-verified; final review pending; NOT complete |
+| `009-rag-date-cutoff.md` | Date-cutoff retrieval: embedding port, pgvector chunks, user-scoped ingestion, search, cutoff audit | COMPLETE (owner-verified, live: PostgreSQL + Ollama, 2222 passed, 0 skipped) |
 
 Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Features 005-008: see their rows.
 Feature 009 is implemented and live-verified (PostgreSQL 16, pgvector, Ollama) but NOT complete (pending owner sign-off).
