@@ -15,7 +15,6 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.domain.instrument import Instrument
-from app.providers.market.history_port import HistoricalBarProvider
 from app.quant.bias_cost.analysis import analyze_biases
 from app.quant.bias_cost.cost_basis import fold_positions
 from app.quant.bias_cost.errors import BiasInputError
@@ -224,7 +223,8 @@ def _emit_regime(out: _Out, res: RegimeResult | None, why: str) -> None:
 
 
 class PortfolioAnalysisService:
-    def __init__(self, *, repo: TradeRepository, provider: HistoricalBarProvider, clock: Callable[[], datetime],
+    def __init__(self, *, repo: TradeRepository, provider,  # a HistoricalBarProvider (only the series service imports the port)
+                 clock: Callable[[], datetime],
                  config: AnalysisConfig) -> None:
         self._repo, self._provider, self._clock, self._config = repo, provider, clock, config
 
