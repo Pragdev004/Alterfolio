@@ -43,7 +43,9 @@ const status = ($: any, s: RouterState, model?: string) => {
 }
 const dateStr = async ($: any) => new Date(await $.clock.now()).toISOString().slice(0, 10)
 const logLine = async ($: any, line: string) => {
-  const path = `docs/reports/token-usage-${await dateStr($)}.md`
+  const top = await $.process.run({ argv: ['git', 'rev-parse', '--show-toplevel'] }).catch(() => undefined)
+  const root = top && top.exitCode === 0 ? String(top.stdout).trim().split('\\').join('/') : ''
+  const path = `${root ? root + '/' : ''}docs/reports/token-usage-${await dateStr($)}.md`
   const old = await $.fs.read(path).catch(() => '# Token usage (model-router)\n\n')
   await $.fs.write(path, `${old}${line}\n`)
 }
