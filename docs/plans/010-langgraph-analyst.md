@@ -6,7 +6,8 @@ Spec: `docs/specs/010-langgraph-analyst.md`. Decisions made unattended (owner to
   quant functions need large assembled inputs, no read-only service exists yet; the default wiring returns an
   `Unavailable` fact per intent. Real assembly deferred.
 - D3 retriever injected (`Retriever` Protocol matching `RetrievalService.search`); analyst never imports an adapter.
-- D4 Floats from tool output are formatted once, `format(x, ".6f")`, as strings. Never kept as float.
+- D4 Floats are rejected at the Fact boundary; tools must supply canonical strings. Fact has `as_of`, `unit`.
+- D5 `Retriever` Protocol uses `domain.retrieval` types only (no sqlalchemy import in analyst).
 
 ## Modules (`backend/app/analyst/`)
 - `types.py`: `Fact`, `Passage`, `Claim`, `Draft`, `AnalystAnswer`, `Citation` (frozen).

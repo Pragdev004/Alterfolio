@@ -35,5 +35,16 @@ on or before D. Every number in the answer is traceable to a tool output. AI is 
 - A10 Answer is frozen, JSON-serialisable, contains no float/NaN/inf.
 - A11 (conditional) endpoint is user-isolated and 503 `ai_provider_not_configured` handling is unaffected; else deferred.
 
+## Review amendments (opus review, applied)
+- as_of is a `date` only (datetime rejected); cutoff = `datetime.combine(D, time.max, UTC)`: D is a UTC calendar day.
+- retrieve rechecks every chunk with `is_eligible`, drops late ones, and requires provenance.cutoff == cutoff.
+  `score` is never copied. Passage text mentioning later dates is a documented limitation.
+- `Fact` carries `as_of` and `unit`; a fact with as_of > D is rejected. Fact values must be str (floats rejected).
+- number_check: NFKC-normalise; strip the as_of date and cited chunk ids; whole-token match; scale words (lakh, crore,
+  k, bn, bps) and number-words are errors; a passage-sourced claim must cite that chunk; the facts-only fallback is
+  also checked. Units must match between claim and fact.
+- analyst imports only `domain`, never `quant`, `services.retrieval` or an adapter; httpx only in `analyst/llm_openai.py`
+  (CLAUDE.md rule updated).
+
 ## Non-goals
 Persistence, new quant maths, corporate actions, real LLM calls in tests.
