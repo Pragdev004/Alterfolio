@@ -13,3 +13,4 @@
 - 3-tests-first | tier sonnet | in/out 48/22835 | switches 0 | write failing tests
 - 4-build | tier sonnet | in/out 62/40519 | switches 0 | implement service, wiring, endpoint
 - 5-demo | tier sonnet | in/out 94/64912 | switches 0 | offline demo script and report
+- 6-validate | tier sonnet | in/out 130/88683 | switches 0 | full suite, acceptance and run reports

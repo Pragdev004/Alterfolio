@@ -1,5 +1,4 @@
 # Spec 011: Portfolio analysis wiring
-
 Status: UNREVIEWED BY OWNER. Plan: `docs/plans/011-portfolio-analysis-wiring.md`.
 
 ## Goal
@@ -36,8 +35,8 @@ analyses on that user's real effective trades and market data, and give the 010 
   `docs/reports/demo-analyst-YYYY-MM-DD.md`.
 
 ## Review amendments (opus, applied; override text above)
-- Single boundary B = IST midnight of D+1 (UTC): used for `truncated_to`, `LuckParameters.as_of`, 006 `window_end`, 008
-  `as_of`, and trade cutoff (`trade_timestamp < B`). Series fetched with end=D. D >= today IST (injected clock) -> 422.
+- Boundary B = IST midnight of D+1: `truncated_to`, `LuckParameters.as_of`, 006 `window_end`, 008 `as_of`, trades
+  (`trade_timestamp < B`). Series fetched with end=D. D >= today IST (injected clock) -> 422.
 - Trades by trade time only (backfilled imports are recorded after D); rows recorded after B are counted in provenance
   `late_recorded_row_count` (owner decision pending: strict as-known-at would drop every backfilled import).
 - One frozen clock reading per `analyse()`; fetch start = first trade date - 300 days; truncation on every series.
