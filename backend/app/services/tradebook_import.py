@@ -1,7 +1,9 @@
 """Zerodha tradebook import service (plan 002, Feature 002c): parse result -> ledger rows in one locked transaction.
 
 Pipeline: parse (no database) -> user lock -> batch -> pass 1 in file order (duplicates, conflicts, in-file repeats)
--> pass 2 in canonical order (ISIN quarantine, oversell, insert) -> batch counters -> commit. Any exception rolls back
+-> pass 2 in canonical order (ISIN quarantine, oversell, insert). Oversell is judged by replaying the user's WHOLE
+effective ledger for the touched ISINs plus the new rows in trade-time order (timestamp, BUY before SELL, recorded_at, id),
+never in insertion order, so any split of one history into uploads gives the same ledger once every upload is feasible -> batch counters -> commit. Any exception rolls back
 the whole upload, including the batch. A row outcome is a result (imported, duplicate, rejected), never an exception.
 """
 import hashlib
@@ -213,7 +215,9 @@ class TradebookImportService:
                 counts.quarantined.add(row.isin)
                 counts.reject(
                     row, OVERSELL,
-                    f"{over.requested} of {row.isin} would be sold while only {over.held} is held at that point",
+                    f"{over.requested} of {row.isin} would be sold while only {over.held} is held at that point "
+                    "(the ledger is replayed in trade-time order; if the earlier tradebook is not uploaded yet, "
+                    "upload it first and then re-upload this file)",
                 )
                 continue
             winner = self._insert(user_id, batch_id, row, candidate)
