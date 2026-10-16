@@ -155,11 +155,9 @@ under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@ant
   report. Persistence/trial registry is deferred until after 012.
 
 ## 10. Known issues
-- API import path is order-dependent: a sell uploaded before its buy (in a later upload) is rejected as an oversell. Fix:
-  validate holdings over trade-time order across all existing rows (deferred). `scripts/demo_real.py` works around it by
-  merging files (`services/tradebook_merge.py`) and importing once.
-- The IST offset (UTC+5:30) is defined in several places (`analyst/graph.py`, `analyst/numbers.py`, `providers/market/yahoo.py`,
-  `services/portfolio_analysis.py`, `services/tradebook_parser.py`); consolidate into one constant (deferred).
+- Import validates the whole effective ledger in trade-time order, so feasible splits give the same ledger in any upload order.
+  A sell uploaded BEFORE its buy is still rejected (`oversell`, long-only rule; quarantine is spec): upload the earlier
+  tradebook first, or re-upload the sell file afterwards (converges; tested). `scripts/demo_real.py` merges files and imports once.
 - 5 PSU banks in `config/analysis_universe.toml` (PNB, BANKBARODA, UNIONBANK, BANKINDIA, MAHABANK) have UNVERIFIED ISINs and are
   unreviewed in the corporate-action register, so luck stays Unavailable for them. The other universe ISINs are also from memory.
 - Nifty 50 membership is not configured (NIFTY baseline Unavailable); no document retriever is wired into the API (`app.state.retriever`).
