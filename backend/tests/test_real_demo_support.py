@@ -119,7 +119,34 @@ def test_demo_real_smoke_offline_with_fake_provider(tmp_path):
     sys.path.insert(0, str(ROOT / "tests" / "fixtures"))
     from build_demo_fixture import tradebook_bytes
     out = tmp_path / "report.md"
-    summary = demo_real.run(tradebook_bytes(), FakeBars(), D_ASOF, NOW, out, luck_portfolios=20, replicates=200)
+    summary = demo_real.run([("a.csv", tradebook_bytes()), ("b.csv", tradebook_bytes())], FakeBars(), D_ASOF, NOW, out,
+                            luck_portfolios=20, replicates=200)
     text = out.read_text(encoding="utf-8")
     assert summary["total"] == 4 and NOTE in text and "Not reviewed" in text
-    assert Instrument("DEMOCO", Exchange.NSE).symbol in text or "DEMOCO" in text
+    assert summary["imported"] == 30 and summary["duplicates"] == 30 and summary["rejected"] == 0  # b.csv overlaps a.csv fully
+    assert "skipped as duplicates 30" in text and "a.csv: 30/0/0" in text and "b.csv: 0/30/0" in text
+
+
+def test_aliased_symbol_is_fetched_by_alias_and_ledger_identity_is_unchanged(tmp_path):
+    from bar_cache import AliasingBars
+    from app.services.market_series import MarketSeriesService, ResolvedSeries
+    ledger = Instrument("OLDNAME", Exchange.NSE)
+    seen = []
+
+    class Inner:
+        def get_daily_bars(self, instrument, start, end, retrieved_at):
+            seen.append(instrument)
+            return FakeBars().get_daily_bars(TRADED if instrument.symbol == "TEST1" else instrument, start, end, retrieved_at)
+
+    provider = AliasingBars(Inner(), {"OLDNAME": "TEST1"})
+    r = MarketSeriesService(provider=provider, clock=lambda: NOW).resolve_series([ledger], date(2026, 1, 1), D_ASOF)
+    assert isinstance(r, ResolvedSeries) and seen == [Instrument("TEST1", Exchange.NSE)]  # fetched by the alias
+    assert r.series.instrument == ledger  # the series still carries the ledger symbol
+    seen.clear()
+    provider.get_daily_bars(TRADED, date(2026, 1, 1), D_ASOF, NOW)
+    assert seen == [TRADED]  # unaliased symbols pass through
+
+
+def test_shipped_alias_file_maps_zomato_to_eternal():
+    from app.services.analysis_toml import load_aliases
+    assert load_aliases(ROOT / "config" / "symbol_aliases.toml") == {"ZOMATO": "ETERNAL"}

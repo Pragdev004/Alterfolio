@@ -1,0 +1,4 @@
+# Market-data symbol aliases (Feature 012). Used ONLY to look up bars; the ledger and the reports keep the original symbol.
+# Same exchange. Format: LEDGER_SYMBOL = "DATA_SYMBOL"
+[aliases]
+ZOMATO = "ETERNAL"

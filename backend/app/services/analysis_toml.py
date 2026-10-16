@@ -59,3 +59,11 @@ def resolve_corporate_actions(windows, listings, start: date, end: date):
             if any(start <= d <= end for d, _ in w.actions):
                 known.add(w.instrument)
     return frozenset(reviewed), frozenset(known)
+
+
+def load_aliases(path: Path) -> dict[str, str]:
+    """LEDGER_SYMBOL -> DATA_SYMBOL, for market-data lookup only."""
+    raw = tomllib.loads(Path(path).read_text(encoding="utf-8")).get("aliases", {})
+    if not all(isinstance(k, str) and isinstance(v, str) and k.strip() and v.strip() for k, v in raw.items()):
+        raise ValueError("aliases must map non-blank symbols to non-blank symbols")
+    return dict(raw)

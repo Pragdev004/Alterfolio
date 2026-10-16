@@ -10,7 +10,10 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+from dataclasses import replace
+
 from app.domain.enums import Currency
+from app.domain.instrument import Instrument
 from app.providers.market.history_port import RawBar, RawBarBatch
 
 
@@ -41,3 +44,17 @@ class CachingBars:
                                  "l": str(b.low), "c": str(b.close), "a": str(b.adjusted_close), "v": b.volume} for b in batch.bars]}
             path.write_text(json.dumps(payload), encoding="utf-8")
         return batch
+
+
+class AliasingBars:
+    """Looks bars up under a data-vendor symbol but answers for the ledger symbol, so nothing downstream sees the alias."""
+
+    def __init__(self, inner, aliases: dict[str, str]) -> None:
+        self._inner, self._aliases = inner, dict(aliases)
+
+    def get_daily_bars(self, instrument, start, end, retrieved_at):
+        alias = self._aliases.get(instrument.symbol)
+        if alias is None:
+            return self._inner.get_daily_bars(instrument, start, end, retrieved_at)
+        batch = self._inner.get_daily_bars(Instrument(alias, instrument.exchange), start, end, retrieved_at)
+        return replace(batch, instrument=instrument) if isinstance(batch, RawBarBatch) else batch
