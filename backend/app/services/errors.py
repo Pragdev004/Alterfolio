@@ -81,3 +81,13 @@ class HistoricalValuationUnsupportedError(LedgerError):
 
     def __init__(self) -> None:
         super().__init__("portfolio valuation is current-only; as_of is not supported on /portfolio/summary")
+
+
+class AsOfNotSealedError(LedgerError):
+    """The as-of day is today or later (exchange-local): its bars are not complete, so no analysis is run."""
+
+    code = "as_of_not_sealed"
+
+    def __init__(self, as_of):
+        self.as_of = as_of
+        super().__init__(f"as_of {as_of} must be before today's exchange-local date")
