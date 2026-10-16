@@ -26,14 +26,14 @@ Dependency direction (arrows = "may import"); anything not listed is forbidden a
 ```
 api -> services -> repositories -> models
 services -> quant            (pure functions and value objects)
-services -> providers        (market data)
+services -> providers        (market data and embedding PORTS only, never adapters)
 ai   -> quant result schemas (read-only; stage 6)      api -> ai (stage 6)
 domain -> stdlib only                                  every layer MAY import domain
 quant -> stdlib + domain + statsmodels adapter only    quant NEVER -> api, services, repositories, models, db,
                                                        ai, providers, or any framework/ORM
 ```
 Proposed layout (`backend/app/`): `domain/` (shared enums and `Instrument`), `api/`, `services/` (portfolio, imports,
-analytics), `repositories/`, `models/`, `schemas/`, `providers/market/`, `quant/{market_data,features,risk,pairs,
+analytics), `repositories/`, `models/`, `schemas/`, `providers/{market,embedding}/`, `quant/{market_data,features,risk,pairs,
 strategy,sizing,execution,backtest,evaluation}/`, `ai/` (stage 6). `quant/` is top-level, not under `services/` as in
 V1 `[U-approved]`, because it is a layer boundary. `domain/` replaces V1's one documented exception (quant importing
 `app.models.enums`) and prevents duplicating the same concepts inside quant. Frontend:
@@ -110,7 +110,9 @@ Deterministic observations use factual wording and review triggers, never BUY/SE
 ## Numeric policy (decides V1 caveat C1) `[U-approved]`
 Any money, price, quantity, cash, fee, tax, notional or P&L value is `Decimal` in memory, `NUMERIC` in PostgreSQL
 and a string in API JSON. Float is allowed only for statistical estimates (returns, volatility, z-scores,
-regression and test statistics) and dimensionless ratios. A float becomes a Decimal at most once, at a function
+regression and test statistics) and dimensionless ratios, plus (Feature 009 only) embedding vectors and cosine scores
+in `providers/embedding/ollama.py`, `services/retrieval.py` and `repositories/chunks.py`, which may not import money
+modules (enforced by `tests/test_import_boundaries.py`). A float becomes a Decimal at most once, at a function
 boundary, with an explicit rounding rule; a Decimal never round-trips through float. A full exit closes the exact
 held Decimal quantity; no dust tolerance. One Decimal context (precision, rounding) is set once and documented.
 Quantity from notional uses Decimal with an explicit rounding rule (TBD at stage 4). The frontend never holds money
