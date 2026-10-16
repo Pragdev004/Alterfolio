@@ -249,8 +249,11 @@ class PortfolioAnalysisService:
         now = self._clock()  # the one clock reading of this run
         self._require_sealed(as_of, now)
         boundary = datetime.combine(as_of + timedelta(days=1), time.min, IST).astimezone(timezone.utc)  # IST midnight of D+1
-        rows = [t for t in self._repo.list_effective_as_known(user_id=user_id, cutoff=boundary)
+        rows = [t for t in self._repo.list_effective(user_id=user_id, as_of=boundary - timedelta(microseconds=1))
                 if t.user_id == user_id and t.trade_timestamp < boundary]
+        # Backfilled imports are recorded after D by nature, so recording time does not filter; it is disclosed instead.
+        late_rows = sum(1 for t in self._repo.list_for_user(user_id=user_id)
+                        if t.trade_timestamp < boundary and t.recorded_at > boundary)
         out, cfg = _Out(), self._config
         latest = max((t.recorded_at for t in rows), default=None)
         seeds = {name: derive_seed(user_id, as_of, name) for name in SEED_NAMES}
@@ -308,7 +311,7 @@ class PortfolioAnalysisService:
 
         profile = None if bias_res is None else bias_res.profile
         provenance = {
-            "as_of": as_of.isoformat(), "boundary_utc": boundary.isoformat(), "user_trade_count": len(ledger),
+            "as_of": as_of.isoformat(), "boundary_utc": boundary.isoformat(), "user_trade_count": len(ledger), "late_recorded_row_count": late_rows,
             "latest_recorded_at": latest.isoformat() if latest else None,
             "seeds": seeds, "formula_versions": {"006": "bias-v1", "007": "luck-v1", "008": "regime-v1"},
             "series": sorted([i.symbol, i.exchange.value, s.fingerprint] for i, s in series.items()),

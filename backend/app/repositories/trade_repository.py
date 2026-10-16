@@ -80,20 +80,6 @@ class TradeRepository:
         rows = self._session.scalars(stmt).all()
         return sorted(rows, key=lambda t: (t.trade_timestamp, t.recorded_at, t.id))
 
-    def list_effective_as_known(self, *, user_id: UUID, cutoff: datetime) -> list[Trade]:
-        """Effective trades as the ledger stood at `cutoff`: rows with trade_timestamp < cutoff and recorded_at <= cutoff;
-        a superseding row recorded after `cutoff` is ignored, so a later correction or void cannot change the past."""
-        child = aliased(Trade)
-        stmt = select(Trade).where(
-            Trade.user_id == user_id,
-            Trade.status == TradeStatus.EXECUTED,
-            Trade.trade_timestamp < cutoff,
-            Trade.recorded_at <= cutoff,
-            ~exists().where(child.user_id == user_id, child.supersedes_trade_id == Trade.id, child.recorded_at <= cutoff),
-        )
-        rows = self._session.scalars(stmt).all()
-        return sorted(rows, key=lambda t: (t.trade_timestamp, t.recorded_at, t.id))
-
     def list_effective_for_isins(self, *, user_id: UUID, isins: Iterable[str]) -> list[Trade]:
         """Effective rows of the user whose ISIN is in `isins`, across exchanges (legacy NULL-ISIN rows never match)."""
         wanted = sorted(set(isins))

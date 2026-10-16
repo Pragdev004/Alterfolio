@@ -40,15 +40,16 @@ def test_a1_trade_after_D_is_ignored(seeded):
     assert make(seeded).analyse(USER_A, D_ASOF).to_dict() == base
 
 
-def test_a1_trade_recorded_after_D_or_voided_after_D_leaves_facts_unchanged(seeded):
-    base = make(seeded).analyse(USER_A, D_ASOF).to_dict()
+def test_a1_rows_recorded_after_D_are_disclosed(seeded):
+    base = make(seeded).analyse(USER_A, D_ASOF)
+    assert base.provenance["late_recorded_row_count"] == 0
     late = datetime(2026, 10, 5, 5, 0, tzinfo=timezone.utc)
-    add_trade(seeded, USER_A, TradeSide.BUY, date(2026, 9, 1), recorded_at=late)  # backdated, recorded after D
     first_sell = TradeRepository(seeded).list_effective(user_id=USER_A)[1]
     add_trade(seeded, USER_A, TradeSide.SELL, first_sell.trade_timestamp.date(), recorded_at=late,
-              supersedes=first_sell.id, status=TradeStatus.CANCELLED)  # voided after D
+              supersedes=first_sell.id, status=TradeStatus.CANCELLED)  # voided after D: a disclosed, not hidden, change
     seeded.commit()
-    assert make(seeded).analyse(USER_A, D_ASOF).to_dict() == base
+    after = make(seeded).analyse(USER_A, D_ASOF)
+    assert after.provenance["late_recorded_row_count"] == 1
 
 
 def test_a1_trip_closed_on_D_is_evaluated(seeded):
@@ -78,8 +79,8 @@ def test_a3_other_users_trades_are_never_read(session):
     seed_round_trips(session, USER_B, 14)
     spy = TradeRepository(session)
     seen = []
-    original = spy.list_effective_as_known
-    spy.list_effective_as_known = lambda **kw: (seen.append(kw["user_id"]), original(**kw))[1]
+    original = spy.list_effective
+    spy.list_effective = lambda **kw: (seen.append(kw["user_id"]), original(**kw))[1]
     provider = FakeBars()
     svc = PortfolioAnalysisService(repo=spy, provider=provider, clock=lambda: NOW, config=config())
     facts = svc.analyse(USER_A, D_ASOF)

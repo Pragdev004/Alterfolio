@@ -12,9 +12,9 @@ analyses on that user's real effective trades and market data, and give the 010 
 - D is an IST calendar day (as 010). `cutoff_utc` = end of D IST (`datetime.combine(D, time.max, IST)` as UTC); bars use
   the sealed boundary: `series.truncated_to(IST midnight of D+1)` keeps session dates <= D. If that instant is later than
   the series' own cutoff, no truncation is needed (all bars are already before today).
-- Trades: `TradeRepository.list_effective(user_id, as_of=cutoff_utc)` (EXECUTED, not superseded, that user only), re-filtered
+- Trades: `TradeRepository.list_effective(user_id, as_of=B)` (EXECUTED, not superseded, that user only), re-filtered
   in the service; mapped to `LedgerTrade` (id = `trades.id` text; charges known iff `charges_provided`, else
-  `ChargeValue.unknown()`; ISIN passed as stored). Limitation: supersession recorded after D is applied (no as-known-at).
+  `ChargeValue.unknown()`; ISIN passed as stored). Supersession recorded after D is applied (disclosed).
 - Series: one per traded listing (its own exchange, no fallback) plus the luck universe, via
   `MarketSeriesService.resolve_series([listing], ...)`, history port injected. A listing that cannot be resolved has no
   series; 006/007/008 then answer Unavailable themselves.
@@ -38,12 +38,13 @@ analyses on that user's real effective trades and market data, and give the 010 
 ## Review amendments (opus, applied; override text above)
 - Single boundary B = IST midnight of D+1 (UTC): used for `truncated_to`, `LuckParameters.as_of`, 006 `window_end`, 008
   `as_of`, and trade cutoff (`trade_timestamp < B`). Series fetched with end=D. D >= today IST (injected clock) -> 422.
-- As-known-at: trades recorded after B, and superseders recorded after B, are ignored (new additive repo method).
+- Trades by trade time only (backfilled imports are recorded after D); rows recorded after B are counted in provenance
+  `late_recorded_row_count` (owner decision pending: strict as-known-at would drop every backfilled import).
 - One frozen clock reading per `analyse()`; fetch start = first trade date - 300 days; truncation on every series.
 - 006/007/008 input errors become `unavailable[analysis]`, never a 500. 006 gets known + unreviewed traded listings.
 - Facts carry lower-bound/fee_status/survivorship flags; None fields map to Unavailable+reason, counts stay numeric.
 - Statistic floats: `format(Decimal(repr(x)).normalize(), "f")`, -0 -> "0"; no float anywhere in `to_dict()`.
-- Tools take user_id per call; request body forbids extras; separate `LuckParameters` for 007 and 008 seeds.
+- Tools take user_id per call; body forbids extras; separate `LuckParameters` per seed.
 
 ## Acceptance criteria
 - A1 A trade after D never reaches any analysis.

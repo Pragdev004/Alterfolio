@@ -10,3 +10,6 @@
 - 3-tests-first | tier sonnet | in/out 24/9411 | switches 0 | write failing tests
 - 1-spec-plan | tier sonnet | in/out 2/164 | switches 0 | write 011 spec and plan
 - 2-review | tier opus | in/out 28/11027 | switches 0 | the one allowed opus review of spec/plan
+- 3-tests-first | tier sonnet | in/out 48/22835 | switches 0 | write failing tests
+- 4-build | tier sonnet | in/out 62/40519 | switches 0 | implement service, wiring, endpoint
+- 5-demo | tier sonnet | in/out 94/64912 | switches 0 | offline demo script and report
