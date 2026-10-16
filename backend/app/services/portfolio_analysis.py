@@ -56,6 +56,8 @@ class AnalysisConfig:
     nifty50: tuple[Membership, ...] = ()
     corporate_action_listings: frozenset[Instrument] = frozenset()
     corporate_action_reviewed: frozenset[Instrument] | None = None  # None = undeclared: luck is Unavailable by 007's rule
+    universe_static: bool = False  # True: a fixed list, not point-in-time membership (survivorship bias)
+    universe_note: str = ""
     luck_portfolio_count: int = 500
     luck_bootstrap_replicates: int = 10_000
     regime_parameters: RegimeParameters = field(default_factory=RegimeParameters)
@@ -158,9 +160,10 @@ def _emit_bias(out: _Out, prefix: str, source_prefix: str, res: BiasAnalysisResu
                     None if unknown is None else _count(unknown), reason or why)
 
 
-def _emit_summary(out: _Out, prefix: str, source: str, base: str, s, gate: str | None) -> None:
-    mean_why = gate or (_why(s.mean_unavailable) if s.mean_unavailable else "")
-    ci_why = gate or (_why(s.ci_unavailable) if s.ci_unavailable else "")
+def _emit_summary(out: _Out, prefix: str, source: str, base: str, s, gate: str | None, per_trip: str = "") -> None:
+    suffix = f" (trips: {per_trip})" if per_trip else ""
+    mean_why = gate or (_why(s.mean_unavailable) + suffix if s.mean_unavailable else "")
+    ci_why = gate or (_why(s.ci_unavailable) + suffix if s.ci_unavailable else "")
     out.num(f"{prefix}{base}.trips_used", f"{source}:{base}.trips_used", _count(s.trips_used))
     out.num(f"{prefix}{base}.trips_evaluated", f"{source}:{base}.trips_evaluated", _count(s.trips_evaluated))
     for field_name, value, reason in (("mean_excess", s.mean_excess, mean_why), ("mean_percentile", s.mean_percentile, mean_why),
@@ -182,8 +185,14 @@ def _emit_luck(out: _Out, res: LuckResult | None, trip_count: int | None, why: s
         return
     gate = _why(res.unavailable) if res.unavailable else None
     out.num("luck.trip_count", "007:trip_count", _count(len(res.trips) if trip_count is None else trip_count))
-    _emit_summary(out, "luck.", "007", "ALT", res.alt_summary, gate)
-    _emit_summary(out, "luck.", "007", "NIFTY", res.nifty_summary, gate)
+    for base, attr, summary in (("ALT", "alt", res.alt_summary), ("NIFTY", "nifty", res.nifty_summary)):
+        counts: dict[str, int] = {}
+        for t in res.trips:  # per-trip outcome reasons (gates included), so a summary reason is never opaque
+            o = getattr(t, attr)
+            if o.unavailable is not None:
+                key = getattr(o.unavailable.reason, "value", str(o.unavailable.reason))
+                counts[key] = counts.get(key, 0) + 1
+        _emit_summary(out, "luck.", "007", base, summary, gate, "; ".join(f"{r} x{n}" for r, n in sorted(counts.items())))
     last = res.trips[-1] if res.trips else None
     out.opt("luck.last_trip.actual_return", "007:last_trip.actual_return",
             None if last is None or last.actual_return is None else canonical_decimal(last.actual_return),
@@ -287,7 +296,7 @@ class PortfolioAnalysisService:
             except BiasInputError as exc:
                 reasons["006"] = f"BiasInputError: {exc}"
             try:
-                validated = validate_inputs(ledger, series, bias_params, bias_known)
+                validated = validate_inputs(ledger, series, bias_params, known)  # 007 gates unreviewed listings itself
                 if validated.missing_series:
                     names = ", ".join(f"{i.symbol}.{i.exchange.value}" for i in validated.missing_series)
                     reasons["007"] = f"NO_TRIP_SERIES: missing series for {names}"
@@ -318,6 +327,7 @@ class PortfolioAnalysisService:
             "series_unavailable": sorted(series_unavailable),
             "universe": [[c.instrument.symbol, c.instrument.exchange.value, c.isin] for c in cfg.universe],
             "nifty_membership_count": len(cfg.nifty50),
+            "universe_static": cfg.universe_static, "universe_note": cfg.universe_note,
             "corporate_action_coverage": "UNDECLARED" if reviewed is None else "DECLARED",
             "corporate_action_listings": sorted(f"{i.symbol}.{i.exchange.value}" for i in known),
             "corporate_action_reviewed": None if reviewed is None else sorted(f"{i.symbol}.{i.exchange.value}" for i in reviewed),

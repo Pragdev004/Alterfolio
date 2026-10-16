@@ -1,0 +1,11 @@
+# Corporate-action review register (Feature 012). YOU fill this in; nothing is assumed.
+# An instrument (traded or in the universe) counts as reviewed only if one window below covers the whole analysis range
+# (earliest bar fetched .. as-of day). Unlisted or partly covered instruments stay Unavailable (CORPORATE_ACTION_UNKNOWN).
+# An empty `actions` list means "reviewed, none". Any action dated inside the range excludes that listing (known action).
+#
+# [[reviewed]]
+# symbol = "RELIANCE"
+# exchange = "NSE"
+# from = "2024-01-01"
+# to = "2026-12-31"
+# actions = []                       # or [{ date = "2024-10-28", kind = "bonus 1:1" }]

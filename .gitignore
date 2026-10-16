@@ -32,3 +32,6 @@ backend/set-test-env.ps1
 
 # Stray generated demo tradebook (the demo now builds it in memory); not to be committed
 backend/tests/fixtures/tradebook_demo.csv
+
+# Market-data cache of the real-data demo (Feature 012)
+backend/.cache/

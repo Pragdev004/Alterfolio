@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.analyst.service import ask
-from app.api.analyst_wiring import quant_tools_from
+from app.api.analyst_wiring import apply_caveats, quant_tools_with_caveats
 from app.api.deps import get_analysis_service, get_current_user_id
 from app.services.portfolio_analysis import PortfolioAnalysisService
 
@@ -33,6 +33,7 @@ def ask_route(
     analysis: PortfolioAnalysisService = Depends(get_analysis_service),
 ):
     analysis.require_sealed(body.as_of)  # rejected even when the question needs no quant tool
-    answer = ask(user_id, body.question, body.as_of, llm=request.app.state.analyst_llm,
-                 tools=quant_tools_from(analysis.analyse), retriever=request.app.state.retriever)
-    return answer.to_dict()
+    tools, caveats = quant_tools_with_caveats(analysis.analyse)
+    answer = ask(user_id, body.question, body.as_of, llm=request.app.state.analyst_llm, tools=tools,
+                 retriever=request.app.state.retriever)
+    return apply_caveats(answer, caveats()).to_dict()

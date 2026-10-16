@@ -1,0 +1,57 @@
+# Luck-test alternative universe (Feature 012). STATIC: a fixed list of large caps, not point-in-time membership.
+static_universe = true
+note = "static universe, survivorship bias acknowledged"
+# ISINs are from memory and UNVERIFIED: check each against the NSE/BSE listing before trusting a result.
+# Names that changed ISIN after a split or face-value change are left out on purpose. Exchange is NSE for all.
+
+[[instrument]]
+symbol = "RELIANCE"
+isin = "INE002A01018"
+[[instrument]]
+symbol = "TCS"
+isin = "INE467B01029"
+[[instrument]]
+symbol = "HDFCBANK"
+isin = "INE040A01034"
+[[instrument]]
+symbol = "INFY"
+isin = "INE009A01021"
+[[instrument]]
+symbol = "ICICIBANK"
+isin = "INE090A01021"
+[[instrument]]
+symbol = "HINDUNILVR"
+isin = "INE030A01027"
+[[instrument]]
+symbol = "ITC"
+isin = "INE154A01025"
+[[instrument]]
+symbol = "SBIN"
+isin = "INE062A01020"
+[[instrument]]
+symbol = "BHARTIARTL"
+isin = "INE397D01024"
+[[instrument]]
+symbol = "LT"
+isin = "INE018A01030"
+[[instrument]]
+symbol = "AXISBANK"
+isin = "INE238A01034"
+[[instrument]]
+symbol = "ASIANPAINT"
+isin = "INE021A01026"
+[[instrument]]
+symbol = "MARUTI"
+isin = "INE585B01010"
+[[instrument]]
+symbol = "SUNPHARMA"
+isin = "INE044A01036"
+[[instrument]]
+symbol = "TITAN"
+isin = "INE280A01028"
+[[instrument]]
+symbol = "ULTRACEMCO"
+isin = "INE481G01011"
+[[instrument]]
+symbol = "WIPRO"
+isin = "INE075A01022"
