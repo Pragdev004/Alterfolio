@@ -114,7 +114,8 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
         lines += [f"## Q{n}. {q}", "", f"verified: **{a.verified}** (attempts {a.attempts})", "", "```", a.text, "```", "",
                   f"Citations: {', '.join(f'{c.kind}:{c.ref}' for c in a.citations) or 'none'}", ""]
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return {"facts": [f.to_dict() for f in facts_all.facts], "provenance": prov, "imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed}
+    return {"answers": [(q, a) for q, a in sections], "unavailable": [list(u) for u in facts_all.unavailable],
+            "facts": [f.to_dict() for f in facts_all.facts], "provenance": prov, "imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed}
 
 
 def main(argv: list[str] | None = None) -> int:
