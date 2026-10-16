@@ -1,6 +1,6 @@
 """The LangGraph state machine: classify -> quant_tools -> retrieve -> draft -> number_check -> (draft | finalize)."""
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import TypedDict
 from uuid import UUID
 
@@ -17,9 +17,12 @@ MAX_ATTEMPTS = 2
 SEARCH_K = 5
 
 
+IST = timezone(timedelta(hours=5, minutes=30))  # same fixed offset as tradebook_parser.IST / yahoo (no DST, no tzdata)
+
+
 def cutoff_for(as_of: date) -> datetime:
-    """The last instant of the UTC calendar day `as_of` (inclusive, matching 009 `is_eligible`)."""
-    return datetime.combine(as_of, time.max, tzinfo=timezone.utc)
+    """The last instant of the exchange-local (IST) calendar day `as_of` (inclusive, matching 009 `is_eligible`)."""
+    return datetime.combine(as_of, time.max, tzinfo=IST)
 
 
 class State(TypedDict, total=False):

@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from datetime import date
+from datetime import date, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 
 from app.analyst.types import UNAVAILABLE, Draft, Fact, Passage
@@ -14,6 +14,7 @@ _WORDS = re.compile(
     r"seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|"
     r"billion|half|third|quarter|double|triple|twice|dozen)\b", re.IGNORECASE)
 _MAX_EXPONENT = 40
+_IST_OFFSET = timedelta(hours=5, minutes=30)
 
 
 def numeric_tokens(text: str) -> list[str]:
@@ -69,7 +70,13 @@ def check(draft: Draft, facts: list[Fact] | tuple[Fact, ...], passages: list[Pas
         else:
             errors.append(f"claim {claim.value!r} cites unknown source {claim.source!r}")
     text = unicodedata.normalize("NFKC", draft.text)
-    text = _strip(text, [as_of.isoformat(), *by_name, *by_chunk])
+    cited = [p for p in passages if p.chunk_id in {c.source for c in draft.claims} or p.chunk_id in text]
+    dates = []
+    for p in cited:  # a cited passage's own date (UTC or IST calendar day, or the full instant) is not a data number
+        utc = p.published_at.astimezone(timezone.utc)
+        dates += [utc.isoformat(), p.published_at.isoformat(), utc.date().isoformat(),
+                  (utc + _IST_OFFSET).date().isoformat()]
+    text = _strip(text, [as_of.isoformat(), *dates, *by_name, *by_chunk])
     if _SCALE.search(text):
         errors.append("scaled numbers (lakh, crore, k, bn, bps, ...) are not allowed; state the exact value")
     if _WORDS.search(text):

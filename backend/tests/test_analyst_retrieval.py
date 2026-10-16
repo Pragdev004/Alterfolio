@@ -1,5 +1,5 @@
 """Feature 010 retrieval cutoff (A4)."""
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 import pytest
 
@@ -9,7 +9,18 @@ from app.analyst.types import Claim, Draft
 from tests.analyst_support import CHUNK_LATE, CHUNK_OK, D, USER, FakeRetriever, FakeTools, chunk, dt, fact
 
 Q = "What is my bias cost?"
-CUTOFF = datetime.combine(D, time.max, tzinfo=timezone.utc)
+IST = timezone(timedelta(hours=5, minutes=30))
+CUTOFF = datetime.combine(D, time.max, tzinfo=IST)
+
+
+def test_a4_cutoff_is_end_of_ist_day_inclusive_and_next_day_excluded():
+    inside = datetime(2026, 10, 10, 23, 59, tzinfo=IST)  # D 18:29 UTC
+    outside = datetime(2026, 10, 11, 2, 0, tzinfo=IST)  # D 20:30 UTC
+    assert outside.astimezone(timezone.utc).date() == D  # same UTC day, still after the IST day
+    r = FakeRetriever([chunk(CHUNK_OK, "In.", inside), chunk(CHUNK_LATE, "Out.", outside)])
+    ans = ask(USER, Q, D, llm=TemplateLLM(), tools=_tools(), retriever=r)
+    refs = [c.ref for c in ans.citations]
+    assert CHUNK_OK in refs and CHUNK_LATE not in refs
 
 
 def _tools():
@@ -24,7 +35,7 @@ def test_a4_retrieval_called_with_end_of_day_cutoff_never_later():
 
 
 def test_a4_published_on_the_cutoff_day_is_eligible():
-    r = FakeRetriever([chunk(CHUNK_OK, "Letter.", dt(2026, 10, 10, 23))])
+    r = FakeRetriever([chunk(CHUNK_OK, "Letter.", dt(2026, 10, 10, 18))])  # 23:30 IST on D
     ans = ask(USER, Q, D, llm=TemplateLLM(), tools=_tools(), retriever=r)
     assert CHUNK_OK in [c.ref for c in ans.citations]
 

@@ -36,7 +36,8 @@ on or before D. Every number in the answer is traceable to a tool output. AI is 
 - A11 (conditional) endpoint is user-isolated and 503 `ai_provider_not_configured` handling is unaffected; else deferred.
 
 ## Review amendments (opus review, applied)
-- as_of is a `date` only (datetime rejected); cutoff = `datetime.combine(D, time.max, UTC)`: D is a UTC calendar day.
+- as_of is a `date` only (datetime rejected); cutoff = `datetime.combine(D, time.max, IST)`: D is an IST (UTC+5:30 fixed
+  offset, as in 004/005) calendar day. Supersedes the earlier UTC-day wording (A4 "end of day D" means IST).
 - retrieve rechecks every chunk with `is_eligible`, drops late ones, and requires provenance.cutoff == cutoff.
   `score` is never copied. Passage text mentioning later dates is a documented limitation.
 - `Fact` carries `as_of` and `unit`; a fact with as_of > D is rejected. Fact values must be str (floats rejected).
@@ -45,6 +46,11 @@ on or before D. Every number in the answer is traceable to a tool output. AI is 
   also checked. Units must match between claim and fact.
 - analyst imports only `domain`, never `quant`, `services.retrieval` or an adapter; httpx only in `analyst/llm_openai.py`
   (CLAUDE.md rule updated).
+
+## Owner decisions (2026-10-16)
+- ACCEPTED: httpx allowlist entry `analyst/llm_openai.py`; `app.analyst.graph` -> `app.domain.retrieval` entry.
+- Cutoff is IST end of day. The strict number rule stays (every token needs a claim; number words are errors).
+- Cited passages' own dates and the as_of date are not counted as unverified numbers.
 
 ## Non-goals
 Persistence, new quant maths, corporate actions, real LLM calls in tests.

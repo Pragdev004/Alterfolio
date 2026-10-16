@@ -61,6 +61,16 @@ def test_as_of_date_and_chunk_ids_and_fact_names_are_not_numbers():
               ("1234.50", "m.cost")) == []
 
 
+def test_cited_passage_date_is_not_an_unverified_number():
+    text = "Note of 2026-10-09 says size 450."
+    assert _c(text, ("450", CHUNK_OK)) == []
+    assert _c("Note of 2026-10-09T12:00:00+00:00 says size 450.", ("450", CHUNK_OK)) == []
+
+
+def test_uncited_passage_date_is_still_an_error():
+    assert _c("Note of 2026-10-09 cost 1234.50.", ("1234.50", "m.cost"))
+
+
 def test_other_dates_are_errors():
     assert _c("On 2026-10-11 cost 1234.50.", ("1234.50", "m.cost"))
 
