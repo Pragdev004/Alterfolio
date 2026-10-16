@@ -68,7 +68,7 @@ def add_trade(session, user_id: UUID, side: TradeSide, day: date, *, qty="10", i
               recorded_at: datetime | None = None, supersedes: UUID | None = None, status=TradeStatus.EXECUTED,
               price=None, charges_provided=True):
     ts = datetime(day.year, day.month, day.day, 5, 0, tzinfo=timezone.utc)  # 10:30 IST
-    px = price if price is not None else close_on(KNOWN[instrument], day)
+    px = price if price is not None else close_on(KNOWN.get(instrument, KNOWN[TRADED]), day)  # a BSE listing trades at the NSE curve
     return TradeRepository(session).add(
         user_id=user_id, id=uuid4(), symbol=instrument.symbol, name=None, asset_type=AssetType.STOCK, exchange=instrument.exchange,
         currency=Currency.INR, side=side, quantity=D(qty), price_per_unit=D(px), brokerage_fee=D(0), taxes=D(0),

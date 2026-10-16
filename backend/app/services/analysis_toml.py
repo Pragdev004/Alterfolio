@@ -49,15 +49,27 @@ def load_reviewed(path: Path) -> tuple[ReviewedWindow, ...]:
     return tuple(out)
 
 
-def resolve_corporate_actions(windows, listings, start: date, end: date):
-    """(reviewed, known) for `listings`: reviewed iff one window covers [start, end]; known iff a declared action of that
-    window is dated within [start, end]. Anything else is left out of `reviewed`, so the analyses answer Unavailable."""
-    reviewed, known = set(), set()
+def resolve_corporate_actions(windows, listings, start: date, end: date, isin_of=None):
+    """(reviewed, known) for `listings`, keyed by ISIN: a register entry covers every listing (NSE and BSE) of the ISIN
+    of the entry's own listing (looked up in `isin_of`, a mapping Instrument -> ISIN). Without an ISIN the entry covers only
+    its exact listing. Reviewed iff one window covers [start, end]; known iff a declared action of that window falls in it.
+    Anything else is left out of `reviewed`, so the analyses answer Unavailable (or the service excludes it, spec 012)."""
+    isin_of = isin_of or {}
+    reviewed_isins, known_isins, reviewed_direct, known_direct = set(), set(), set(), set()
     for w in windows:
-        if w.instrument in listings and w.from_date <= start and w.to_date >= end:
-            reviewed.add(w.instrument)
-            if any(start <= d <= end for d, _ in w.actions):
-                known.add(w.instrument)
+        if not (w.from_date <= start and w.to_date >= end):
+            continue
+        has_action = any(start <= d <= end for d, _ in w.actions)
+        isin = isin_of.get(w.instrument)
+        if isin:
+            reviewed_isins.add(isin)
+            if has_action:
+                known_isins.add(isin)
+        reviewed_direct.add(w.instrument)
+        if has_action:
+            known_direct.add(w.instrument)
+    reviewed = {i for i in listings if i in reviewed_direct or isin_of.get(i) in reviewed_isins}
+    known = {i for i in listings if i in known_direct or isin_of.get(i) in known_isins}
     return frozenset(reviewed), frozenset(known)
 
 

@@ -9,11 +9,13 @@ import hashlib
 import json
 import math
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from collections import defaultdict
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
+from app.domain.enums import Exchange, TradeSide
 from app.domain.instrument import Instrument
 from app.quant.bias_cost.analysis import analyze_biases
 from app.quant.bias_cost.cost_basis import fold_positions
@@ -40,6 +42,27 @@ HISTORY_DAYS = 300  # bars fetched before the first trade (chasing 21, luck 61, 
 BIAS_WINDOW_START = datetime(2000, 1, 1, tzinfo=timezone.utc)
 RULE_SET_VERSION = "archetype-v1"
 SEED_NAMES = ("luck_test", "regime_split")
+PROXY_NOTE = "price proxy: NSE series for BSE listing"
+
+
+def content_trade_id(t, ordinal: int) -> str:
+    """Analysis identity of a ledger row from its CONTENT, not its random row id: the same trades give the same ids (hence the
+    same trip ids, RNG sub-streams and fingerprints) whatever order they were imported in. `ordinal` separates identical rows."""
+    payload = json.dumps([t.symbol, t.exchange.value, t.side.value, str(t.quantity), str(t.price_per_unit), t.trade_timestamp.isoformat(),
+                          t.isin, t.broker, t.broker_trade_id, t.order_id, str(t.brokerage_fee), str(t.taxes), t.charges_provided])
+    return "t" + hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24] + (f"-{ordinal}" if ordinal else "")
+
+
+def count_round_trips(trades) -> int:
+    """Flat -> open -> flat on one listing (the 006 definition), counted from the trade sequence alone (no series needed)."""
+    held, count = Decimal(0), 0
+    for t in sorted(trades, key=lambda t: (t.trade_timestamp, t.trade_id)):
+        held += t.quantity if t.side is TradeSide.BUY else -t.quantity
+        if held == 0:
+            count += 1
+        elif held < 0:
+            held = Decimal(0)  # a sell before any buy (opened before the window) is not a trip
+    return count
 
 
 def derive_seed(user_id: UUID, as_of: date, name: str) -> int:
@@ -268,16 +291,17 @@ class PortfolioAnalysisService:
         seeds = {name: derive_seed(user_id, as_of, name) for name in SEED_NAMES}
         error: str | None = None
         ledger: list[LedgerTrade] = []
+        seen_ids: dict[str, int] = defaultdict(int)
         try:
             ledger = [LedgerTrade(
-                trade_id=str(t.id), instrument=Instrument(t.symbol, t.exchange), isin=t.isin, side=t.side, quantity=t.quantity,
+                trade_id=self._content_id(t, seen_ids), instrument=Instrument(t.symbol, t.exchange), isin=t.isin, side=t.side, quantity=t.quantity,
                 price=t.price_per_unit, trade_timestamp=t.trade_timestamp, currency=t.currency,
                 charges=ChargeValue(True, t.brokerage_fee, t.taxes) if t.charges_provided else ChargeValue.unknown())
                 for t in rows]
         except (BiasInputError, ValueError, TypeError) as exc:
             error = f"trade input rejected: {exc}"
 
-        series, series_unavailable = ({}, []) if error else self._series(ledger, as_of, boundary, now)
+        series, series_unavailable, proxies = ({}, [], []) if error else self._series(ledger, as_of, boundary, now)
         why = error or ""
         bias_res = luck_res = regime_res = None
         trip_count: int | None = None
@@ -290,14 +314,35 @@ class PortfolioAnalysisService:
         luck_p = {n: LuckParameters(seed=seeds[n], as_of=boundary, portfolio_count=cfg.luck_portfolio_count,
                                     bootstrap_replicates=cfg.luck_bootstrap_replicates) for n in SEED_NAMES}
         reasons = {"006": why, "007": why, "008": why}
+        # Partial coverage (spec 012): a listing with no series, or unreviewed/known-action, is excluded from luck and regime
+        # with a per-listing reason (never silently); the analyses run on what remains. 006 keeps its strict rule.
+        outcomes = {(a, b): c for a, b, c in series_unavailable}
+        excluded: dict[Instrument, str] = {}
+        for inst in sorted(traded, key=lambda i: (i.symbol, i.exchange.value)):
+            if inst not in series:
+                excluded[inst] = f"no market-data series ({outcomes.get((inst.symbol, inst.exchange.value), 'not fetched')})"
+            elif reviewed is not None and inst in known:
+                excluded[inst] = "known corporate action inside the review window (prices unadjusted)"
+            elif reviewed is not None and inst not in reviewed:
+                excluded[inst] = "not covered by the corporate-action review register"
+        part = [t for t in ledger if t.instrument not in excluded]
+        by_listing: dict[Instrument, list] = defaultdict(list)
+        for t in ledger:
+            by_listing[t.instrument].append(t)
+        trips_total = sum(count_round_trips(v) for v in by_listing.values())
+        excluded_rows = [[i.symbol, i.exchange.value, r, count_round_trips(by_listing[i])] for i, r in excluded.items()]
+        if ledger and not part and not error:
+            reasons["007"] = reasons["008"] = "all traded listings are excluded (see provenance.excluded_listings)"
         if not error:
             try:
                 bias_res = analyze_biases(ledger, series, bias_params, bias_known)
             except BiasInputError as exc:
                 reasons["006"] = f"BiasInputError: {exc}"
             try:
-                validated = validate_inputs(ledger, series, bias_params, known)  # 007 gates unreviewed listings itself
-                if validated.missing_series:
+                validated = validate_inputs(part, series, bias_params, known) if part else None
+                if validated is None:
+                    pass
+                elif validated.missing_series:
                     names = ", ".join(f"{i.symbol}.{i.exchange.value}" for i in validated.missing_series)
                     reasons["007"] = f"NO_TRIP_SERIES: missing series for {names}"
                 else:
@@ -309,7 +354,7 @@ class PortfolioAnalysisService:
             except (BiasInputError, LuckInputError, RegimeInputError) as exc:
                 reasons["007"] = f"{type(exc).__name__}: {exc}"
             try:
-                regime_res = analyze_regimes(ledger, series, cfg.universe, cfg.nifty50, known, bias_params,
+                regime_res = None if not part else analyze_regimes(part, series, cfg.universe, cfg.nifty50, known, bias_params,
                                              luck_p["regime_split"], cfg.regime_parameters, corporate_action_reviewed=reviewed)
             except (BiasInputError, LuckInputError, RegimeInputError) as exc:
                 reasons["008"] = f"{type(exc).__name__}: {exc}"
@@ -317,6 +362,15 @@ class PortfolioAnalysisService:
         _emit_bias(out, "bias.", "006", bias_res, reasons["006"] or "not computed")
         _emit_luck(out, luck_res, trip_count, reasons["007"] or "not computed")
         _emit_regime(out, regime_res, reasons["008"] or "not computed")
+        for prefix, source, analysed, why008 in (
+                ("luck", "007", None if luck_res is None else _count(trip_count if trip_count is not None else 0), reasons["007"]),
+                ("regime", "008", None if regime_res is None or regime_res.unavailable is not None else _count(regime_res.round_trip_count),
+                 reasons["008"])):
+            why_c = why008 or "not computed"
+            out.opt(f"{prefix}.coverage.trips_total", f"{source}:coverage.trips_total", None if error else _count(trips_total), why_c)
+            out.opt(f"{prefix}.coverage.trips_analysed", f"{source}:coverage.trips_analysed", analysed, why_c)
+            out.opt(f"{prefix}.coverage.excluded_listing_count", f"{source}:coverage.excluded_listing_count",
+                    None if error else _count(len(excluded)), why_c)
 
         profile = None if bias_res is None else bias_res.profile
         provenance = {
@@ -327,6 +381,8 @@ class PortfolioAnalysisService:
             "series_unavailable": sorted(series_unavailable),
             "universe": [[c.instrument.symbol, c.instrument.exchange.value, c.isin] for c in cfg.universe],
             "nifty_membership_count": len(cfg.nifty50),
+            "trips_total": trips_total, "excluded_listings": excluded_rows, "price_proxies": proxies,
+            "price_proxy_note": PROXY_NOTE if proxies else "",
             "universe_static": cfg.universe_static, "universe_note": cfg.universe_note,
             "corporate_action_coverage": "UNDECLARED" if reviewed is None else "DECLARED",
             "corporate_action_listings": sorted(f"{i.symbol}.{i.exchange.value}" for i in known),
@@ -343,12 +399,32 @@ class PortfolioAnalysisService:
         unavailable = tuple(out.unavailable) + tuple((k, v) for k, v in reasons.items() if v)
         return AnalysisFacts(as_of=as_of, facts=tuple(out.facts), provenance=provenance, unavailable=unavailable)
 
+    @staticmethod
+    def _content_id(t, seen: dict) -> str:
+        base = content_trade_id(t, 0)
+        n = seen[base]
+        seen[base] += 1
+        return base if n == 0 else content_trade_id(t, n)
+
     def _series(self, ledger: list[LedgerTrade], as_of: date, boundary: datetime, now: datetime):
-        """One series per traded listing (own exchange, no fallback) and per universe listing, truncated to the boundary."""
+        """One series per traded listing and per universe listing, truncated to the boundary. A BSE listing is priced by the
+        NSE listing with the same ISIN (price proxy, recorded); every other listing uses its own exchange, no fallback."""
         if not ledger:
-            return {}, []
-        listings = sorted({t.instrument for t in ledger} | {c.instrument for c in self._config.universe},
-                          key=lambda i: (i.symbol, i.exchange.value))
+            return {}, [], []
+        cfg = self._config
+        nse_by_isin: dict[str, Instrument] = {}
+        for t in ledger:
+            if t.isin and t.instrument.exchange is Exchange.NSE:
+                nse_by_isin.setdefault(t.isin, t.instrument)
+        for c in cfg.universe:
+            if c.instrument.exchange is Exchange.NSE:
+                nse_by_isin.setdefault(c.isin, c.instrument)
+        proxy: dict[Instrument, Instrument] = {}
+        for t in ledger:
+            if t.instrument.exchange is Exchange.BSE and t.isin in nse_by_isin:
+                proxy[t.instrument] = nse_by_isin[t.isin]
+        wanted = ({t.instrument for t in ledger} - set(proxy)) | {c.instrument for c in cfg.universe} | set(proxy.values())
+        listings = sorted(wanted, key=lambda i: (i.symbol, i.exchange.value))
         start = min(t.trade_timestamp for t in ledger).date() - timedelta(days=HISTORY_DAYS)
         service = MarketSeriesService(provider=self._provider, clock=lambda: now)
         out: dict[Instrument, MarketSeries] = {}
@@ -363,4 +439,11 @@ class PortfolioAnalysisService:
                 missing.append([listing.symbol, listing.exchange.value, "NO_BARS_BEFORE_BOUNDARY"])
             else:
                 missing.append([listing.symbol, listing.exchange.value, ",".join(a.outcome.value for a in r.attempts)])
-        return out, missing
+        proxies: list[list[str]] = []
+        for bse, nse in sorted(proxy.items(), key=lambda kv: (kv[0].symbol, kv[0].exchange.value)):
+            if nse in out:
+                out[bse] = replace(out[nse], instrument=bse)  # NSE closes under the BSE listing's identity
+                proxies.append([bse.symbol, bse.exchange.value, nse.symbol, nse.exchange.value])
+            else:
+                missing.append([bse.symbol, bse.exchange.value, f"price proxy {nse.symbol}.{nse.exchange.value} has no series"])
+        return out, missing, proxies

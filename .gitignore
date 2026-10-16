@@ -35,3 +35,6 @@ backend/tests/fixtures/tradebook_demo.csv
 
 # Market-data cache of the real-data demo (Feature 012)
 backend/.cache/
+
+# Real-data demo reports hold personal trade figures (Feature 012)
+docs/reports/demo-real-*

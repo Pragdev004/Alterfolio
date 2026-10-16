@@ -31,9 +31,18 @@ def quant_tools_with_caveats(analyse):
 
     def caveats() -> tuple[str, ...]:
         r = seen.get("r")
-        if r is not None and called & {"luck_test", "regime_split"} and r.provenance.get("universe_static"):
-            return (str(r.provenance.get("universe_note") or "static universe"),)
-        return ()
+        if r is None:
+            return ()
+        notes: list[str] = []
+        prov = r.provenance
+        quant = called & {"luck_test", "regime_split"}
+        if quant and prov.get("universe_static"):
+            notes.append(str(prov.get("universe_note") or "static universe"))
+        if quant and prov.get("excluded_listings"):
+            notes.append("not analysed in luck/regime: " + ", ".join(f"{s}.{e} ({why})" for s, e, why, _ in prov["excluded_listings"]))
+        if called and prov.get("price_proxies"):
+            notes.append(f"{prov.get('price_proxy_note')}: " + ", ".join(f"{b}.{be}" for b, be, _, _ in prov["price_proxies"]))
+        return tuple(notes)
 
     return tools, caveats
 

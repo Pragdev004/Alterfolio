@@ -29,6 +29,7 @@ from app.quant.regime_split.types import RegimeParameters  # noqa: E402
 from app.repositories.trade_repository import TradeRepository  # noqa: E402
 from app.repositories.user_repository import UserRepository  # noqa: E402
 from app.services.analysis_toml import load_aliases, load_reviewed, load_universe, resolve_corporate_actions  # noqa: E402
+from app.services.tradebook_merge import merge_tradebooks  # noqa: E402
 from app.services.portfolio_analysis import HISTORY_DAYS, AnalysisConfig, PortfolioAnalysisService  # noqa: E402
 from app.services.tradebook_import import TradebookImportService  # noqa: E402
 from bar_cache import AliasingBars, CachingBars  # noqa: E402
@@ -70,16 +71,21 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
         UserRepository(session).ensure(USER)
         session.commit()
         imp = TradebookImportService.for_session(session, clock=lambda: now, id_factory=lambda: UUID(int=next(ids) + 0x7000))
-        results = [(label, imp.import_tradebook(user_id=USER, file_name=label, content=content)) for label, content in tradebooks]
-        imported = sum(r.imported for _, r in results)
-        duplicates = sum(r.duplicates for _, r in results)
-        rejected = sum(r.rejected_total for _, r in results)
+        # ONE import over the merged files: separate imports are order-dependent (a sell imported before its buy is rejected).
+        merged = merge_tradebooks([content for _, content in tradebooks])
+        result = imp.import_tradebook(user_id=USER, file_name="merged-tradebooks", content=merged)
+        imported, duplicates, rejected = result.imported, result.duplicates, result.rejected_total
+        merged_lines = merged.decode("utf-8").splitlines()
+        rejected_rows = [(r.line, merged_lines[r.line - 1].split(",")[0] if 0 < r.line <= len(merged_lines) else "?", r.code, r.message)
+                         for r in result.rejected]
         trades = TradeRepository(session).list_effective(user_id=USER)
         traded = {Instrument(t.symbol, t.exchange) for t in trades}
         listings = traded | {c.instrument for c in universe.candidates}
         first = min((t.trade_timestamp.date() for t in trades), default=as_of)
         start = first - timedelta(days=HISTORY_DAYS)
-        reviewed, known = resolve_corporate_actions(windows, listings, start, as_of)
+        isin_of = {Instrument(t.symbol, t.exchange): t.isin for t in trades if t.isin}
+        isin_of.update({c.instrument: c.isin for c in universe.candidates})
+        reviewed, known = resolve_corporate_actions(windows, listings, start, as_of, isin_of)
         config = AnalysisConfig(
             universe=universe.candidates, universe_static=universe.static, universe_note=universe.note,
             corporate_action_listings=known, corporate_action_reviewed=reviewed, luck_portfolio_count=luck_portfolios,
@@ -90,16 +96,17 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
             tools, caveats = quant_tools_with_caveats(service.analyse)
             answer = apply_caveats(ask(USER, q, as_of, llm=TemplateLLM(), tools=tools, retriever=None), caveats())
             sections.append((q, answer))
-        prov = service.analyse(USER, as_of).provenance
+        facts_all = service.analyse(USER, as_of)
+        prov = facts_all.provenance
     unreviewed = sorted(f"{i.symbol}.{i.exchange.value}" for i in listings - reviewed)
     lines = [f"# Real-data demo ({now.date().isoformat()})", "",
-             f"As-of D = {as_of}; provider Yahoo via cache; TemplateLLM (no model). Tradebooks: {len(results)}. "
+             f"As-of D = {as_of}; provider Yahoo via cache; TemplateLLM (no model). Tradebooks merged and imported once: {len(tradebooks)}. "
              f"Rows imported {imported}, skipped as duplicates {duplicates}, rejected {rejected}. "
              f"Trades used: {prov['user_trade_count']}.", "",
              f"Universe: {len(universe.candidates)} listings. **{universe.note}.** Corporate-action register: "
              f"{len(windows)} reviewed window(s); reviewed {len(reviewed)} of {len(listings)} listings; known-action listings {len(known)}.",
-             "Per file (imported / duplicates / rejected): "
-             + "; ".join(f"{label}: {r.imported}/{r.duplicates}/{r.rejected_total}" for label, r in results) + ".",
+             "Rejected rows (row of the merged file, symbol, reason): "
+             + ("; ".join(f"{n} {sym} {code} ({msg})" for n, sym, code, msg in rejected_rows) or "none") + ".",
              f"Market-data symbol aliases (lookup only): {', '.join(f'{k}->{v}' for k, v in aliases.items()) or 'none'}.",
              f"Not reviewed (their luck/regime results are Unavailable): {', '.join(unreviewed) or 'none'}.",
              f"Seeds: {prov['seeds']}. Nifty 50 membership is not configured, so the NIFTY baseline is Unavailable.", ""]
@@ -107,7 +114,7 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
         lines += [f"## Q{n}. {q}", "", f"verified: **{a.verified}** (attempts {a.attempts})", "", "```", a.text, "```", "",
                   f"Citations: {', '.join(f'{c.kind}:{c.ref}' for c in a.citations) or 'none'}", ""]
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return {"imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed}
+    return {"facts": [f.to_dict() for f in facts_all.facts], "provenance": prov, "imported": imported, "duplicates": duplicates, "rejected": rejected, "verified": sum(1 for _, a in sections if a.verified), "total": len(sections), "unreviewed": unreviewed}
 
 
 def main(argv: list[str] | None = None) -> int:
