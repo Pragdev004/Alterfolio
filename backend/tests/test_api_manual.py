@@ -226,6 +226,7 @@ def test_holdings_group_one_isin_across_exchanges_with_sorted_listings(client):
         "isin": ISIN, "listings": [{"symbol": "RELIANCE", "exchange": "BSE"}, {"symbol": "RELIANCE", "exchange": "NSE"}],
         "name": "Reliance Industries", "quantity": "3.000000", "average_buy_price": "16.666667",
         "invested_amount": "50.000000", "cost_basis_complete": True,
+        "quantity_display": "3", "average_buy_price_display": "₹16.67", "invested_amount_display": "₹50.00",
     }
 
 

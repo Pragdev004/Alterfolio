@@ -69,6 +69,9 @@ def test_empty_portfolio_is_complete_zeros_not_an_error(client, market):
         "valuation_status": "COMPLETE", "total_trades": 0, "holdings_count": 0, "valued_holdings_count": 0,
         "total_invested": "0.000000", "total_market_value": "0.000000", "total_unrealized_pnl": "0.000000",
         "cost_basis_complete": True, "holdings": [],
+        "valuation_time_display": "2 Mar 2026, 15:30 IST", "total_invested_display": "₹0.00",
+        "total_market_value_display": "₹0.00", "total_unrealized_pnl_display": "₹0.00",
+        "valuation_text": "0 of 0 holdings valued",
     }
     assert market.calls == []
 
@@ -86,8 +89,12 @@ def test_valued_holding_contract_and_decimal_strings(client, market):
         "quantity": "10.000000", "average_buy_price": "100.000000", "invested_amount": "1000.000000",
         "cost_basis_complete": True, "quote_status": "VALUED",
         "quote": {"symbol": "RELIANCE", "exchange": "NSE", "price": "120.500000", "currency": "INR",
-                  "price_timestamp": "2026-03-02T09:00:00Z", "retrieved_at": "2026-03-02T10:00:00Z", "source": "fake"},
+                  "price_timestamp": "2026-03-02T09:00:00Z", "retrieved_at": "2026-03-02T10:00:00Z", "source": "fake",
+                  "price_display": "₹120.50", "price_timestamp_display": "2 Mar 2026, 14:30 IST",
+                  "retrieved_at_display": "2 Mar 2026, 15:30 IST"},
         "market_value": "1205.000000", "unrealized_pnl": "205.000000",
+        "quantity_display": "10", "average_buy_price_display": "₹100.00", "invested_amount_display": "₹1,000.00",
+        "market_value_display": "₹1,205.00", "unrealized_pnl_display": "₹205.00",
     }
     assert s["holdings_count"] == s["valued_holdings_count"] == 1
 
@@ -98,7 +105,8 @@ def test_summary_holdings_match_the_holdings_route(client, market):
     market.outcomes = {RELIANCE: q(RELIANCE, "110")}
     holdings = client.get("/portfolio/holdings").json()
     rows = summary(client).json()["holdings"]
-    strip = ("quote_status", "quote", "market_value", "unrealized_pnl")
+    strip = ("quote_status", "quote", "market_value", "unrealized_pnl", "market_value_display", "unrealized_pnl_display",
+             "market_value_unavailable_reason", "unrealized_pnl_unavailable_reason")
     assert [{k: v for k, v in r.items() if k not in strip} for r in rows] == holdings
 
 

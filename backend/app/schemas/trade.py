@@ -15,6 +15,7 @@ from app.domain.enums import (
     TradeStatus,
 )
 from app.domain.numeric import MONEY_CONTEXT, SCALE
+from app.schemas.display import DisplayKind, WithDisplay
 
 _QUANTUM = Decimal(1).scaleb(-SCALE)
 
@@ -35,6 +36,10 @@ def money_str(value: Decimal) -> str:
 
 DecimalIn = Annotated[Decimal, Field(allow_inf_nan=True), BeforeValidator(_parse_decimal)]
 DecimalOut = Annotated[Decimal, PlainSerializer(money_str, return_type=str, when_used="always")]
+MoneyOut = Annotated[DecimalOut, DisplayKind("inr")]  # response fields carry a server-formatted `x_display` sibling
+PriceOut = Annotated[DecimalOut, DisplayKind("price")]
+QtyOut = Annotated[DecimalOut, DisplayKind("plain")]
+WhenOut = Annotated[datetime, DisplayKind("datetime")]
 
 
 class TradeIn(BaseModel):
@@ -89,7 +94,7 @@ class TradeCorrectionIn(BaseModel):
     notes: str | None = None
 
 
-class TradeOut(BaseModel):
+class TradeOut(WithDisplay):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -100,12 +105,12 @@ class TradeOut(BaseModel):
     exchange: Exchange
     currency: Currency
     side: TradeSide
-    quantity: DecimalOut
-    price_per_unit: DecimalOut
-    brokerage_fee: DecimalOut
-    taxes: DecimalOut
-    trade_timestamp: datetime
-    recorded_at: datetime
+    quantity: QtyOut
+    price_per_unit: PriceOut
+    brokerage_fee: MoneyOut
+    taxes: MoneyOut
+    trade_timestamp: WhenOut
+    recorded_at: WhenOut
     broker: str | None
     broker_trade_id: str | None
     order_id: str | None
@@ -117,19 +122,26 @@ class TradeOut(BaseModel):
     charges_provided: bool
     import_batch_id: UUID | None
 
+    def withheld_displays(self) -> dict[str, str]:
+        # Imported rows store unknown fees and taxes as 0; showing "₹0.00" would present unknown as zero.
+        if self.charges_provided:
+            return {}
+        why = "fees and taxes were not provided by the tradebook"
+        return {"brokerage_fee": why, "taxes": why}
+
 
 class ListingOut(BaseModel):
     symbol: str
     exchange: Exchange
 
 
-class HoldingOut(BaseModel):
+class HoldingOut(WithDisplay):
     """One holding per ISIN (isin=null marks a legacy holding keyed by its single listing)."""
 
     isin: str | None
     listings: list[ListingOut]
     name: str | None
-    quantity: DecimalOut
-    average_buy_price: DecimalOut
-    invested_amount: DecimalOut
+    quantity: QtyOut
+    average_buy_price: PriceOut
+    invested_amount: MoneyOut
     cost_basis_complete: bool

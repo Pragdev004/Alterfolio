@@ -258,6 +258,7 @@ def test_holdings_after_an_import_are_per_isin_with_incomplete_cost_basis(client
         "isin": ALPHA, "listings": [{"symbol": "ALPHACO", "exchange": "BSE"}, {"symbol": "ALPHACO", "exchange": "NSE"}],
         "name": None, "quantity": "3.000000", "average_buy_price": "16.666667", "invested_amount": "50.000000",
         "cost_basis_complete": False,
+        "quantity_display": "3", "average_buy_price_display": "₹16.67", "invested_amount_display": "₹50.00",
     }
     assert beta["isin"] == BETA and beta["cost_basis_complete"] is False
 

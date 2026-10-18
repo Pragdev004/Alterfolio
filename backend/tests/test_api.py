@@ -178,6 +178,7 @@ def test_holdings_values_as_of_and_empty(client):
         "isin": ISIN, "listings": [{"symbol": "RELIANCE", "exchange": "NSE"}], "name": "Reliance Industries",
         "quantity": "20.000000", "average_buy_price": "150.000000", "invested_amount": "3000.000000",
         "cost_basis_complete": True,
+        "quantity_display": "20", "average_buy_price_display": "₹150.00", "invested_amount_display": "₹3,000.00",
     }
     (past,) = client.get("/portfolio/holdings", params={"as_of": "2026-01-01T10:00:00Z"}).json()
     assert past["quantity"] == "10.000000" and past["average_buy_price"] == "100.000000"
