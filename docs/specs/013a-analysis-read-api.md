@@ -127,7 +127,7 @@ T9 Alternatives: every trip carries kind + label (sector vs universe); `alternat
 T9b Cache: second call computes nothing (provider call count), a new trade/import invalidates, unavailable series not cached.
 T10 Boundaries (AST): `api/routes/analysis.py` and its schemas import no `app.analyst`, no httpx, no quant result
     types beyond the service's read types; `domain/` and `quant/` unchanged (git diff); existing 2346 tests still pass.
-T11 Backward compatibility: existing endpoint tests pass untouched; new `*_display` fields are additive.
+T11 Backward compatibility: existing raw fields are unchanged; only `*_display` keys are added (the six exact-dict tests gain those keys and nothing else).
 T12 `answer_source` is `template` under `AI_PROVIDER=none`; analysis endpoints work with no AI configured.
 T13 Offline: all tests run with recorded bar fixtures, no network, no DB env file.
 
