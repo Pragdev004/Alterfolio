@@ -1,5 +1,5 @@
 # Spec 013a: Analysis read API
-Status: PROPOSED (spec only, awaiting owner review). Precedes any UI work in Feature 013 (`013-frontend.md`).
+Status: APPROVED 2026-10-18 (owner answers folded in, section 11). Precedes any UI work in Feature 013 (`013-frontend.md`).
 Reads: `services/portfolio_analysis.py`, `api/routes/{analyst,portfolio,trades,imports}.py`, `api/display.py`,
 `schemas/*`, quant result types of 006/007/008. No change to `domain/` or `quant/`.
 
@@ -20,8 +20,10 @@ display string; the frontend never formats.
   Unavailable renders as the word "Unavailable". Used only for analyst text today.
 - Thresholds live in parameters: 007 `LuckParameters.min_trips=10`, 008 `RegimeParameters.min_trips_per_regime=10`, 006
   `BiasParameters.min_round_trips=10`.
-- Trip identity: content-derived `trip_id` (007 `TripLuck.trip_id`, 008 `TripRegime.trip_id`). Whether the two sets of
-  ids match for the same input is verified by test T5; if they differ this spec stops and is revised.
+- Trip identity: `trip_id` = the opening buy's content-derived ledger id, produced by the same `map_round_trips` for 007
+  (`TripLuck.trip_id`) and 008 (`TripRegime.trip_id`); T5 pins that the ids match. The per-trip regime tag is the existing
+  008 `TripRegime.regime` (labelled by `ListingClassifier` at the opening date), joined by `trip_id`. No new regime logic;
+  if a trip has no 008 row the tag is null with a reason.
 
 ## 3. Required service change (read types only)
 `analyse()` also returns a frozen `AnalysisDetail` next to `AnalysisFacts` (new method `analyse_detail`, `analyse` unchanged):
@@ -35,36 +37,44 @@ public JSON: statistic floats are converted once with the existing `_stat` rule 
   `{"value": "<canonical decimal text>" | null, "display": "<formatted text>" | "Unavailable", "unavailable_reason": null | "<text>"}`.
   `display` comes from `display_value` (INR via `format_inr`, ratios via `format_percent`, notes ` (lower bound)` /
   ` (fees excluded)` kept). A missing value has `value: null`, `display: "Unavailable"`, and a reason. Never 0 or "".
-- Prices and quantities: `display` for INR amounts and prices uses `format_inr`; quantity uses the plain canonical decimal
-  text (no rounding). The exact `value` is always present too.
-- Counts and thresholds: `{"value": "7", "display": "7"}`. Plain JSON integers (row counts, `total_trips`) stay integers.
+- Kinds: INR amounts use `format_inr` (2 dp, Indian grouping). Prices (`price_per_unit`, `average_buy_price`, quote price)
+  use `format_price`: 2 dp, up to 4 dp below ₹1 (trailing zeros trimmed to 2 dp, half-even). Quantity is the plain decimal
+  text, no rounding. Ratios use `format_percent`. The exact `value` is always present too.
+- Dates: `{"iso": "2026-10-16", "display": "16 Oct 2026"}` in analysis responses; existing datetime fields keep ISO and gain
+  `x_display` ("16 Oct 2026, 10:30 IST"). Integer counts stay raw JSON integers; thresholds `{"value","display"}`.
 - Existing endpoints stay backward compatible: for `GET /trades`, `GET /trades/{id}`, `POST /trades*`, `GET
   /portfolio/holdings`, `GET /portfolio/summary` (including `QuoteOut.price`, `market_value`, `unrealized_pnl`, totals) and
   `POST /imports/tradebook`, each existing Decimal field `x` keeps its current string and gains a sibling `x_display`
   (`"Unavailable"` when `x` is null, with `x_unavailable_reason` when a reason exists, e.g. `quote_status`). The summary
   `valuation_status` also gets `valuation_text` ("3 of 5 holdings valued") built server-side.
-- One implementation: a `schemas/display.py` helper wrapping `api/display.py`; no second formatter.
+- One implementation: pure formatters move to `domain/display.py` (stdlib only; `api/display.py` re-exports them and keeps
+  `render_fact`); schemas add siblings from `domain/display.py` (schemas import domain only, per the AST rule).
 
 ## 5. Endpoints (all GET, user from `get_current_user_id`, never from the client)
 `as_of` (query, ISO date, optional): omitted = latest sealed. Every response echoes `as_of` and `as_of_defaulted: bool`.
 An `as_of` >= today (IST) is 422 `as_of_not_sealed` (existing error). The server never uses today.
 
 `GET /api/analysis/meta`
-- `latest_sealed_as_of` = IST date of the injected clock minus one day; `today_ist`; `thresholds`:
+- `latest_sealed_as_of` = IST date of the injected clock minus one day (calendar day); `today_ist`; `last_bar_date`: the
+  latest session date of a reference series (first traded listing, else first universe listing) fetched through the history
+  port up to `latest_sealed_as_of`, or null with a reason (cached per sealed day); `thresholds`:
   `luck_min_trips`, `regime_min_trips_per_regime`, `bias_min_round_trips` (each with `display`); `alternatives_note`:
   fixed server text "Same-sector or same-universe alternatives, not a prediction." ; `limitations` (007/008 strings).
-- Does not touch the ledger or market data; cheap.
+- Does not read the ledger; only `last_bar_date` touches the history port (one small request, cached).
 
 `GET /api/analysis/trips?as_of=`
 - `summary`: `trip_count`, `trips_evaluated`, per baseline (`ALT`, `NIFTY`): `trips_used`, `mean_excess`,
   `mean_percentile`, `ci_lower`, `ci_upper`, `position`, each with the display rule; `sample`: `{"have": n, "needed": N,
   "text": "(n of N trips needed)"}` (N from the thresholds, n = usable trips) and `enough: bool`.
 - `trips[]` sorted by (open, close, id): `trip_id`, `symbol`, `exchange`, `open_session`, `close_session`, `evaluated`,
-  `actual_return` (+ basis `LEDGER_PRICES_FEES_EXCLUDED`), `alternatives_label` (from provenance), `alt` and `nifty`
+  `actual_return` (+ basis `LEDGER_PRICES_FEES_EXCLUDED`), `alternatives_kind` (`SAME_SECTOR` | `SAME_UNIVERSE`) and `alternatives_label` ("Same-sector alternatives (NIFTY BANK, 3)" /
+  "Same-universe alternatives"), derived from the provenance label by one tested function (the stored label is unchanged), `alt` and `nifty`
   outcomes (`percentile`, `excess`, `mean_return`, `pool_size`, `lost_count`, `unavailable_reason`), `survivorship_flag`,
   `regime` (label or reason, joined by `trip_id`, `null` plus reason if absent).
-- `excluded_listings[]`: symbol, exchange, reason, `trips` count (trips on these listings are counted but have no row,
-  because they never reached 007; the response says so).
+- Trips that never reached 007 are listed too, never hidden: trips on excluded listings (no series, corporate-action
+  review) and 008-only trips (AMBIGUOUS_ISIN), each with `evaluated: false`, `actual_return` Unavailable ("not computed:
+  listing excluded"), luck Unavailable + the exclusion reason. No return is computed for them (no new statistic).
+- `excluded_listings[]`: symbol, exchange, reason, `trips` count.
 - `caveats[]`: static-universe/survivorship note, price-proxy note, `late_recorded_row_count` note, fees-excluded note.
 
 `GET /api/analysis/trips/{trip_id}?as_of=`
@@ -96,7 +106,9 @@ fields unchanged. The analysis endpoints above import nothing from `app.analyst`
   the bars that exist (bars after it never reach the analysis, as in 011).
 - Point-in-time: all of 011's boundary rules apply unchanged (`B` = IST midnight of D+1; trades by trade time; seeds from
   `(user_id, D, name)`), so repeated calls return identical bodies.
-- No caching, no persistence. Each call computes (a market-data fetch can take seconds); results are deterministic.
+- Small in-process cache keyed `(user_id, as_of, ledger_version)`, no TTL. `ledger_version` = (row count, max `recorded_at`)
+  of the user's trades, so any import, manual trade, correction or void invalidates it. A result with unavailable series
+  (`provenance.series_unavailable` non-empty) is never cached, so a transient fetch failure cannot stick. Not persisted.
 
 ## 8. Tests to write (before the code)
 T1 Route isolation: two users, each gets only their trips on all five endpoints; unknown trip id is 404 for the other user.
@@ -104,14 +116,15 @@ T2 Point-in-time: a trade or bar dated after `as_of` leaves every response byte-
 T3 Sealed: omitted `as_of` equals `latest_sealed_as_of`; `as_of` today/future is 422 `as_of_not_sealed`; naive/malformed 422.
 T4 Parity: every number in the five responses equals the corresponding `AnalysisFacts` fact for the same inputs (and
    `analyse` output is unchanged by adding `analyse_detail`).
-T5 Trip ids from 007 and 008 are equal for the same input; mismatch fails loudly.
+T5 Trip ids from 007 and 008 are equal for the same input; a trip without a 008 row has a null regime tag + reason.
 T6 Display rule: every numeric field has `value` + `display` (+ reason when null); property test that no `display` is
    "0", "0.00%", "₹0.00" or "" when `value` is null; `x_display` exists for every Decimal field of the existing schemas
    (schema-walking test, fails when a new Decimal field has no display sibling).
 T7 Unavailable fixtures (no series, coverage undeclared, <10 trips, <10 per regime): HTTP 200, marker, reason, `sample`
    text correct ("9 of 10 trips needed"); no 0 anywhere.
 T8 No float, NaN or inf in any JSON body; all Decimals canonical (no exponent).
-T9 Alternatives: every trip carries a label; `alternatives_note` text present in `meta`.
+T9 Alternatives: every trip carries kind + label (sector vs universe); `alternatives_note` in `meta`; excluded trips listed.
+T9b Cache: second call computes nothing (provider call count), a new trade/import invalidates, unavailable series not cached.
 T10 Boundaries (AST): `api/routes/analysis.py` and its schemas import no `app.analyst`, no httpx, no quant result
     types beyond the service's read types; `domain/` and `quant/` unchanged (git diff); existing 2346 tests still pass.
 T11 Backward compatibility: existing endpoint tests pass untouched; new `*_display` fields are additive.
@@ -123,6 +136,11 @@ A1 T1-T13 pass and the full suite stays green. A2 Every number the UI needs has 
 statistic, formula or threshold. A4 Spec files stay under 200 lines.
 
 ## 10. Out of scope
-New analytics; persistence or a trial registry; caching or background jobs; writing endpoints; per-trip listing of trips on
-excluded listings; trading-day calendars; localisation beyond INR/Indian grouping; auth; a document retriever; changing
+New analytics; persistence or a trial registry; background jobs, TTL or persistent caches; writing endpoints; a computed return for excluded trips; trading-day calendars; localisation beyond INR/Indian grouping; auth; a document retriever; changing
 analyst wording or the number guard; any frontend code.
+
+## 11. Owner decisions folded in (2026-10-18)
+1 Regime tag per trip only via the existing 008 label, joined by trip id. 2 Excluded trips are listed with Unavailable +
+reason. 3 Sealed = yesterday IST; `meta.last_bar_date`. 4 In-process cache, no TTL, invalidated by ledger changes. 5 Price
+format 2 dp, up to 4 dp below ₹1. 6 Dates server-formatted plus ISO; counts raw. 7 Alternatives labels "Same-sector" /
+"Same-universe". 8 CLAUDE.md is updated in the build commit.
