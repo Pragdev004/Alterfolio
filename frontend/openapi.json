@@ -1,0 +1,3707 @@
+{
+ "components": {
+  "schemas": {
+   "AskIn": {
+    "additionalProperties": false,
+    "properties": {
+     "as_of": {
+      "format": "date",
+      "title": "As Of",
+      "type": "string"
+     },
+     "question": {
+      "maxLength": 2000,
+      "title": "Question",
+      "type": "string"
+     }
+    },
+    "required": [
+     "question",
+     "as_of"
+    ],
+    "title": "AskIn",
+    "type": "object"
+   },
+   "AssetType": {
+    "enum": [
+     "STOCK",
+     "ETF"
+    ],
+    "title": "AssetType",
+    "type": "string"
+   },
+   "BaselineSummaryOut": {
+    "properties": {
+     "ci_lower": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "ci_upper": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "mean_excess": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "mean_excess_direction": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mean Excess Direction"
+     },
+     "mean_excess_direction_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mean Excess Direction Text"
+     },
+     "mean_percentile": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "position": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Position"
+     },
+     "sample": {
+      "$ref": "#/components/schemas/SampleOut"
+     },
+     "trips_evaluated": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trips Evaluated"
+     },
+     "trips_used": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trips Used"
+     }
+    },
+    "required": [
+     "trips_used",
+     "trips_evaluated",
+     "mean_excess",
+     "mean_percentile",
+     "ci_lower",
+     "ci_upper",
+     "position",
+     "sample",
+     "mean_excess_direction",
+     "mean_excess_direction_text"
+    ],
+    "title": "BaselineSummaryOut",
+    "type": "object"
+   },
+   "BiasOut": {
+    "properties": {
+     "cost_inr": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "details": {
+      "items": {
+       "$ref": "#/components/schemas/NameValueOut"
+      },
+      "title": "Details",
+      "type": "array"
+     },
+     "exclusions": {
+      "items": {
+       "$ref": "#/components/schemas/ReasonOut"
+      },
+      "title": "Exclusions",
+      "type": "array"
+     },
+     "fee_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fee Status"
+     },
+     "fees_known": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "gross_cost_inr": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "unknown_fee_trade_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unknown Fee Trade Count"
+     }
+    },
+    "required": [
+     "kind",
+     "cost_inr",
+     "gross_cost_inr",
+     "fees_known",
+     "fee_status",
+     "unknown_fee_trade_count",
+     "exclusions",
+     "details"
+    ],
+    "title": "BiasOut",
+    "type": "object"
+   },
+   "BiasesOut": {
+    "properties": {
+     "analysis_errors": {
+      "items": {
+       "$ref": "#/components/schemas/ErrorOut"
+      },
+      "title": "Analysis Errors",
+      "type": "array"
+     },
+     "as_of": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "as_of_defaulted": {
+      "title": "As Of Defaulted",
+      "type": "boolean"
+     },
+     "biases": {
+      "items": {
+       "$ref": "#/components/schemas/BiasOut"
+      },
+      "title": "Biases",
+      "type": "array"
+     },
+     "caveats": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+     },
+     "profile": {
+      "$ref": "#/components/schemas/ProfileOut"
+     },
+     "sample": {
+      "$ref": "#/components/schemas/SampleOut"
+     }
+    },
+    "required": [
+     "as_of",
+     "as_of_defaulted",
+     "biases",
+     "profile",
+     "sample",
+     "caveats",
+     "analysis_errors"
+    ],
+    "title": "BiasesOut",
+    "type": "object"
+   },
+   "BinOut": {
+    "properties": {
+     "count": {
+      "title": "Count",
+      "type": "integer"
+     },
+     "lower": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "upper": {
+      "$ref": "#/components/schemas/NumberOut"
+     }
+    },
+    "required": [
+     "lower",
+     "upper",
+     "count"
+    ],
+    "title": "BinOut",
+    "type": "object"
+   },
+   "BlockOut": {
+    "properties": {
+     "bias": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/BiasOut"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bias"
+     },
+     "bias_reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bias Reason Text"
+     },
+     "bias_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bias Unavailable Reason"
+     },
+     "luck": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LuckSummariesOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "luck_reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Luck Reason Text"
+     },
+     "luck_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Luck Unavailable Reason"
+     },
+     "regime": {
+      "title": "Regime",
+      "type": "string"
+     },
+     "sample": {
+      "$ref": "#/components/schemas/SampleOut"
+     },
+     "trip_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trip Count"
+     },
+     "trip_ids": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Trip Ids",
+      "type": "array"
+     }
+    },
+    "required": [
+     "regime",
+     "trip_ids",
+     "trip_count",
+     "sample",
+     "luck",
+     "luck_unavailable_reason",
+     "luck_reason_text",
+     "bias",
+     "bias_unavailable_reason",
+     "bias_reason_text"
+    ],
+    "title": "BlockOut",
+    "type": "object"
+   },
+   "Currency": {
+    "enum": [
+     "INR"
+    ],
+    "title": "Currency",
+    "type": "string"
+   },
+   "DateOut": {
+    "properties": {
+     "display": {
+      "title": "Display",
+      "type": "string"
+     },
+     "iso": {
+      "title": "Iso",
+      "type": "string"
+     }
+    },
+    "required": [
+     "iso",
+     "display"
+    ],
+    "title": "DateOut",
+    "type": "object"
+   },
+   "ErrorOut": {
+    "properties": {
+     "analysis": {
+      "title": "Analysis",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "reason_text": {
+      "title": "Reason Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "analysis",
+     "reason",
+     "reason_text"
+    ],
+    "title": "ErrorOut",
+    "type": "object"
+   },
+   "Exchange": {
+    "enum": [
+     "NSE",
+     "BSE"
+    ],
+    "title": "Exchange",
+    "type": "string"
+   },
+   "ExcludedListingOut": {
+    "properties": {
+     "exchange": {
+      "title": "Exchange",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "reason_text": {
+      "title": "Reason Text",
+      "type": "string"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "trips": {
+      "title": "Trips",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "symbol",
+     "exchange",
+     "reason",
+     "reason_text",
+     "trips"
+    ],
+    "title": "ExcludedListingOut",
+    "type": "object"
+   },
+   "GroupOut": {
+    "properties": {
+     "ALT": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     },
+     "NIFTY": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     },
+     "alternatives_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Kind"
+     },
+     "alternatives_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Label"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "trip_count": {
+      "title": "Trip Count",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "ALT",
+     "NIFTY",
+     "label",
+     "alternatives_kind",
+     "alternatives_label",
+     "trip_count"
+    ],
+    "title": "GroupOut",
+    "type": "object"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "HistogramOut": {
+    "description": "The drawn portfolios' returns in equal-width bins; `marker_bin` holds the trip's own return.",
+    "properties": {
+     "actual_return": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "bins": {
+      "items": {
+       "$ref": "#/components/schemas/BinOut"
+      },
+      "title": "Bins",
+      "type": "array"
+     },
+     "lower": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "marker_bin": {
+      "title": "Marker Bin",
+      "type": "integer"
+     },
+     "portfolio_count": {
+      "title": "Portfolio Count",
+      "type": "integer"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "upper": {
+      "$ref": "#/components/schemas/NumberOut"
+     }
+    },
+    "required": [
+     "bins",
+     "marker_bin",
+     "actual_return",
+     "lower",
+     "upper",
+     "portfolio_count",
+     "text"
+    ],
+    "title": "HistogramOut",
+    "type": "object"
+   },
+   "HistogramsOut": {
+    "properties": {
+     "ALT": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/HistogramOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "NIFTY": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/HistogramOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "ALT",
+     "NIFTY"
+    ],
+    "title": "HistogramsOut",
+    "type": "object"
+   },
+   "HoldingOut": {
+    "description": "One holding per ISIN (isin=null marks a legacy holding keyed by its single listing).",
+    "properties": {
+     "average_buy_price": {
+      "title": "Average Buy Price",
+      "type": "string"
+     },
+     "average_buy_price_display": {
+      "title": "average_buy_price display",
+      "type": "string"
+     },
+     "average_buy_price_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "average_buy_price unavailable reason"
+     },
+     "cost_basis_complete": {
+      "title": "Cost Basis Complete",
+      "type": "boolean"
+     },
+     "invested_amount": {
+      "title": "Invested Amount",
+      "type": "string"
+     },
+     "invested_amount_display": {
+      "title": "invested_amount display",
+      "type": "string"
+     },
+     "invested_amount_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "invested_amount unavailable reason"
+     },
+     "isin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Isin"
+     },
+     "listings": {
+      "items": {
+       "$ref": "#/components/schemas/ListingOut"
+      },
+      "title": "Listings",
+      "type": "array"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "quantity": {
+      "title": "Quantity",
+      "type": "string"
+     },
+     "quantity_display": {
+      "title": "quantity display",
+      "type": "string"
+     },
+     "quantity_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "quantity unavailable reason"
+     }
+    },
+    "required": [
+     "isin",
+     "listings",
+     "name",
+     "quantity",
+     "average_buy_price",
+     "invested_amount",
+     "cost_basis_complete",
+     "quantity_display",
+     "average_buy_price_display",
+     "invested_amount_display"
+    ],
+    "title": "HoldingOut",
+    "type": "object"
+   },
+   "ImportResultOut": {
+    "properties": {
+     "duplicates": {
+      "title": "Duplicates",
+      "type": "integer"
+     },
+     "fees_taxes_provided": {
+      "title": "Fees Taxes Provided",
+      "type": "boolean"
+     },
+     "file_name": {
+      "title": "File Name",
+      "type": "string"
+     },
+     "file_sha256": {
+      "title": "File Sha256",
+      "type": "string"
+     },
+     "import_batch_id": {
+      "format": "uuid",
+      "title": "Import Batch Id",
+      "type": "string"
+     },
+     "imported": {
+      "title": "Imported",
+      "type": "integer"
+     },
+     "quarantined_isins": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Quarantined Isins",
+      "type": "array"
+     },
+     "rejected": {
+      "items": {
+       "$ref": "#/components/schemas/RejectedRowOut"
+      },
+      "title": "Rejected",
+      "type": "array"
+     },
+     "rejected_total": {
+      "title": "Rejected Total",
+      "type": "integer"
+     },
+     "total_rows": {
+      "title": "Total Rows",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "import_batch_id",
+     "file_name",
+     "file_sha256",
+     "total_rows",
+     "imported",
+     "duplicates",
+     "rejected_total",
+     "rejected",
+     "quarantined_isins",
+     "fees_taxes_provided"
+    ],
+    "title": "ImportResultOut",
+    "type": "object"
+   },
+   "LimitationsOut": {
+    "properties": {
+     "luck": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Luck",
+      "type": "array"
+     },
+     "regime": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Regime",
+      "type": "array"
+     }
+    },
+    "required": [
+     "luck",
+     "regime"
+    ],
+    "title": "LimitationsOut",
+    "type": "object"
+   },
+   "ListingOut": {
+    "properties": {
+     "exchange": {
+      "$ref": "#/components/schemas/Exchange"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     }
+    },
+    "required": [
+     "symbol",
+     "exchange"
+    ],
+    "title": "ListingOut",
+    "type": "object"
+   },
+   "LuckSummariesOut": {
+    "properties": {
+     "ALT": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     },
+     "NIFTY": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     }
+    },
+    "required": [
+     "ALT",
+     "NIFTY"
+    ],
+    "title": "LuckSummariesOut",
+    "type": "object"
+   },
+   "MarketSession": {
+    "enum": [
+     "PRE_MARKET",
+     "REGULAR",
+     "POST_MARKET"
+    ],
+    "title": "MarketSession",
+    "type": "string"
+   },
+   "MetaOut": {
+    "properties": {
+     "alternatives_note": {
+      "title": "Alternatives Note",
+      "type": "string"
+     },
+     "last_bar_date": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DateOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "last_bar_date_reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Bar Date Reason Text"
+     },
+     "last_bar_date_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Bar Date Unavailable Reason"
+     },
+     "latest_sealed_as_of": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "limitations": {
+      "$ref": "#/components/schemas/LimitationsOut"
+     },
+     "thresholds": {
+      "$ref": "#/components/schemas/ThresholdsOut"
+     },
+     "today_ist": {
+      "$ref": "#/components/schemas/DateOut"
+     }
+    },
+    "required": [
+     "latest_sealed_as_of",
+     "today_ist",
+     "last_bar_date",
+     "last_bar_date_unavailable_reason",
+     "last_bar_date_reason_text",
+     "thresholds",
+     "alternatives_note",
+     "limitations"
+    ],
+    "title": "MetaOut",
+    "type": "object"
+   },
+   "MetricOut": {
+    "properties": {
+     "display": {
+      "title": "Display",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "value",
+     "display",
+     "unit"
+    ],
+    "title": "MetricOut",
+    "type": "object"
+   },
+   "NameValueOut": {
+    "properties": {
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "value"
+    ],
+    "title": "NameValueOut",
+    "type": "object"
+   },
+   "NumberOut": {
+    "properties": {
+     "display": {
+      "title": "Display",
+      "type": "string"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     }
+    },
+    "required": [
+     "value",
+     "display",
+     "unavailable_reason",
+     "reason_text"
+    ],
+    "title": "NumberOut",
+    "type": "object"
+   },
+   "OutcomeOut": {
+    "properties": {
+     "excess": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "excess_direction": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Excess Direction"
+     },
+     "lost_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lost Count"
+     },
+     "mean_return": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "percentile": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "pool_size": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pool Size"
+     },
+     "portfolio_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Portfolio Count"
+     },
+     "portfolios_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Portfolios Text"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     }
+    },
+    "required": [
+     "portfolios_text",
+     "percentile",
+     "excess",
+     "mean_return",
+     "portfolio_count",
+     "pool_size",
+     "lost_count",
+     "unavailable_reason",
+     "reason_text",
+     "excess_direction"
+    ],
+    "title": "OutcomeOut",
+    "type": "object"
+   },
+   "PickExclusionOut": {
+    "properties": {
+     "baseline": {
+      "title": "Baseline",
+      "type": "string"
+     },
+     "exchange": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Exchange"
+     },
+     "isin": {
+      "title": "Isin",
+      "type": "string"
+     },
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "reason_text": {
+      "title": "Reason Text",
+      "type": "string"
+     },
+     "symbol": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Symbol"
+     }
+    },
+    "required": [
+     "baseline",
+     "isin",
+     "symbol",
+     "exchange",
+     "reason",
+     "reason_text"
+    ],
+    "title": "PickExclusionOut",
+    "type": "object"
+   },
+   "PickOut": {
+    "properties": {
+     "exchange": {
+      "title": "Exchange",
+      "type": "string"
+     },
+     "isin": {
+      "title": "Isin",
+      "type": "string"
+     },
+     "rank": {
+      "title": "Rank",
+      "type": "integer"
+     },
+     "return_ratio": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     }
+    },
+    "required": [
+     "rank",
+     "symbol",
+     "exchange",
+     "isin",
+     "return_ratio"
+    ],
+    "title": "PickOut",
+    "type": "object"
+   },
+   "ProfileOut": {
+    "properties": {
+     "archetype_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Archetype Id"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "supporting_metrics": {
+      "items": {
+       "$ref": "#/components/schemas/MetricOut"
+      },
+      "title": "Supporting Metrics",
+      "type": "array"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     }
+    },
+    "required": [
+     "archetype_id",
+     "unavailable_reason",
+     "reason_text",
+     "supporting_metrics"
+    ],
+    "title": "ProfileOut",
+    "type": "object"
+   },
+   "QuoteOut": {
+    "properties": {
+     "currency": {
+      "$ref": "#/components/schemas/Currency"
+     },
+     "exchange": {
+      "$ref": "#/components/schemas/Exchange"
+     },
+     "price": {
+      "title": "Price",
+      "type": "string"
+     },
+     "price_display": {
+      "title": "price display",
+      "type": "string"
+     },
+     "price_timestamp": {
+      "format": "date-time",
+      "title": "Price Timestamp",
+      "type": "string"
+     },
+     "price_timestamp_display": {
+      "title": "price_timestamp display",
+      "type": "string"
+     },
+     "price_timestamp_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "price_timestamp unavailable reason"
+     },
+     "price_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "price unavailable reason"
+     },
+     "retrieved_at": {
+      "format": "date-time",
+      "title": "Retrieved At",
+      "type": "string"
+     },
+     "retrieved_at_display": {
+      "title": "retrieved_at display",
+      "type": "string"
+     },
+     "retrieved_at_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "retrieved_at unavailable reason"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     }
+    },
+    "required": [
+     "symbol",
+     "exchange",
+     "price",
+     "currency",
+     "price_timestamp",
+     "retrieved_at",
+     "source",
+     "price_display",
+     "price_timestamp_display",
+     "retrieved_at_display"
+    ],
+    "title": "QuoteOut",
+    "type": "object"
+   },
+   "ReasonOut": {
+    "properties": {
+     "reason": {
+      "title": "Reason",
+      "type": "string"
+     },
+     "reason_text": {
+      "title": "Reason Text",
+      "type": "string"
+     },
+     "subject": {
+      "title": "Subject",
+      "type": "string"
+     }
+    },
+    "required": [
+     "subject",
+     "reason",
+     "reason_text"
+    ],
+    "title": "ReasonOut",
+    "type": "object"
+   },
+   "RegimeTagOut": {
+    "properties": {
+     "calibration_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Calibration Count"
+     },
+     "high_threshold": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "low_threshold": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "regime": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Regime"
+     },
+     "volatility": {
+      "$ref": "#/components/schemas/NumberOut"
+     }
+    },
+    "required": [
+     "regime",
+     "volatility",
+     "low_threshold",
+     "high_threshold",
+     "calibration_count",
+     "reason",
+     "reason_text"
+    ],
+    "title": "RegimeTagOut",
+    "type": "object"
+   },
+   "RegimesOut": {
+    "properties": {
+     "analysis_errors": {
+      "items": {
+       "$ref": "#/components/schemas/ErrorOut"
+      },
+      "title": "Analysis Errors",
+      "type": "array"
+     },
+     "as_of": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "as_of_defaulted": {
+      "title": "As Of Defaulted",
+      "type": "boolean"
+     },
+     "blocks": {
+      "items": {
+       "$ref": "#/components/schemas/BlockOut"
+      },
+      "title": "Blocks",
+      "type": "array"
+     },
+     "caveats": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+     },
+     "exclusions": {
+      "items": {
+       "$ref": "#/components/schemas/ReasonOut"
+      },
+      "title": "Exclusions",
+      "type": "array"
+     },
+     "limitations": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+     },
+     "none_ready_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "None Ready Text"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "round_trip_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Round Trip Count"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     },
+     "unclassified_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unclassified Count"
+     }
+    },
+    "required": [
+     "as_of",
+     "as_of_defaulted",
+     "round_trip_count",
+     "unclassified_count",
+     "blocks",
+     "exclusions",
+     "unavailable_reason",
+     "reason_text",
+     "none_ready_text",
+     "limitations",
+     "caveats",
+     "analysis_errors"
+    ],
+    "title": "RegimesOut",
+    "type": "object"
+   },
+   "RejectedRowOut": {
+    "description": "`row` is the 1-based physical line of the upload (the header is line 1).",
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "row": {
+      "title": "Row",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "row",
+     "code",
+     "message"
+    ],
+    "title": "RejectedRowOut",
+    "type": "object"
+   },
+   "SampleOut": {
+    "properties": {
+     "enough": {
+      "title": "Enough",
+      "type": "boolean"
+     },
+     "have": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Have"
+     },
+     "needed": {
+      "title": "Needed",
+      "type": "integer"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "have",
+     "needed",
+     "enough",
+     "text"
+    ],
+    "title": "SampleOut",
+    "type": "object"
+   },
+   "SummaryHoldingOut": {
+    "properties": {
+     "average_buy_price": {
+      "title": "Average Buy Price",
+      "type": "string"
+     },
+     "average_buy_price_display": {
+      "title": "average_buy_price display",
+      "type": "string"
+     },
+     "average_buy_price_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "average_buy_price unavailable reason"
+     },
+     "cost_basis_complete": {
+      "title": "Cost Basis Complete",
+      "type": "boolean"
+     },
+     "invested_amount": {
+      "title": "Invested Amount",
+      "type": "string"
+     },
+     "invested_amount_display": {
+      "title": "invested_amount display",
+      "type": "string"
+     },
+     "invested_amount_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "invested_amount unavailable reason"
+     },
+     "isin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Isin"
+     },
+     "listings": {
+      "items": {
+       "$ref": "#/components/schemas/ListingOut"
+      },
+      "title": "Listings",
+      "type": "array"
+     },
+     "market_value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Market Value"
+     },
+     "market_value_display": {
+      "title": "market_value display",
+      "type": "string"
+     },
+     "market_value_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "market_value unavailable reason"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "quantity": {
+      "title": "Quantity",
+      "type": "string"
+     },
+     "quantity_display": {
+      "title": "quantity display",
+      "type": "string"
+     },
+     "quantity_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "quantity unavailable reason"
+     },
+     "quote": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/QuoteOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "quote_status": {
+      "enum": [
+       "VALUED",
+       "STALE",
+       "NOT_FOUND",
+       "PROVIDER_ERROR",
+       "INVALID"
+      ],
+      "title": "Quote Status",
+      "type": "string"
+     },
+     "unrealized_pnl": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unrealized Pnl"
+     },
+     "unrealized_pnl_display": {
+      "title": "unrealized_pnl display",
+      "type": "string"
+     },
+     "unrealized_pnl_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "unrealized_pnl unavailable reason"
+     }
+    },
+    "required": [
+     "isin",
+     "listings",
+     "name",
+     "quantity",
+     "average_buy_price",
+     "invested_amount",
+     "cost_basis_complete",
+     "quote_status",
+     "quote",
+     "market_value",
+     "unrealized_pnl",
+     "quantity_display",
+     "average_buy_price_display",
+     "invested_amount_display",
+     "market_value_display",
+     "unrealized_pnl_display"
+    ],
+    "title": "SummaryHoldingOut",
+    "type": "object"
+   },
+   "SummaryOut": {
+    "properties": {
+     "basis": {
+      "const": "CURRENT",
+      "default": "CURRENT",
+      "title": "Basis",
+      "type": "string"
+     },
+     "cost_basis_complete": {
+      "title": "Cost Basis Complete",
+      "type": "boolean"
+     },
+     "holdings": {
+      "items": {
+       "$ref": "#/components/schemas/SummaryHoldingOut"
+      },
+      "title": "Holdings",
+      "type": "array"
+     },
+     "holdings_count": {
+      "title": "Holdings Count",
+      "type": "integer"
+     },
+     "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+     },
+     "total_invested": {
+      "title": "Total Invested",
+      "type": "string"
+     },
+     "total_invested_display": {
+      "title": "total_invested display",
+      "type": "string"
+     },
+     "total_invested_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "total_invested unavailable reason"
+     },
+     "total_market_value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Market Value"
+     },
+     "total_market_value_display": {
+      "title": "total_market_value display",
+      "type": "string"
+     },
+     "total_market_value_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "total_market_value unavailable reason"
+     },
+     "total_trades": {
+      "title": "Total Trades",
+      "type": "integer"
+     },
+     "total_unrealized_pnl": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Unrealized Pnl"
+     },
+     "total_unrealized_pnl_display": {
+      "title": "total_unrealized_pnl display",
+      "type": "string"
+     },
+     "total_unrealized_pnl_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "total_unrealized_pnl unavailable reason"
+     },
+     "valuation_status": {
+      "enum": [
+       "COMPLETE",
+       "PARTIAL",
+       "UNAVAILABLE"
+      ],
+      "title": "Valuation Status",
+      "type": "string"
+     },
+     "valuation_text": {
+      "readOnly": true,
+      "title": "Valuation Text",
+      "type": "string"
+     },
+     "valuation_time": {
+      "format": "date-time",
+      "title": "Valuation Time",
+      "type": "string"
+     },
+     "valuation_time_display": {
+      "title": "valuation_time display",
+      "type": "string"
+     },
+     "valuation_time_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "valuation_time unavailable reason"
+     },
+     "valued_holdings_count": {
+      "title": "Valued Holdings Count",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "valuation_time",
+     "valuation_status",
+     "total_trades",
+     "holdings_count",
+     "valued_holdings_count",
+     "total_invested",
+     "total_market_value",
+     "total_unrealized_pnl",
+     "cost_basis_complete",
+     "holdings",
+     "valuation_text",
+     "valuation_time_display",
+     "total_invested_display",
+     "total_market_value_display",
+     "total_unrealized_pnl_display"
+    ],
+    "title": "SummaryOut",
+    "type": "object"
+   },
+   "ThresholdsOut": {
+    "properties": {
+     "bias_min_round_trips": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "luck_min_trips": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "regime_min_trips_per_regime": {
+      "$ref": "#/components/schemas/NumberOut"
+     }
+    },
+    "required": [
+     "luck_min_trips",
+     "regime_min_trips_per_regime",
+     "bias_min_round_trips"
+    ],
+    "title": "ThresholdsOut",
+    "type": "object"
+   },
+   "TradeCorrectionIn": {
+    "additionalProperties": false,
+    "description": "A correction is a full replacement (002a 3a). name/asset_type/market_session may stay null only where the target's\nvalue is null; brokerage_fee and taxes must both be stated when the target's charges were not provided (an explicit\n\"0\" counts). Omitted and JSON null both mean \"not supplied\". The service checks these against the target.",
+    "properties": {
+     "asset_type": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AssetType"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "broker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker"
+     },
+     "broker_trade_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker Trade Id"
+     },
+     "brokerage_fee": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Brokerage Fee"
+     },
+     "currency": {
+      "$ref": "#/components/schemas/Currency",
+      "default": "INR"
+     },
+     "exchange": {
+      "$ref": "#/components/schemas/Exchange"
+     },
+     "isin": {
+      "title": "Isin",
+      "type": "string"
+     },
+     "market_session": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MarketSession"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "order_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Order Id"
+     },
+     "price_per_unit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Price Per Unit"
+     },
+     "quantity": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Quantity"
+     },
+     "side": {
+      "$ref": "#/components/schemas/TradeSide"
+     },
+     "status": {
+      "$ref": "#/components/schemas/TradeStatus",
+      "default": "EXECUTED"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "taxes": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Taxes"
+     },
+     "trade_timestamp": {
+      "format": "date-time",
+      "title": "Trade Timestamp",
+      "type": "string"
+     }
+    },
+    "required": [
+     "symbol",
+     "isin",
+     "exchange",
+     "side",
+     "quantity",
+     "price_per_unit",
+     "trade_timestamp"
+    ],
+    "title": "TradeCorrectionIn",
+    "type": "object"
+   },
+   "TradeIn": {
+    "additionalProperties": false,
+    "description": "A NEW manual trade: the ISIN is required (002a 1b); the format is validated by the service.",
+    "properties": {
+     "asset_type": {
+      "$ref": "#/components/schemas/AssetType"
+     },
+     "broker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker"
+     },
+     "broker_trade_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker Trade Id"
+     },
+     "brokerage_fee": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "default": "0",
+      "title": "Brokerage Fee"
+     },
+     "currency": {
+      "$ref": "#/components/schemas/Currency",
+      "default": "INR"
+     },
+     "exchange": {
+      "$ref": "#/components/schemas/Exchange"
+     },
+     "isin": {
+      "title": "Isin",
+      "type": "string"
+     },
+     "market_session": {
+      "$ref": "#/components/schemas/MarketSession"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "order_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Order Id"
+     },
+     "price_per_unit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Price Per Unit"
+     },
+     "quantity": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Quantity"
+     },
+     "side": {
+      "$ref": "#/components/schemas/TradeSide"
+     },
+     "status": {
+      "$ref": "#/components/schemas/TradeStatus",
+      "default": "EXECUTED"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "taxes": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "default": "0",
+      "title": "Taxes"
+     },
+     "trade_timestamp": {
+      "format": "date-time",
+      "title": "Trade Timestamp",
+      "type": "string"
+     }
+    },
+    "required": [
+     "symbol",
+     "isin",
+     "name",
+     "asset_type",
+     "exchange",
+     "side",
+     "quantity",
+     "price_per_unit",
+     "trade_timestamp",
+     "market_session"
+    ],
+    "title": "TradeIn",
+    "type": "object"
+   },
+   "TradeOut": {
+    "properties": {
+     "asset_type": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AssetType"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "broker": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker"
+     },
+     "broker_trade_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Broker Trade Id"
+     },
+     "brokerage_fee": {
+      "title": "Brokerage Fee",
+      "type": "string"
+     },
+     "brokerage_fee_display": {
+      "title": "brokerage_fee display",
+      "type": "string"
+     },
+     "brokerage_fee_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "brokerage_fee unavailable reason"
+     },
+     "charges_provided": {
+      "title": "Charges Provided",
+      "type": "boolean"
+     },
+     "currency": {
+      "$ref": "#/components/schemas/Currency"
+     },
+     "exchange": {
+      "$ref": "#/components/schemas/Exchange"
+     },
+     "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+     },
+     "import_batch_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Import Batch Id"
+     },
+     "isin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Isin"
+     },
+     "market_session": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MarketSession"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "order_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Order Id"
+     },
+     "price_per_unit": {
+      "title": "Price Per Unit",
+      "type": "string"
+     },
+     "price_per_unit_display": {
+      "title": "price_per_unit display",
+      "type": "string"
+     },
+     "price_per_unit_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "price_per_unit unavailable reason"
+     },
+     "quantity": {
+      "title": "Quantity",
+      "type": "string"
+     },
+     "quantity_display": {
+      "title": "quantity display",
+      "type": "string"
+     },
+     "quantity_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "quantity unavailable reason"
+     },
+     "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+     },
+     "recorded_at_display": {
+      "title": "recorded_at display",
+      "type": "string"
+     },
+     "recorded_at_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "recorded_at unavailable reason"
+     },
+     "side": {
+      "$ref": "#/components/schemas/TradeSide"
+     },
+     "source": {
+      "$ref": "#/components/schemas/TradeSource"
+     },
+     "status": {
+      "$ref": "#/components/schemas/TradeStatus"
+     },
+     "supersedes_trade_id": {
+      "anyOf": [
+       {
+        "format": "uuid",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supersedes Trade Id"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "taxes": {
+      "title": "Taxes",
+      "type": "string"
+     },
+     "taxes_display": {
+      "title": "taxes display",
+      "type": "string"
+     },
+     "taxes_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "taxes unavailable reason"
+     },
+     "trade_timestamp": {
+      "format": "date-time",
+      "title": "Trade Timestamp",
+      "type": "string"
+     },
+     "trade_timestamp_display": {
+      "title": "trade_timestamp display",
+      "type": "string"
+     },
+     "trade_timestamp_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "trade_timestamp unavailable reason"
+     }
+    },
+    "required": [
+     "id",
+     "symbol",
+     "isin",
+     "name",
+     "asset_type",
+     "exchange",
+     "currency",
+     "side",
+     "quantity",
+     "price_per_unit",
+     "brokerage_fee",
+     "taxes",
+     "trade_timestamp",
+     "recorded_at",
+     "broker",
+     "broker_trade_id",
+     "order_id",
+     "supersedes_trade_id",
+     "source",
+     "market_session",
+     "status",
+     "notes",
+     "charges_provided",
+     "import_batch_id",
+     "quantity_display",
+     "price_per_unit_display",
+     "brokerage_fee_display",
+     "taxes_display",
+     "trade_timestamp_display",
+     "recorded_at_display"
+    ],
+    "title": "TradeOut",
+    "type": "object"
+   },
+   "TradeSide": {
+    "enum": [
+     "BUY",
+     "SELL"
+    ],
+    "title": "TradeSide",
+    "type": "string"
+   },
+   "TradeSource": {
+    "enum": [
+     "MANUAL",
+     "IMPORT"
+    ],
+    "title": "TradeSource",
+    "type": "string"
+   },
+   "TradeStatus": {
+    "enum": [
+     "EXECUTED",
+     "PENDING",
+     "CANCELLED",
+     "REJECTED"
+    ],
+    "title": "TradeStatus",
+    "type": "string"
+   },
+   "TripDetailOut": {
+    "properties": {
+     "alternatives_note": {
+      "title": "Alternatives Note",
+      "type": "string"
+     },
+     "as_of": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "as_of_defaulted": {
+      "title": "As Of Defaulted",
+      "type": "boolean"
+     },
+     "caveats": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+     },
+     "trip": {
+      "$ref": "#/components/schemas/TripDetailRowOut"
+     }
+    },
+    "required": [
+     "as_of",
+     "as_of_defaulted",
+     "trip",
+     "caveats",
+     "alternatives_note"
+    ],
+    "title": "TripDetailOut",
+    "type": "object"
+   },
+   "TripDetailRowOut": {
+    "properties": {
+     "actual_return": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "actual_return_basis": {
+      "title": "Actual Return Basis",
+      "type": "string"
+     },
+     "alt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutcomeOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "alternatives_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Kind"
+     },
+     "alternatives_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Label"
+     },
+     "close_session": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "evaluated": {
+      "title": "Evaluated",
+      "type": "boolean"
+     },
+     "exchange": {
+      "title": "Exchange",
+      "type": "string"
+     },
+     "exclusions": {
+      "items": {
+       "$ref": "#/components/schemas/PickExclusionOut"
+      },
+      "title": "Exclusions",
+      "type": "array"
+     },
+     "histograms": {
+      "$ref": "#/components/schemas/HistogramsOut"
+     },
+     "nifty": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutcomeOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "open_session": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "picks": {
+      "items": {
+       "$ref": "#/components/schemas/PickOut"
+      },
+      "title": "Picks",
+      "type": "array"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "regime": {
+      "$ref": "#/components/schemas/RegimeTagOut"
+     },
+     "survivorship_flag": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Survivorship Flag"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "trip_id": {
+      "title": "Trip Id",
+      "type": "string"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     },
+     "zero_variance_features": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Zero Variance Features",
+      "type": "array"
+     }
+    },
+    "required": [
+     "trip_id",
+     "symbol",
+     "exchange",
+     "open_session",
+     "close_session",
+     "evaluated",
+     "actual_return",
+     "actual_return_basis",
+     "alternatives_kind",
+     "alternatives_label",
+     "alt",
+     "nifty",
+     "survivorship_flag",
+     "regime",
+     "unavailable_reason",
+     "reason_text",
+     "histograms",
+     "picks",
+     "exclusions",
+     "zero_variance_features"
+    ],
+    "title": "TripDetailRowOut",
+    "type": "object"
+   },
+   "TripRowOut": {
+    "properties": {
+     "actual_return": {
+      "$ref": "#/components/schemas/NumberOut"
+     },
+     "actual_return_basis": {
+      "title": "Actual Return Basis",
+      "type": "string"
+     },
+     "alt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutcomeOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "alternatives_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Kind"
+     },
+     "alternatives_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Label"
+     },
+     "close_session": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "evaluated": {
+      "title": "Evaluated",
+      "type": "boolean"
+     },
+     "exchange": {
+      "title": "Exchange",
+      "type": "string"
+     },
+     "nifty": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/OutcomeOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "open_session": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Text"
+     },
+     "regime": {
+      "$ref": "#/components/schemas/RegimeTagOut"
+     },
+     "survivorship_flag": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Survivorship Flag"
+     },
+     "symbol": {
+      "title": "Symbol",
+      "type": "string"
+     },
+     "trip_id": {
+      "title": "Trip Id",
+      "type": "string"
+     },
+     "unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unavailable Reason"
+     }
+    },
+    "required": [
+     "trip_id",
+     "symbol",
+     "exchange",
+     "open_session",
+     "close_session",
+     "evaluated",
+     "actual_return",
+     "actual_return_basis",
+     "alternatives_kind",
+     "alternatives_label",
+     "alt",
+     "nifty",
+     "survivorship_flag",
+     "regime",
+     "unavailable_reason",
+     "reason_text"
+    ],
+    "title": "TripRowOut",
+    "type": "object"
+   },
+   "TripsOut": {
+    "properties": {
+     "alternatives_note": {
+      "title": "Alternatives Note",
+      "type": "string"
+     },
+     "analysis_errors": {
+      "items": {
+       "$ref": "#/components/schemas/ErrorOut"
+      },
+      "title": "Analysis Errors",
+      "type": "array"
+     },
+     "as_of": {
+      "$ref": "#/components/schemas/DateOut"
+     },
+     "as_of_defaulted": {
+      "title": "As Of Defaulted",
+      "type": "boolean"
+     },
+     "caveats": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+     },
+     "excluded_listings": {
+      "items": {
+       "$ref": "#/components/schemas/ExcludedListingOut"
+      },
+      "title": "Excluded Listings",
+      "type": "array"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/GroupOut"
+      },
+      "title": "Groups",
+      "type": "array"
+     },
+     "luck_limitations": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Luck Limitations",
+      "type": "array"
+     },
+     "summary": {
+      "$ref": "#/components/schemas/TripsSummaryOut"
+     },
+     "trips": {
+      "items": {
+       "$ref": "#/components/schemas/TripRowOut"
+      },
+      "title": "Trips",
+      "type": "array"
+     }
+    },
+    "required": [
+     "as_of",
+     "as_of_defaulted",
+     "summary",
+     "groups",
+     "trips",
+     "excluded_listings",
+     "caveats",
+     "analysis_errors",
+     "luck_limitations",
+     "alternatives_note"
+    ],
+    "title": "TripsOut",
+    "type": "object"
+   },
+   "TripsSummaryOut": {
+    "properties": {
+     "ALT": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     },
+     "NIFTY": {
+      "$ref": "#/components/schemas/BaselineSummaryOut"
+     },
+     "alternatives_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Kind"
+     },
+     "alternatives_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alternatives Label"
+     },
+     "trip_count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trip Count"
+     },
+     "trip_count_reason_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trip Count Reason Text"
+     },
+     "trip_count_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trip Count Unavailable Reason"
+     },
+     "trips_evaluated": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trips Evaluated"
+     }
+    },
+    "required": [
+     "ALT",
+     "NIFTY",
+     "trip_count",
+     "trip_count_unavailable_reason",
+     "trip_count_reason_text",
+     "trips_evaluated",
+     "alternatives_kind",
+     "alternatives_label"
+    ],
+    "title": "TripsSummaryOut",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   }
+  }
+ },
+ "info": {
+  "title": "Alterfolio V2",
+  "version": "0.1.0"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/api/analysis/biases": {
+   "get": {
+    "operationId": "biases_api_analysis_biases_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BiasesOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Biases"
+   }
+  },
+  "/api/analysis/meta": {
+   "get": {
+    "operationId": "meta_api_analysis_meta_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MetaOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Meta"
+   }
+  },
+  "/api/analysis/regimes": {
+   "get": {
+    "operationId": "regimes_api_analysis_regimes_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegimesOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Regimes"
+   }
+  },
+  "/api/analysis/trips": {
+   "get": {
+    "operationId": "trips_api_analysis_trips_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TripsOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Trips"
+   }
+  },
+  "/api/analysis/trips/{trip_id}": {
+   "get": {
+    "operationId": "trip_api_analysis_trips__trip_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "trip_id",
+      "required": true,
+      "schema": {
+       "title": "Trip Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TripDetailOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Trip"
+   }
+  },
+  "/api/analyst/ask": {
+   "post": {
+    "operationId": "ask_route_api_analyst_ask_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AskIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ask Route"
+   }
+  },
+  "/health": {
+   "get": {
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Health Health Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Health"
+   }
+  },
+  "/imports/tradebook": {
+   "post": {
+    "description": "Transport only: stream the single `file` part (2 MiB cap enforced while reading), then hand it to the service.\n\nThe service parses before it takes the user lock and owns the transaction. It is synchronous, so it runs in the\nthread pool rather than on the event loop. File-level failures are 422 `invalid_import_file`; a held lock is 409.",
+    "operationId": "import_tradebook_imports_tradebook_post",
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ImportResultOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Import Tradebook"
+   }
+  },
+  "/portfolio/holdings": {
+   "get": {
+    "operationId": "holdings_portfolio_holdings_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date-time",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/HoldingOut"
+         },
+         "title": "Response Holdings Portfolio Holdings Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Holdings"
+   }
+  },
+  "/portfolio/summary": {
+   "get": {
+    "operationId": "summary_portfolio_summary_get",
+    "parameters": [
+     {
+      "in": "query",
+      "name": "as_of",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date-time",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "As Of"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SummaryOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Summary"
+   }
+  },
+  "/trades": {
+   "get": {
+    "operationId": "list_trades_trades_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/TradeOut"
+         },
+         "title": "Response List Trades Trades Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "List Trades"
+   },
+   "post": {
+    "operationId": "create_trade_trades_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TradeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TradeOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Trade"
+   }
+  },
+  "/trades/{trade_id}": {
+   "get": {
+    "operationId": "get_trade_trades__trade_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "trade_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Trade Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TradeOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Trade"
+   }
+  },
+  "/trades/{trade_id}/correct": {
+   "post": {
+    "operationId": "correct_trade_trades__trade_id__correct_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "trade_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Trade Id",
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TradeCorrectionIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TradeOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Correct Trade"
+   }
+  },
+  "/trades/{trade_id}/void": {
+   "post": {
+    "operationId": "void_trade_trades__trade_id__void_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "trade_id",
+      "required": true,
+      "schema": {
+       "format": "uuid",
+       "title": "Trade Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TradeOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Void Trade"
+   }
+  }
+ }
+}

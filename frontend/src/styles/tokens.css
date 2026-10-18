@@ -1,0 +1,25 @@
+/* Design tokens (docs/design/013-frontend-design.md section 3). Light is the default; dark overrides the same names.
+   Contrast of every text and mark pair is asserted in src/styles/tokens.test.ts. */
+@layer tokens, base, components;
+
+@layer tokens {
+  :root {
+    --paper: #f2f5f6; --paper-2: #e7ecee; --ink: #13202b; --ink-2: #44545f; --ink-3: #556570; --rule: #c3cdd3; --rule-ink: #13202b;
+    --ahead: #12508f; --ahead-wash: #dce8f4; --behind: #a1440b; --behind-wash: #f6e4d6; --hold: #7a5600; --hold-wash: #f5e8c0;
+    --focus: #13202b;
+    --hatch: repeating-linear-gradient(135deg, var(--rule) 0 1px, transparent 1px 6px);
+    --font: "Source Sans 3 Variable", "Source Sans 3", system-ui, "Segoe UI", sans-serif;
+    --t-xs: 0.75rem; --t-sm: 0.8125rem; --t-md: 0.9375rem; --t-lg: 1.125rem; --t-xl: 1.375rem; --t-2xl: 1.75rem; --t-3xl: 2.125rem;
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px;
+    --r-0: 0; --r-ctl: 2px;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1); --d-fast: 120ms; --d-base: 200ms;
+    color-scheme: light;
+  }
+  /* Dark is a user preference (data-theme="dark"), never the default. */
+  :root[data-theme="dark"] {
+    --paper: #0f1a22; --paper-2: #17252f; --ink: #e8eef2; --ink-2: #b6c3cc; --ink-3: #9aabb6; --rule: #34454f; --rule-ink: #e8eef2;
+    --ahead: #7fb4ee; --ahead-wash: #17314a; --behind: #f0a372; --behind-wash: #3d2514; --hold: #e6bd54; --hold-wash: #3a2f0c;
+    --focus: #e8eef2;
+    color-scheme: dark;
+  }
+}
