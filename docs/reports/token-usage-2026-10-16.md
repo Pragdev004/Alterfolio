@@ -20,3 +20,6 @@
 - 012-window-extend | tier sonnet | in/out 210/129855 | switches 0 | config edit, tests, real-data demo run
 - 012-real-fixes | tier sonnet | in/out 232/137578 | switches 0 | ISIN review, proxy, partial coverage, order bug
 - v0.1-wrapup | tier sonnet | in/out 266/170218 | switches 0 | test fix, docs, html report, tag
+- task1-display | tier sonnet | in/out 2/267 | switches 0 | routine implementation
+- task2-import-order | tier sonnet | in/out 48/20963 | switches 0 | service logic change with tests
+- task3-ist | tier sonnet | in/out 66/32635 | switches 0 | mechanical refactor
