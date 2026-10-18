@@ -46,12 +46,14 @@ def test_plain_quantity_keeps_every_digit_without_exponent():
 
 
 def test_number_object_shape_and_unavailable():
-    assert dd.number("0.003728", "ratio") == {"value": "0.003728", "display": "0.37%", "unavailable_reason": None}
-    assert dd.number("1234.5", "inr") == {"value": "1234.5", "display": "₹1,234.50", "unavailable_reason": None}
+    assert dd.number("0.003728", "ratio") == {"value": "0.003728", "display": "0.37%", "unavailable_reason": None, "reason_text": None}
+    assert dd.number("1234.5", "inr") == {"value": "1234.5", "display": "₹1,234.50", "unavailable_reason": None, "reason_text": None}
     assert dd.number("1234.5", "inr_lower_bound")["display"] == "₹1,234.50 (lower bound)"
     assert dd.number("0.01", "ratio_fees_excluded")["display"] == "1.00% (fees excluded)"
-    assert dd.number("7", "count") == {"value": "7", "display": "7", "unavailable_reason": None}
-    assert dd.number(None, "inr", "no series") == {"value": None, "display": "Unavailable", "unavailable_reason": "no series"}
+    assert dd.number("7", "count") == {"value": "7", "display": "7", "unavailable_reason": None, "reason_text": None}
+    n = dd.number(None, "inr", "NO_MEMBERSHIP: Nifty 50 membership is not configured")
+    assert n["value"] is None and n["display"] == "Unavailable" and n["unavailable_reason"].startswith("NO_MEMBERSHIP")
+    assert n["reason_text"] == "Nifty 50 membership is not set up, so this comparison cannot be made."
     for kind in ("inr", "ratio", "price", "count", "plain"):
         n = dd.number(None, kind)
         assert n["value"] is None and n["display"] == "Unavailable" and n["unavailable_reason"]  # a reason is always given
@@ -172,10 +174,11 @@ def test_openapi_documents_the_display_contract_and_every_analysis_schema(client
                         ("/api/analysis/biases", "BiasesOut")):
         ref = paths[path]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
         assert ref.endswith(f"/{model}") and model in schemas
-    assert set(schemas["NumberOut"]["properties"]) == {"value", "display", "unavailable_reason"}
-    assert set(schemas["NumberOut"]["required"]) == {"value", "display", "unavailable_reason"}
+    assert set(schemas["NumberOut"]["properties"]) == {"value", "display", "unavailable_reason", "reason_text"}
+    assert set(schemas["NumberOut"]["required"]) == {"value", "display", "unavailable_reason", "reason_text"}
     assert {"iso", "display"} == set(schemas["DateOut"]["properties"])
-    for name in ("TripRowOut", "BaselineSummaryOut", "BiasOut", "BlockOut", "ProfileOut", "SampleOut"):
+    for name in ("TripRowOut", "BaselineSummaryOut", "BiasOut", "BlockOut", "ProfileOut", "SampleOut", "HistogramOut", "BinOut",
+                 "PickExclusionOut"):
         assert name in schemas, name
     # server-added display siblings of the existing endpoints are listed too (serialization schemas)
     assert "price_per_unit_display" in schemas["TradeOut"]["properties"]
@@ -185,3 +188,49 @@ def test_openapi_documents_the_display_contract_and_every_analysis_schema(client
     assert "invested_amount_display" in schemas["HoldingOut"]["properties"]
     assert "price_display" in schemas["QuoteOut"]["properties"]
     assert "price_per_unit_display" in schemas["TradeOut"]["required"]
+
+
+@pytest.mark.parametrize("ratio,text", [("0.612", "61%"), ("0.615", "62%"), ("0.605", "60%"), ("0.005", "0%"), ("-0.004", "0%"), ("1", "100%"),
+                                         ("0", "0%"), ("0.5384", "54%")])
+def test_percentile_displays_with_no_decimals_half_even(ratio, text):
+    assert dd.number(ratio, "percentile")["display"] == text
+    assert dd.number(None, "percentile", "x")["display"] == "Unavailable"
+
+
+@pytest.mark.parametrize("value,word", [("0.0128", "ahead"), ("-0.0003", "behind"), ("0", "level"), ("0.00", "level"), (None, None)])
+def test_direction_is_explicit(value, word):
+    assert dd.direction(value) == word
+
+
+@pytest.mark.parametrize("reason,text", [
+    ("INSUFFICIENT_TRIPS: 7 trips available, 10 needed", "Not enough closed trips for an interval yet: 7 trips · 10 needed."),
+    ("INSUFFICIENT_TRIPS_IN_REGIME: 3 trips available, 10 needed", "Not enough trips in this regime yet: 3 trips · 10 needed."),
+    ("NO_MEMBERSHIP: Nifty 50 membership is not configured", "Nifty 50 membership is not set up, so this comparison cannot be made."),
+    ("CORPORATE_ACTION_COVERAGE_UNDECLARED", "Which listings have had splits, bonuses or dividends has not been reviewed, so luck is not computed."),
+    ("no exit bar", "No price was available on the trip's closing date."),
+    ("insufficient history", "Not enough price history."),
+    ("not computed", "This was not computed."),
+])
+def test_reason_text_is_a_plain_sentence(reason, text):
+    assert dd.reason_text(reason) == text
+
+
+def test_reason_text_covers_every_code_the_quant_can_raise():
+    import re
+    from app.quant.luck_test.errors import ExclusionReason, UnavailableReason as LuckReason
+    from app.quant.regime_split.errors import UnavailableReason as RegimeReason
+    raw = re.compile(r"\b[A-Z]{2,}(?:_[A-Z]+)+\b")
+    for code in [*(r.value for r in LuckReason), *(r.value for r in ExclusionReason), *(r.value for r in RegimeReason)]:
+        for reason in (code, f"{code}: some detail"):
+            text = dd.reason_text(reason)
+            assert text and text.endswith(".") and not raw.search(text), (reason, text)
+            assert text != dd.reason_text("SOMETHING_UNKNOWN_HERE")  # a real mapping, not the fallback
+    unknown = dd.reason_text("SOMETHING_UNKNOWN_HERE")
+    assert not raw.search(unknown) and unknown.endswith(".")
+
+
+def test_existing_endpoints_give_plain_reasons(client):
+    client.post("/trades", json=body())
+    s = client.get("/portfolio/summary").json()
+    assert s["total_market_value_unavailable_reason"] == "Only 0 of 1 holdings could be priced."
+    assert s["holdings"][0]["market_value_unavailable_reason"] == "The price source did not answer."

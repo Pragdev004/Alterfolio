@@ -19,7 +19,7 @@ every number on every endpoint the UI uses (trades, holdings, summary, import, a
 D3 013a exposes only what is already computed; no new statistics. D4 Analysis screens never depend on AI; analyst 503 or
 network failure shows "Analyst offline — your numbers are still here"; template answers are labelled as template.
 D5 Default `as_of` is the server's latest sealed day, never today; 422 shows "Data for that date isn't final yet."
-D6 Verdict copy approved, with "(X of N trips needed)" where N comes from the backend. D7 Manual entry/correct/void out;
+D6 Verdict copy approved, with the server's sample text "X trips · N needed" (N from the backend). D7 Manual entry/correct/void out;
 holdings screen in. D8 CORS and stack are Phase B.
 
 ## 3. Endpoints the UI uses
@@ -78,7 +78,7 @@ S6 Holdings
 ## 6. Verdict wording when there are too few trips
 - Needs >= N trips (N from `/meta` thresholds: luck, per regime, behaviour; currently 10 each). Below N the backend returns
   Unavailable and a `sample` object; the UI shows the reason and the server text, e.g. "Not enough closed trips to say
-  anything yet. (7 of 10 trips needed)". The UI never composes the count itself.
+  anything yet. 7 trips · 10 needed". The UI never composes the count itself.
 - Forbidden: "not significant", "no skill", "you are lucky/unlucky", scores, grades, colour verdicts, defaults of 0.
 - With 1 to N-1 usable trips, per-trip numbers and means may appear but never as a verdict.
 - With enough trips, wording is positional and hedged: where the interval sits relative to zero, plus "heuristic, small
@@ -97,7 +97,7 @@ S6 Holdings
 ## 8. Acceptance criteria
 - A1 No money or percentage is formatted in frontend code; a test fails if a numeric string is parsed or formatted there.
 - A2 Every Unavailable fixture renders the word and reason, never 0 or blank (one test per screen).
-- A3 Fewer than N trips renders the required copy with the server's "(X of N trips needed)" text and no verdict.
+- A3 Fewer than N trips renders the required copy with the server's "X trips · N needed" text and no verdict.
 - A4 `verified=false` and `answer_source=template` are labelled; the analyst-offline state leaves other screens working.
 - A5 Every state in section 7 has a test; `oversell` and `as_of_not_sealed` show their specified copy.
 - A6 Every luck view shows the alternatives note; no prediction language anywhere.

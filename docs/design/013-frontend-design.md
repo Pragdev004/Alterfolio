@@ -56,13 +56,15 @@ definition rows. Every screen opens with the **chart header**: `Chart prepared 3
   missing holding; the sentence is the server's string, never composed by the UI.
 - **Trip list:** one row per trip, fixed columns: Listing, Opened, Closed, Return (fees excluded), Alternatives, Percentile,
   Status. Status codes: `EVALUATED`, `NOT EVALUATED` (+ reason), `LISTING EXCLUDED` (+ reason). Gated trips stay in the list.
-  Above the table: the sample sentence ("7 of 10 trips needed") when the server says not enough.
-- **Trip detail** (mockup): title with status codes; the one-sentence result; the **position strip** (hand-built SVG: a 0-100%
-  track, a tick for the percentile; hatched track + "Unavailable" if none); the baseline table (ALT, NIFTY) with Your return,
-  Alternatives' mean, Excess, Percentile, Portfolios, Status; **Alternatives picked** table; **Regime** (three-band volatility
-  scale with the trip's marker, thresholds, per-regime sample lines); **Across your trips** (interval or the too-few sentence).
-  Alternatives are always labelled with the server's text: "Same-sector alternatives (NIFTY BANK, 9)" or "Same-universe
-  alternatives", with the note "Same-sector or same-universe alternatives, not a prediction."
+  Above the table: the sample text ("7 trips · 10 needed") when the server says not enough.
+- **Trip detail** (mockup): title with status codes; the one-sentence result; a **histogram** of the ~500 drawn portfolios'
+  returns (20 server bins, hand-built SVG) with the trip's own return marked by a dashed line and its bin filled; bins below it
+  are tinted "returned less than your trip"; the server's text equivalent sits under the chart. The baseline table (ALT, NIFTY):
+  Alternatives' mean, Excess + `direction` word, Percentile (whole %), Portfolios ("500 from 6"), Status, Note; **Alternatives
+  picked** (N picked + M left out = the N in the label; left-out rows show ticker + plain reason); **Regime** (volatility band, and
+  one sentence when no regime has enough trips); **Across your trips** (interval or the too-few sentence). Alternatives are
+  always labelled with the server's text, "Same-sector alternatives (NIFTY BANK, 9)" or "Same-universe alternatives", with the note
+  "Same-sector or same-universe alternatives, not a prediction."
 - **Behaviour costs:** three rows (Disposition, Chasing, Overtrading): cost, "lower bound" and "fees excluded" notes as the server
   renders them, unknown-fee count; archetype beneath as a status code, or Unavailable + reason; metrics labelled "unitless".
 - **Ask the analyst:** a plain form (question, as-of), the answer as prose with citation chips that link to the fact in the other
@@ -73,10 +75,12 @@ definition rows. Every screen opens with the **chart header**: `Chart prepared 3
 - **Position of meaning:** primary action is one filled ink button per screen; links are underlined; no icon-only controls.
 
 ### Unavailable, partial, too few
-- **Unavailable + reason:** the cell shows the hatch, the word `Unavailable`, and the reason hangs in the margin as
-  `[ NO_MEMBERSHIP: Nifty 50 membership is not configured ]` (the server's text). Same size and weight as a number: not greyed away.
-- **Too few trips:** a bordered sentence where the verdict would sit: "Not enough closed trips to say anything yet. (7 of 10 trips
-  needed)". The `X of N` text is the server's `sample.text`. No chart, no interval, no colour.
+- **Unavailable + reason:** the cell shows the hatch and the word `Unavailable`; the reason hangs in the margin as the server's
+  plain sentence (`reason_text`): "Nifty 50 membership is not set up, so this comparison cannot be made." Enum codes are never
+  shown. Several Unavailable cells in one row collapse into one hatched span. Same weight as a number: not greyed away.
+- **Too few trips:** a bordered sentence where the verdict would sit: "Not enough closed trips to say anything yet. 7 trips · 10
+  needed". The text is the server's `sample.text` (format `N trips · M needed`). No chart, no interval, no colour. For regimes
+  the server sends one sentence: "Not enough trips in any regime yet: Low 3, Normal 9, High 2 (10 needed each)".
 - **Partial total:** the `--hold` note above; the missing parts are hatched.
 - **Zero is a number:** a genuine `0.00%` renders normally; only `value: null` renders as Unavailable.
 
@@ -97,7 +101,7 @@ definition rows. Every screen opens with the **chart header**: `Chart prepared 3
   and the tick settle (state changes become instant); motion never carries information.
 - **WCAG AA:** text >= 4.5:1, large text and UI marks >= 3:1; tokens are checked in a unit test. Colour is never the only
   signal (section 3). Real landmarks (`nav`, `main`, `aside` for the margin), one `h1` per screen, tables with `th scope`, the
-  position strip has `role="img"` and a text equivalent ("percentile 61.20%"), focus ring always visible (2px + gap).
+  histogram has `role="img"`, a per-bar `<title>` and the server's visible text equivalent, focus ring always visible (2px + gap).
 - **Keyboard:** Tab order follows reading order; `g` then `h/t/c/a/u` jumps to a screen (can be disabled; never the only path);
   arrow keys move between trip rows, Enter opens, Esc returns to the list; the as-of picker is a native `input[type=date]`.
   Skip link to `main`. Touch targets >= 44px on the phone fallback.
@@ -111,22 +115,21 @@ Accept the default: **Vite + React 18 + TypeScript**, with these reasons and add
 - **React Router** (data router) for screens and `?as_of=` as URL state, so any view is linkable and printable.
 - **Plain CSS with the token file** (cascade layers: tokens, base, components). Tailwind and shadcn are rejected: they ship the
   look this design refuses and add class noise to a small, token-driven UI.
-- **Charts: hand-built SVG.** Only three marks exist (position strip, volatility band, bias cost bar); each is under 60 lines and
+- **Charts: hand-built SVG.** Only three marks exist (portfolio histogram, volatility band, bias cost bar); each is under 60 lines and
   gets exact hatching, text equivalents and no library animation. Reconsider only if a time-series view is added.
 - **Fonts self-hosted** (`@fontsource-variable/source-sans-3`) so the app works offline and loads no third party.
 - **Dev proxy** in `vite.config.ts` forwards `/api`, `/portfolio`, `/trades`, `/imports`, `/health` to the backend, so no CORS config.
 - **Tests:** vitest + Testing Library; fixtures are recorded 013a responses served by MSW (spec A7: no backend, no network).
   A lint rule and a test forbid `toFixed`, `Intl.NumberFormat`, `parseFloat` and arithmetic on response `value`s (spec A1);
-  geometry for the position strip reads `value` only to place a mark, never to print.
+  geometry for the histogram and band reads `value` only to place a mark, never to print.
 - **Playwright** for one smoke path (upload, trip detail, Unavailable renders the word) against the mocked API.
 
 ## 8. Decisions to confirm
 1. Blue/orange instead of red/green for ahead/behind (finance convention vs calm, colour-blind safe). 2. Light by default,
 dark as a preference. 3. Right-hand annotation margin on desktop. 4. Source Sans 3 as the single family.
-5. Keyboard `g`-chords as optional. 6. The position strip shows only the server's percentile; a distribution plot needs a new
-backend field and is out of scope.
-7. **Two small 013a follow-ups the mockup exposed** (backend, not built): (a) `display` carries no explicit sign for positive
-excess, so the UI picks "ahead/behind" from the `-` prefix of `value`; a server `direction` field would remove that. (b) An
-Unavailable outcome (`nifty`) still returns `portfolio_count`, `pool_size`, `lost_count` as 0; the UI ignores them when
-`unavailable_reason` is set, but they should be null per the never-0 rule.
+5. Keyboard `g`-chords as optional.
+6. **Review changes applied (013a.1, built):** server `reason_text` beside every reason; sample text `N trips · M needed`; whole-number
+percentiles; `excess_direction`; null counts for Unavailable outcomes; ticker + reason for left-out alternatives; histogram bins
+(one `quant/` field retained: the drawn portfolio returns); no "server's own text" footer in the product.
+7. **Phone tables** are compact two-line rows (title + status/value, then one line of figures), never a label per field.
 8. The hatch for Unavailable is a meaning marker, not decoration (the design detector flags repeating gradients as advisory).

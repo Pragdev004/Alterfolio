@@ -5,9 +5,12 @@ and nothing is turned into 0. The API layer formats these values for display (`a
 """
 
 import re
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 
+from app.domain.display import direction
 from app.quant.bias_cost.types import BiasAnalysisResult
 from app.quant.luck_test.types import BaselineOutcome, BaselineSummary, LuckResult
 from app.quant.market_data.fingerprint import canonical_decimal
@@ -17,6 +20,7 @@ from app.services.portfolio_analysis import _stat as stat_text
 from app.services.portfolio_analysis import _why as why_text
 
 BASELINES = ("ALT", "NIFTY")
+HISTOGRAM_BINS = 20
 _SECTOR_LABEL = re.compile(r"^alternatives: (.*) \((\d+)\)$")
 
 
@@ -60,6 +64,27 @@ class SummaryView:
     ci_upper: Num
     position: str | None
     sample: Sample
+    mean_excess_direction: str | None = None
+
+
+@dataclass(frozen=True)
+class BinView:
+    lower: Num
+    upper: Num
+    count: int
+
+
+@dataclass(frozen=True)
+class HistogramView:
+    """The drawn portfolios' returns counted into equal-width bins, with the trip's own return placed among them."""
+
+    bins: tuple[BinView, ...]
+    marker_bin: int
+    actual_return: Num
+    lower: Num
+    upper: Num
+    portfolio_count: int
+    text: str
 
 
 @dataclass(frozen=True)
@@ -67,10 +92,12 @@ class OutcomeView:
     percentile: Num
     excess: Num
     mean_return: Num
-    portfolio_count: int
-    pool_size: int
-    lost_count: int
+    portfolio_count: int | None  # None when the outcome is unavailable (never 0)
+    pool_size: int | None
+    lost_count: int | None
     reason: str
+    excess_direction: str | None = None
+    histogram: HistogramView | None = None
 
 
 @dataclass(frozen=True)
@@ -106,7 +133,7 @@ class TripView:
     nifty: OutcomeView | None
     survivorship_flag: bool | None
     picks: tuple[PickView, ...]
-    exclusions: tuple[tuple[str, str, str], ...]  # (baseline, isin, reason)
+    exclusions: tuple[tuple[str, str, str, str | None, str | None], ...]  # (baseline, isin, reason, symbol, exchange)
     zero_variance_features: tuple[str, ...]
     regime: RegimeTagView
     unavailable_reason: str
@@ -157,6 +184,7 @@ class RegimeView:
     exclusions: tuple[tuple[str, str], ...]
     reason: str
     limitations: tuple[str, ...]
+    none_ready_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,10 +223,11 @@ def _summary(s: BaselineSummary | None, gate: str, needed: int, why: str) -> Sum
                            Num(None, "ratio", miss), None, Sample(None, needed))
     mean_why = gate or (why_text(s.mean_unavailable) if s.mean_unavailable else "")
     ci_why = gate or (why_text(s.ci_unavailable) if s.ci_unavailable else "")
+    mean_excess = _num(s.mean_excess, "ratio", mean_why)
     return SummaryView(
-        s.trips_used, s.trips_evaluated, _num(s.mean_excess, "ratio", mean_why), _num(s.mean_percentile, "ratio", mean_why),
+        s.trips_used, s.trips_evaluated, mean_excess, _num(s.mean_percentile, "percentile", mean_why),
         _num(s.ci_lower, "ratio", ci_why), _num(s.ci_upper, "ratio", ci_why), None if s.position is None else s.position.value,
-        Sample(s.trips_used, needed))
+        Sample(s.trips_used, needed), direction(mean_excess.value))
 
 
 def _summaries(res: LuckResult | None, needed: int, why: str) -> dict[str, SummaryView]:
@@ -207,10 +236,36 @@ def _summaries(res: LuckResult | None, needed: int, why: str) -> dict[str, Summa
     return {b: _summary(s, gate, needed, why) for b, s in parts.items()}
 
 
-def _outcome(o: BaselineOutcome) -> OutcomeView:
+def _histogram(o: BaselineOutcome, actual: Decimal) -> HistogramView:
+    """Count the portfolio returns the quant already drew into 20 equal bins that also span the trip's own return."""
+    returns = o.portfolio_returns
+    lo, hi = min(min(returns), actual), max(max(returns), actual)
+    n = HISTOGRAM_BINS if lo != hi else 1
+    width = (hi - lo) / n if n > 1 else Decimal(0)
+    edges = [lo] + [lo + width * i for i in range(1, n)] + [hi]  # the ends are the exact extremes, never re-rounded
+
+    def index(r: Decimal) -> int:  # the last bin whose lower edge is <= r, so a value always sits inside its own bin
+        return max(0, min(bisect_right(edges, r) - 1, n - 1))
+
+    counts = [0] * n
+    for r in returns:
+        counts[index(r)] += 1
+    bins = tuple(BinView(Num(canonical_decimal(edges[i]), "ratio"), Num(canonical_decimal(edges[i + 1]), "ratio"), counts[i])
+                 for i in range(n))
+    total, less, same = len(returns), o.beaten, o.ties
+    text = (f"Of the {total} portfolios drawn, {less} returned less than your trip, {same} the same and "
+            f"{total - less - same} more.")
+    return HistogramView(bins, index(actual), Num(canonical_decimal(actual), "ratio"), bins[0].lower, bins[-1].upper, total, text)
+
+
+def _outcome(o: BaselineOutcome, actual: Decimal | None = None) -> OutcomeView:
     reason = why_text(o.unavailable) if o.unavailable else ""
-    return OutcomeView(_num(None if o.unavailable else o.percentile, "ratio", reason), _num(None if o.unavailable else o.excess, "ratio", reason),
-                       _dec(o.mean_return, "ratio", reason), o.portfolio_count, o.pool_size, o.lost_count, reason)
+    excess = _num(None if o.unavailable else o.excess, "ratio", reason)
+    if o.unavailable:  # an unavailable outcome has no counts: never 0
+        return OutcomeView(_num(None, "percentile", reason), excess, _dec(None, "ratio", reason), None, None, None, reason)
+    hist = None if o.portfolio_returns is None or actual is None else _histogram(o, actual)
+    return OutcomeView(_num(o.percentile, "percentile", reason), excess, _dec(o.mean_return, "ratio", reason), o.portfolio_count,
+                       o.pool_size, o.lost_count, "", direction(excess.value), hist)
 
 
 def _bias_views(res: BiasAnalysisResult | None, why: str) -> tuple[BiasView, ...]:
@@ -269,10 +324,11 @@ def build_view(detail: AnalysisDetail, as_of: date) -> AnalysisView:
         for t in group.result.trips:
             reason = ""
             if not t.evaluated or t.alt.unavailable or t.nifty.unavailable:
-                reason = "; ".join(f"{b}: {why_text(o.unavailable)}" for b, o in (("ALT", t.alt), ("NIFTY", t.nifty)) if o.unavailable)
+                first = t.alt.unavailable or t.nifty.unavailable  # the per-baseline reasons are on `alt` and `nifty` themselves
+                reason = why_text(first) if first else ""
             if t.evaluated:
                 lost = t.alt.lost_count > 0 or t.nifty.lost_count > 0
-                alt, nifty = _outcome(t.alt), _outcome(t.nifty)
+                alt, nifty = _outcome(t.alt, t.actual_return), _outcome(t.nifty, t.actual_return)
             else:
                 lost, alt, nifty = None, None, None
             ar = _dec(t.actual_return, "ratio_fees_excluded", "actual return not available")
@@ -281,7 +337,8 @@ def build_view(detail: AnalysisDetail, as_of: date) -> AnalysisView:
                 labels.get(t.trip_id), alt, nifty, lost,
                 tuple(PickView(p.rank, p.instrument.symbol, p.instrument.exchange.value, p.isin, _dec(p.return_ratio, "ratio", "no exit bar"))
                       for p in t.picks) if t.evaluated else (),
-                tuple((e.baseline.value, e.isin, e.reason.value) for e in t.exclusions) if t.evaluated else (),
+                tuple((e.baseline.value, e.isin, e.reason.value, None if e.instrument is None else e.instrument.symbol,
+                       None if e.instrument is None else e.instrument.exchange.value) for e in t.exclusions) if t.evaluated else (),
                 tuple(t.zero_variance_features) if t.evaluated else (), _regime_tag(regime, t.trip_id, regime_why), reason)
     if regime is not None:  # trips 008 saw but 007 did not (e.g. an ambiguous ISIN), listed with the reason
         for t in regime.trips:
@@ -312,10 +369,16 @@ def build_view(detail: AnalysisDetail, as_of: date) -> AnalysisView:
     if not blocks:  # no regime analysis ran: the three blocks are still present, each Unavailable with the reason
         why = regime_why or errors.get("008", "") or "not computed"
         blocks = [BlockView(r, (), Sample(None, th.regime_min_trips_per_regime), None, why, None, why) for r in ("LOW", "NORMAL", "HIGH")]
+    ran = regime is not None and regime.unavailable is None
+    none_ready = None
+    if ran and blocks and all(b.sample.have is not None and not b.sample.enough for b in blocks):
+        c = {b.regime: b.sample.have for b in blocks}
+        none_ready = (f"Not enough trips in any regime yet: Low {c['LOW']}, Normal {c['NORMAL']}, High {c['HIGH']} "
+                      f"({th.regime_min_trips_per_regime} needed each)")
     rv = RegimeView(facts.get("regime.round_trip_count") if regime is not None and regime.unavailable is None else None,
                     facts.get("regime.unclassified_count") if regime is not None and regime.unavailable is None else None,
                     tuple(blocks), () if regime is None else tuple(regime.exclusions), regime_why or ("" if regime is not None else "not computed"),
-                    () if regime is None else tuple(regime.limitations))
+                    () if regime is None else tuple(regime.limitations), none_ready)
 
     bias = detail.bias
     profile = bias.profile if bias is not None else None

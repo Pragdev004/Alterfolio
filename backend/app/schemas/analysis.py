@@ -10,7 +10,8 @@ from pydantic import BaseModel
 class NumberOut(BaseModel):
     value: str | None
     display: str
-    unavailable_reason: str | None
+    unavailable_reason: str | None  # the code or short text from the analysis
+    reason_text: str | None  # the same reason as a plain-English sentence, for display
 
 
 class DateOut(BaseModel):
@@ -28,6 +29,7 @@ class SampleOut(BaseModel):
 class ReasonOut(BaseModel):
     subject: str
     reason: str
+    reason_text: str
 
 
 class NameValueOut(BaseModel):
@@ -38,6 +40,7 @@ class NameValueOut(BaseModel):
 class ErrorOut(BaseModel):
     analysis: str
     reason: str
+    reason_text: str
 
 
 class BaselineSummaryOut(BaseModel):
@@ -49,6 +52,7 @@ class BaselineSummaryOut(BaseModel):
     ci_upper: NumberOut
     position: str | None
     sample: SampleOut
+    mean_excess_direction: str | None  # "ahead" | "behind" | "level"; null when the mean is unavailable
 
 
 class LuckSummariesOut(BaseModel):
@@ -60,10 +64,35 @@ class OutcomeOut(BaseModel):
     percentile: NumberOut
     excess: NumberOut
     mean_return: NumberOut
-    portfolio_count: int
-    pool_size: int
-    lost_count: int
+    portfolio_count: int | None  # null when the outcome is unavailable (never 0)
+    pool_size: int | None
+    lost_count: int | None
     unavailable_reason: str | None
+    reason_text: str | None
+    excess_direction: str | None  # "ahead" | "behind" | "level"; null when unavailable
+
+
+class BinOut(BaseModel):
+    lower: NumberOut
+    upper: NumberOut
+    count: int
+
+
+class HistogramOut(BaseModel):
+    """The drawn portfolios' returns in equal-width bins; `marker_bin` holds the trip's own return."""
+
+    bins: list[BinOut]
+    marker_bin: int
+    actual_return: NumberOut
+    lower: NumberOut
+    upper: NumberOut
+    portfolio_count: int
+    text: str  # a text equivalent of the chart
+
+
+class HistogramsOut(BaseModel):
+    ALT: HistogramOut | None
+    NIFTY: HistogramOut | None
 
 
 class RegimeTagOut(BaseModel):
@@ -73,6 +102,7 @@ class RegimeTagOut(BaseModel):
     high_threshold: NumberOut
     calibration_count: int | None
     reason: str | None
+    reason_text: str | None
 
 
 class PickOut(BaseModel):
@@ -86,7 +116,10 @@ class PickOut(BaseModel):
 class PickExclusionOut(BaseModel):
     baseline: str
     isin: str
+    symbol: str | None  # the listing's ticker when known
+    exchange: str | None
     reason: str
+    reason_text: str
 
 
 class TripRowOut(BaseModel):
@@ -105,9 +138,11 @@ class TripRowOut(BaseModel):
     survivorship_flag: bool | None
     regime: RegimeTagOut
     unavailable_reason: str | None
+    reason_text: str | None
 
 
 class TripDetailRowOut(TripRowOut):
+    histograms: HistogramsOut
     picks: list[PickOut]
     exclusions: list[PickExclusionOut]
     zero_variance_features: list[str]
@@ -116,6 +151,7 @@ class TripDetailRowOut(TripRowOut):
 class TripsSummaryOut(LuckSummariesOut):
     trip_count: int | None
     trip_count_unavailable_reason: str | None
+    trip_count_reason_text: str | None
     trips_evaluated: int | None
     alternatives_kind: str | None
     alternatives_label: str | None
@@ -132,6 +168,7 @@ class ExcludedListingOut(BaseModel):
     symbol: str
     exchange: str
     reason: str
+    reason_text: str
     trips: int
 
 
@@ -177,6 +214,7 @@ class MetricOut(BaseModel):
 class ProfileOut(BaseModel):
     archetype_id: str | None
     unavailable_reason: str | None
+    reason_text: str | None
     supporting_metrics: list[MetricOut]
 
 
@@ -197,8 +235,10 @@ class BlockOut(BaseModel):
     sample: SampleOut
     luck: LuckSummariesOut | None
     luck_unavailable_reason: str | None
+    luck_reason_text: str | None
     bias: list[BiasOut] | None
     bias_unavailable_reason: str | None
+    bias_reason_text: str | None
 
 
 class RegimesOut(BaseModel):
@@ -209,6 +249,8 @@ class RegimesOut(BaseModel):
     blocks: list[BlockOut]
     exclusions: list[ReasonOut]
     unavailable_reason: str | None
+    reason_text: str | None
+    none_ready_text: str | None  # one sentence when no regime has enough trips yet
     limitations: list[str]
     caveats: list[str]
     analysis_errors: list[ErrorOut]
@@ -230,6 +272,7 @@ class MetaOut(BaseModel):
     today_ist: DateOut
     last_bar_date: DateOut | None
     last_bar_date_unavailable_reason: str | None
+    last_bar_date_reason_text: str | None
     thresholds: ThresholdsOut
     alternatives_note: str
     limitations: LimitationsOut

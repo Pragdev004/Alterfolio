@@ -1,7 +1,7 @@
 # Spec 013a: Analysis read API
 Status: IMPLEMENTED 2026-10-18, awaiting owner review (owner answers folded in, section 11). Precedes any UI work in Feature 013 (`013-frontend.md`).
 Reads: `services/portfolio_analysis.py`, `api/routes/{analyst,portfolio,trades,imports}.py`, `api/display.py`,
-`schemas/*`, quant result types of 006/007/008. No change to `domain/` or `quant/`.
+`schemas/*`, quant result types of 006/007/008. No change to `domain/` or `quant/`, except section 13 (one retained field).
 
 ## 1. Goal
 Expose, read-only and per trip / per regime / per bias, what `PortfolioAnalysisService.analyse` already computes, plus the
@@ -65,7 +65,7 @@ An `as_of` >= today (IST) is 422 `as_of_not_sealed` (existing error). The server
 `GET /api/analysis/trips?as_of=`
 - `summary`: `trip_count`, `trips_evaluated`, per baseline (`ALT`, `NIFTY`): `trips_used`, `mean_excess`,
   `mean_percentile`, `ci_lower`, `ci_upper`, `position`, each with the display rule; `sample`: `{"have": n, "needed": N,
-  "text": "(n of N trips needed)"}` (N from the thresholds, n = usable trips) and `enough: bool`.
+  "text": "n trips · N needed"}` (N from the thresholds, n = usable trips) and `enough: bool`.
 - `trips[]` sorted by (open, close, id): `trip_id`, `symbol`, `exchange`, `open_session`, `close_session`, `evaluated`,
   `actual_return` (+ basis `LEDGER_PRICES_FEES_EXCLUDED`), `alternatives_kind` (`SAME_SECTOR` | `SAME_UNIVERSE`) and `alternatives_label` ("Same-sector alternatives (NIFTY BANK, 3)" /
   "Same-universe alternatives"), derived from the provenance label by one tested function (the stored label is unchanged), `alt` and `nifty`
@@ -84,7 +84,7 @@ An `as_of` >= today (IST) is 422 `as_of_not_sealed` (existing error). The server
 
 `GET /api/analysis/regimes?as_of=`
 - `round_trip_count`, `unclassified_count`, three blocks LOW / NORMAL / HIGH always present: `trip_ids`, `trip_count`,
-  `sample` (`n of N`), luck summary (`ALT` fields as above) or Unavailable+reason, bias costs per kind. Below
+  `sample` (`n trips · N needed`), luck summary (`ALT` fields as above) or Unavailable+reason, bias costs per kind. Below
   `regime_min_trips_per_regime` the block shows `INSUFFICIENT_TRIPS_IN_REGIME` and the counts, nothing else computed.
 - `exclusions[]`, `limitations[]` ("regimes are relative to each stock's own history").
 
@@ -92,7 +92,7 @@ An `as_of` >= today (IST) is 422 `as_of_not_sealed` (existing error). The server
 - Three entries DISPOSITION / CHASING / OVERTRADING: `cost_inr` (display rule, unit `INR` or `INR_LOWER_BOUND`),
   `gross_cost_inr`, `fees_known`, `fee_status`, `unknown_fee_trade_count`, `exclusions`, `details`; `profile`:
   `archetype_id` or Unavailable+reason, `supporting_metrics` (each value via the display rule), `sample`
-  (`n of N eligible closed trips`). Wording fields are observational ("review trigger"), never BUY/SELL.
+  (`n trips · N needed`). Wording fields are observational ("review trigger"), never BUY/SELL.
 
 All five: Unavailable inside a successful analysis is HTTP 200 with the marker (never 5xx, never 0). Input rejections
 inside an analysis (`BiasInputError`, etc.) appear as `analysis_errors` with a reason, matching `facts.unavailable`.
@@ -121,7 +121,7 @@ T6 Display rule: every numeric field has `value` + `display` (+ reason when null
    "0", "0.00%", "₹0.00" or "" when `value` is null; `x_display` exists for every Decimal field of the existing schemas
    (schema-walking test, fails when a new Decimal field has no display sibling).
 T7 Unavailable fixtures (no series, coverage undeclared, <10 trips, <10 per regime): HTTP 200, marker, reason, `sample`
-   text correct ("9 of 10 trips needed"); no 0 anywhere.
+   text correct ("9 trips · 10 needed"); no 0 anywhere.
 T8 No float, NaN or inf in any JSON body; all Decimals canonical (no exponent).
 T9 Alternatives: every trip carries kind + label (sector vs universe); `alternatives_note` in `meta`; excluded trips listed.
 T9b Cache: second call computes nothing (provider call count), a new trade/import invalidates, unavailable series not cached.
@@ -153,3 +153,17 @@ Counts (`trips_used`, `trips_evaluated`, `sample.have`, block `trip_count`, `unk
 ledger's closed round-trip count.
 Every analysis endpoint has a response model (`schemas/analysis.py`); `/openapi.json` also lists the `x_display` siblings of the
 existing endpoints. A PARTIAL summary appends "(partial: n of m holdings valued)" to the market-value and P&L totals.
+
+## 13. 013a.1 review changes (owner, 2026-10-18)
+- `reason_text`: every reason string has a plain-English sibling (`NumberOut.reason_text`; elsewhere `reason_text`,
+  `luck_reason_text`, `bias_reason_text`, ...). Codes stay for tests and logs; the UI shows the sentence. One tested function
+  (`domain.display.reason_text`) covers every 007/008 code; it never returns an enum code. Existing summary reasons are plain too.
+- Sample text is `"9 trips · 10 needed"` everywhere. `regimes.none_ready_text` is one sentence when no regime has enough trips:
+  "Not enough trips in any regime yet: Low 3, Normal 9, High 2 (10 needed each)".
+- Percentiles display as whole percents (`61%`, half-even); other ratios keep two decimals. The analyst's text is unchanged.
+- `excess_direction` / `mean_excess_direction` (`ahead|behind|level|null`); an Unavailable outcome has null counts, not 0.
+- Exclusions carry `symbol` + `exchange` (nullable) and `reason_text`; the UI shows ticker + sentence, not the ISIN.
+- Trip detail adds `histograms.{ALT,NIFTY}`: the drawn portfolios' returns in 20 equal bins that also span the trip's return,
+  `marker_bin`, `actual_return`, and a text equivalent. Counts only; no new statistic. To expose them, `BaselineOutcome` retains
+  the returns it already computed (`portfolio_returns`, excluded from equality, JSON and fingerprint): the one `quant/` change.
+- Sealed dates in examples are before today: sealed Sun 18 Oct 2026, latest bar Fri 16 Oct 2026.

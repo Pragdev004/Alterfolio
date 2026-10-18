@@ -92,7 +92,8 @@ def _available(
 ) -> BaselineOutcome:
     beaten, ties, mean_return = compare(actual, returns)
     excess, percentile = excess_and_percentile(actual, mean_return, beaten, ties, len(returns))
-    return BaselineOutcome(baseline, len(returns), pool_size, lost, beaten, ties, mean_return, excess, percentile, None)
+    return BaselineOutcome(baseline, len(returns), pool_size, lost, beaten, ties, mean_return, excess, percentile, None,
+                           portfolio_returns=returns)
 
 
 def _ca_reason(instrument: Instrument, ctx: _Context) -> X | None:

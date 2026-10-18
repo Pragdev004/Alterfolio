@@ -67,9 +67,8 @@ h1 { font-size:var(--t-3xl); line-height:1.1; margin:0; font-weight:700; letter-
 .margin { font-size:var(--t-sm); color:var(--ink-2); }
 .margin h3 { margin:0 0 var(--s-2); font-size:var(--t-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-2); }
 .margin ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:var(--s-3); }
-.margin li { padding-left:var(--s-3); text-indent:calc(-1 * var(--s-3)); }
-.margin li::before { content:"["; color:var(--ink-3); margin-right:2px; }
-.margin li::after { content:"]"; color:var(--ink-3); margin-left:2px; }
+.margin li { padding-left:var(--s-3); border-left:1px solid var(--rule-ink); }
+.margin li b { font-weight:600; color:var(--ink); }
 
 .result { font-size:var(--t-2xl); line-height:1.3; margin:0 0 var(--s-5); max-width:36ch; font-weight:400; }
 .result .fig { white-space:nowrap; font-weight:700; }
@@ -77,18 +76,21 @@ h1 { font-size:var(--t-3xl); line-height:1.1; margin:0; font-weight:700; letter-
 .dir.ahead { color:var(--ahead); } .dir.behind { color:var(--behind); }
 .dir svg { width:.7em; height:.7em; vertical-align:-.02em; margin-right:.25em; }
 
-.strip { width:100%; max-width:640px; height:auto; display:block; margin:var(--s-2) 0 var(--s-1); overflow:visible; }
-.strip text { font:600 12px var(--font); fill:var(--ink-2); font-variant-numeric:tabular-nums; }
-.strip .mark-label { font-size:14px; font-weight:700; fill:var(--ink); }
-.strip .tick { stroke:var(--ink-3); stroke-width:1; }
-.strip .track { fill:var(--paper-2); stroke:var(--rule-ink); stroke-width:1; }
-.strip .fillbar { fill:var(--ahead-wash); }
-.strip .mark { stroke:var(--ahead); stroke-width:3; }
-.strip .mark-dot { fill:var(--ahead); }
+.hist { width:100%; max-width:680px; height:auto; display:block; margin:var(--s-2) 0 var(--s-2); overflow:visible; }
+.hist text { font:600 12px var(--font); fill:var(--ink-2); font-variant-numeric:tabular-nums; }
+.hist .bar { fill:var(--paper-2); stroke:var(--ink-3); stroke-width:1; }
+.hist .bar.less { fill:var(--ahead-wash); stroke:var(--ahead); }
+.hist .bar.you { fill:var(--ahead); stroke:var(--ahead); }
+.hist .base { stroke:var(--rule-ink); stroke-width:1; }
+.hist .you-line { stroke:var(--ink); stroke-width:2; stroke-dasharray:4 3; }
+.hist .you-lbl { font-size:13px; font-weight:700; fill:var(--ink); }
+.legend { display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-5); font-size:var(--t-sm); color:var(--ink-2); margin:0 0 var(--s-2); padding:0; list-style:none; }
+.legend i { display:inline-block; width:12px; height:12px; margin-right:var(--s-2); vertical-align:-1px; border:1px solid var(--ahead); background:var(--ahead-wash); }
+.legend i.you { background:var(--ahead); } .legend i.rest { background:var(--paper-2); border-color:var(--ink-3); }
 .strip-note { color:var(--ink-2); font-size:var(--t-sm); margin:0; max-width:64ch; }
 @media (prefers-reduced-motion: no-preference) {
-  .strip .mark-g { animation:settle var(--d-base) var(--ease) 1; }
-  @keyframes settle { from { transform:translateY(-4px); opacity:.0 } to { transform:none; opacity:1 } }
+  .hist .you-line, .hist .you-lbl { animation:settle var(--d-base) var(--ease) 1; }
+  @keyframes settle { from { opacity:0 } to { opacity:1 } }
 }
 
 table { border-collapse:collapse; width:100%; font-size:var(--t-md); }
@@ -107,7 +109,6 @@ td.note { font-size:var(--t-sm); color:var(--ink-2); padding-left:var(--s-3); bo
 .sub-fig { display:block; font-size:var(--t-sm); color:var(--ink-2); }
 nobr, .nb { white-space:nowrap; }
 td .fig.strong { font-weight:600; }
-.reason::before { content:"[ "; } .reason::after { content:" ]"; }
 .reason { color:var(--ink-2); }
 
 .band { width:100%; max-width:640px; height:auto; display:block; margin:0 0 var(--s-3); overflow:visible; }
@@ -143,23 +144,34 @@ footer { border-top:1px solid var(--rule-ink); padding-top:var(--s-4); color:var
 @media (max-width: 640px) {
   h1 { font-size:var(--t-2xl); }
   .result { font-size:var(--t-xl); }
-  .facts { grid-template-columns:1fr; gap:var(--s-3); }
+  .facts { grid-template-columns:repeat(3, minmax(0,auto)); gap:var(--s-3); }
+  .facts dd { font-size:var(--t-lg); }
   table, thead, tbody, tr, th, td { display:block; }
   thead { position:absolute; left:-9999px; }
-  tr { border-bottom:1px solid var(--rule-ink); padding:var(--s-3) 0; }
-  th, td { border:0; padding:var(--s-1) 0; text-align:left; }
+  /* compact rows: a title line (with status or value at the right) and one line of figures, never a label per field */
+  tr { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:var(--s-3); row-gap:2px; padding:var(--s-3) 0; border-bottom:1px solid var(--rule); }
+  th, td { border:0; padding:0; text-align:left; }
   td.n, th.n { text-align:left; }
-  td[data-label]::before, th[data-label]::before { content:attr(data-label); display:block; font-size:var(--t-xs); text-transform:uppercase;
-    letter-spacing:.08em; font-weight:600; color:var(--ink-2); }
-  td.note { padding:var(--s-1) 0 0; }
+  tr > th { grid-column:1; font-weight:600; }
+  tr > td.status, tr > td.val { grid-column:2; grid-row:1; text-align:right; }
+  tr > td.m-line, tr > td.na-cell, tr > td.note { grid-column:1 / -1; }
+  tr > td.cell { display:none; }
+  td.m-line { display:block; color:var(--ink); font-size:var(--t-sm); }
+  td.m-line .sep { color:var(--ink-3); margin:0 var(--s-1); }
+  td.m-line .l { color:var(--ink-2); }
+  td.note { padding:0; font-size:var(--t-sm); color:var(--ink-2); width:auto; }
 }
+td.m-line { display:none; }
+@media (max-width: 640px) { td.m-line { display:block; } }
 @media (prefers-reduced-motion: no-preference) {
   a, .btn-link { transition:text-decoration-thickness var(--d-fast) var(--ease); }
 }
+.mockup-strip { margin:0; padding:var(--s-1) var(--s-4); background:var(--ink); color:var(--paper); font-size:var(--t-xs); letter-spacing:.06em; text-transform:uppercase; text-align:center; }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to main content</a>
+<p class="mockup-strip">Design mockup · synthetic sample data, not your trades</p>
 <div class="shell">
   <nav class="rail" aria-label="Screens"><div class="rail-in">
     <p class="brand">Alterfolio</p>
@@ -184,8 +196,9 @@ footer { border-top:1px solid var(--rule-ink); padding-top:var(--s-4); color:var
       <h2 id="h-result">How this trip compares</h2>
       <div>
         <p class="result" id="result"></p>
-        <div id="strip-wrap"></div>
-        <p class="strip-note" id="strip-note"></p>
+        <div id="hist-wrap"></div>
+        <ul class="legend" id="legend"></ul>
+        <p class="strip-note" id="hist-text"></p>
       </div>
       <aside class="margin" id="m-result" aria-label="Notes on this result"></aside>
     </section>
@@ -197,16 +210,16 @@ footer { border-top:1px solid var(--rule-ink); padding-top:var(--s-4); color:var
     </section>
 
     <section class="sec" aria-labelledby="h-picks">
-      <h2 id="h-picks">Alternatives picked<span class="h-sub">The portfolios drawn from these listings; returns are over the same dates as your trip.</span></h2>
+      <h2 id="h-picks">Alternatives picked<span class="h-sub" id="picks-sub"></span></h2>
       <div><table id="picks"></table></div>
-      <aside class="margin" id="m-picks" aria-label="Notes on the alternatives"></aside>
+      <aside class="margin" id="m-picks" aria-label="Alternatives left out"></aside>
     </section>
 
     <section class="sec" aria-labelledby="h-regime">
       <h2 id="h-regime">Volatility regime<span class="h-sub">Relative to this stock's own history before the trip opened.</span></h2>
       <div>
         <div id="band-wrap"></div>
-        <table id="regimes"></table>
+        <div class="too-few" id="regime-sentence"></div>
       </div>
       <aside class="margin" id="m-regime" aria-label="Notes on regimes"></aside>
     </section>
@@ -217,107 +230,627 @@ footer { border-top:1px solid var(--rule-ink); padding-top:var(--s-4); color:var
       <aside class="margin" id="m-all" aria-label="Notes on the sample"></aside>
     </section>
 
-    <footer>
-      <span>Synthetic sample data for design review. Not your trades.</span>
-      <span>Every figure is the server's own text; nothing here is calculated in the browser.</span>
-    </footer>
+    <footer><span>Educational, not financial advice. Nothing here predicts future returns.</span></footer>
   </main>
 </div>
 
 <script type="application/json" id="data">
 {
-  "meta": {
-    "latest_sealed_as_of": {"iso": "2026-11-30", "display": "30 Nov 2026"},
-    "today_ist": {"iso": "2026-12-01", "display": "1 Dec 2026"},
-    "last_bar_date": {"iso": "2026-11-30", "display": "30 Nov 2026"},
-    "last_bar_date_unavailable_reason": null,
-    "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
+ "meta": {
+  "latest_sealed_as_of": {
+   "iso": "2026-10-18",
+   "display": "18 Oct 2026"
   },
-  "trip_detail": {
-    "as_of": {"iso": "2026-11-30", "display": "30 Nov 2026"},
-    "as_of_defaulted": true,
-    "trip": {
-      "trip_id": "t51839313d844be78f2627f1",
-      "symbol": "BANKBARODA", "exchange": "NSE",
-      "open_session": {"iso": "2026-09-08", "display": "8 Sep 2026"},
-      "close_session": {"iso": "2026-10-12", "display": "12 Oct 2026"},
-      "evaluated": true,
-      "actual_return": {"value": "0.0410256", "display": "4.10% (fees excluded)", "unavailable_reason": null},
-      "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
-      "alternatives_kind": "SAME_SECTOR",
-      "alternatives_label": "Same-sector alternatives (NIFTY BANK, 9)",
-      "alt": {
-        "percentile": {"value": "0.612", "display": "61.20%", "unavailable_reason": null},
-        "excess": {"value": "0.0128", "display": "1.28%", "unavailable_reason": null},
-        "mean_return": {"value": "0.0282256", "display": "2.82%", "unavailable_reason": null},
-        "portfolio_count": 500, "pool_size": 8, "lost_count": 1, "unavailable_reason": null
-      },
-      "nifty": {
-        "percentile": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
-        "excess": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
-        "mean_return": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
-        "portfolio_count": 0, "pool_size": 0, "lost_count": 0,
-        "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"
-      },
-      "survivorship_flag": true,
-      "regime": {
-        "regime": "NORMAL",
-        "volatility": {"value": "0.0184", "display": "1.84%", "unavailable_reason": null},
-        "low_threshold": {"value": "0.0131", "display": "1.31%", "unavailable_reason": null},
-        "high_threshold": {"value": "0.0227", "display": "2.27%", "unavailable_reason": null},
-        "calibration_count": 212, "reason": null
-      },
-      "unavailable_reason": null,
-      "picks": [
-        {"rank": 1, "symbol": "CANBK", "exchange": "NSE", "isin": "INE476A01022", "return_ratio": {"value": "0.0311", "display": "3.11%", "unavailable_reason": null}},
-        {"rank": 2, "symbol": "SBIN", "exchange": "NSE", "isin": "INE062A01020", "return_ratio": {"value": "0.0264", "display": "2.64%", "unavailable_reason": null}},
-        {"rank": 3, "symbol": "UNIONBANK", "exchange": "NSE", "isin": "INE692A01016", "return_ratio": {"value": "0.0407", "display": "4.07%", "unavailable_reason": null}},
-        {"rank": 4, "symbol": "INDIANB", "exchange": "NSE", "isin": "INE562A01011", "return_ratio": {"value": "-0.0058", "display": "-0.58%", "unavailable_reason": null}},
-        {"rank": 5, "symbol": "BANKINDIA", "exchange": "NSE", "isin": "INE084A01016", "return_ratio": {"value": null, "display": "Unavailable", "unavailable_reason": "no exit bar"}}
-      ],
-      "exclusions": [
-        {"baseline": "ALT", "isin": "INE141A01014", "reason": "INSUFFICIENT_HISTORY"}
-      ],
-      "zero_variance_features": []
+  "today_ist": {
+   "iso": "2026-10-19",
+   "display": "19 Oct 2026"
+  },
+  "last_bar_date": {
+   "iso": "2026-10-16",
+   "display": "16 Oct 2026"
+  },
+  "last_bar_date_unavailable_reason": null,
+  "last_bar_date_reason_text": null,
+  "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
+ },
+ "trip_detail": {
+  "as_of": {
+   "iso": "2026-10-18",
+   "display": "18 Oct 2026"
+  },
+  "as_of_defaulted": true,
+  "trip": {
+   "trip_id": "t51839313d844be78f2627f1",
+   "symbol": "BANKBARODA",
+   "exchange": "NSE",
+   "open_session": {
+    "iso": "2026-09-08",
+    "display": "8 Sep 2026"
+   },
+   "close_session": {
+    "iso": "2026-10-12",
+    "display": "12 Oct 2026"
+   },
+   "evaluated": true,
+   "actual_return": {
+    "value": "0.0410256",
+    "display": "4.10% (fees excluded)",
+    "unavailable_reason": null,
+    "reason_text": null
+   },
+   "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
+   "alternatives_kind": "SAME_SECTOR",
+   "alternatives_label": "Same-sector alternatives (NIFTY BANK, 9)",
+   "alt": {
+    "percentile": {
+     "value": "0.61",
+     "display": "61%",
+     "unavailable_reason": null,
+     "reason_text": null
     },
-    "caveats": [
-      "not analysed in luck/regime: PNB.NSE (not covered by the corporate-action review register)",
-      "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
-    ],
-    "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
-  },
-  "trips_summary": {
-    "trip_count": 14, "trips_evaluated": 14,
+    "excess": {
+     "value": "0.0091618",
+     "display": "0.92%",
+     "unavailable_reason": null,
+     "reason_text": null
+    },
+    "mean_return": {
+     "value": "0.0318638",
+     "display": "3.19%",
+     "unavailable_reason": null,
+     "reason_text": null
+    },
+    "portfolio_count": 500,
+    "pool_size": 6,
+    "lost_count": 1,
+    "unavailable_reason": null,
+    "reason_text": null,
+    "excess_direction": "ahead"
+   },
+   "nifty": {
+    "percentile": {
+     "value": null,
+     "display": "Unavailable",
+     "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured",
+     "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made."
+    },
+    "excess": {
+     "value": null,
+     "display": "Unavailable",
+     "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured",
+     "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made."
+    },
+    "mean_return": {
+     "value": null,
+     "display": "Unavailable",
+     "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured",
+     "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made."
+    },
+    "portfolio_count": null,
+    "pool_size": null,
+    "lost_count": null,
+    "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured",
+    "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+    "excess_direction": null
+   },
+   "survivorship_flag": true,
+   "regime": {
+    "regime": "NORMAL",
+    "volatility": {
+     "value": "0.0184",
+     "display": "1.84%",
+     "unavailable_reason": null,
+     "reason_text": null
+    },
+    "low_threshold": {
+     "value": "0.0131",
+     "display": "1.31%",
+     "unavailable_reason": null,
+     "reason_text": null
+    },
+    "high_threshold": {
+     "value": "0.0227",
+     "display": "2.27%",
+     "unavailable_reason": null,
+     "reason_text": null
+    },
+    "calibration_count": 212,
+    "reason": null,
+    "reason_text": null
+   },
+   "unavailable_reason": null,
+   "reason_text": null,
+   "histograms": {
     "ALT": {
-      "trips_used": 14, "trips_evaluated": 14,
-      "mean_excess": {"value": "0.0084", "display": "0.84%", "unavailable_reason": null},
-      "mean_percentile": {"value": "0.538", "display": "53.80%", "unavailable_reason": null},
-      "ci_lower": {"value": "-0.0042", "display": "-0.42%", "unavailable_reason": null},
-      "ci_upper": {"value": "0.0211", "display": "2.11%", "unavailable_reason": null},
-      "position": "CONTAINS_ZERO",
-      "sample": {"have": 14, "needed": 10, "enough": true, "text": ""}
+     "bins": [
+      {
+       "lower": {
+        "value": "-0.0049",
+        "display": "-0.49%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "-0.00135",
+        "display": "-0.14%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 10
+      },
+      {
+       "lower": {
+        "value": "-0.00135",
+        "display": "-0.14%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0022",
+        "display": "0.22%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 13
+      },
+      {
+       "lower": {
+        "value": "0.0022",
+        "display": "0.22%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.00575",
+        "display": "0.58%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 16
+      },
+      {
+       "lower": {
+        "value": "0.00575",
+        "display": "0.58%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0093",
+        "display": "0.93%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 19
+      },
+      {
+       "lower": {
+        "value": "0.0093",
+        "display": "0.93%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.01285",
+        "display": "1.28%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 22
+      },
+      {
+       "lower": {
+        "value": "0.01285",
+        "display": "1.28%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0164",
+        "display": "1.64%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 25
+      },
+      {
+       "lower": {
+        "value": "0.0164",
+        "display": "1.64%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.01995",
+        "display": "2.00%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 28
+      },
+      {
+       "lower": {
+        "value": "0.01995",
+        "display": "2.00%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0235",
+        "display": "2.35%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 31
+      },
+      {
+       "lower": {
+        "value": "0.0235",
+        "display": "2.35%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.02705",
+        "display": "2.70%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 34
+      },
+      {
+       "lower": {
+        "value": "0.02705",
+        "display": "2.70%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0306",
+        "display": "3.06%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 36
+      },
+      {
+       "lower": {
+        "value": "0.0306",
+        "display": "3.06%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.03415",
+        "display": "3.42%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 38
+      },
+      {
+       "lower": {
+        "value": "0.03415",
+        "display": "3.42%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0377",
+        "display": "3.77%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 28
+      },
+      {
+       "lower": {
+        "value": "0.0377",
+        "display": "3.77%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.04125",
+        "display": "4.12%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 40
+      },
+      {
+       "lower": {
+        "value": "0.04125",
+        "display": "4.12%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0448",
+        "display": "4.48%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 34
+      },
+      {
+       "lower": {
+        "value": "0.0448",
+        "display": "4.48%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.04835",
+        "display": "4.84%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 30
+      },
+      {
+       "lower": {
+        "value": "0.04835",
+        "display": "4.84%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0519",
+        "display": "5.19%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 26
+      },
+      {
+       "lower": {
+        "value": "0.0519",
+        "display": "5.19%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.05545",
+        "display": "5.54%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 22
+      },
+      {
+       "lower": {
+        "value": "0.05545",
+        "display": "5.54%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.059",
+        "display": "5.90%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 18
+      },
+      {
+       "lower": {
+        "value": "0.059",
+        "display": "5.90%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.06255",
+        "display": "6.26%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 16
+      },
+      {
+       "lower": {
+        "value": "0.06255",
+        "display": "6.26%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "upper": {
+        "value": "0.0661",
+        "display": "6.61%",
+        "unavailable_reason": null,
+        "reason_text": null
+       },
+       "count": 14
+      }
+     ],
+     "marker_bin": 12,
+     "actual_return": {
+      "value": "0.0410256",
+      "display": "4.10%",
+      "unavailable_reason": null,
+      "reason_text": null
+     },
+     "lower": {
+      "value": "-0.0049",
+      "display": "-0.49%",
+      "unavailable_reason": null,
+      "reason_text": null
+     },
+     "upper": {
+      "value": "0.0661",
+      "display": "6.61%",
+      "unavailable_reason": null,
+      "reason_text": null
+     },
+     "portfolio_count": 500,
+     "text": "Of the 500 portfolios drawn, 305 returned less than your trip, 0 the same and 195 more."
+    },
+    "NIFTY": null
+   },
+   "picks": [
+    {
+     "rank": 1,
+     "symbol": "CANBK",
+     "exchange": "NSE",
+     "isin": "INE476A01022",
+     "return_ratio": {
+      "value": "0.0311",
+      "display": "3.11%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
+    },
+    {
+     "rank": 2,
+     "symbol": "SBIN",
+     "exchange": "NSE",
+     "isin": "INE062A01020",
+     "return_ratio": {
+      "value": "0.0264",
+      "display": "2.64%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
+    },
+    {
+     "rank": 3,
+     "symbol": "UNIONBANK",
+     "exchange": "NSE",
+     "isin": "INE692A01016",
+     "return_ratio": {
+      "value": "0.0407",
+      "display": "4.07%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
+    },
+    {
+     "rank": 4,
+     "symbol": "INDIANB",
+     "exchange": "NSE",
+     "isin": "INE562A01011",
+     "return_ratio": {
+      "value": "-0.0058",
+      "display": "-0.58%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
+    },
+    {
+     "rank": 5,
+     "symbol": "BANKINDIA",
+     "exchange": "NSE",
+     "isin": "INE084A01016",
+     "return_ratio": {
+      "value": null,
+      "display": "Unavailable",
+      "unavailable_reason": "no exit bar",
+      "reason_text": "No price was available on the trip's closing date."
+     }
+    },
+    {
+     "rank": 6,
+     "symbol": "UCOBANK",
+     "exchange": "NSE",
+     "isin": "INE691A01018",
+     "return_ratio": {
+      "value": "0.069",
+      "display": "6.90%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
+    },
+    {
+     "rank": 7,
+     "symbol": "PSB",
+     "exchange": "NSE",
+     "isin": "INE608A01012",
+     "return_ratio": {
+      "value": "0.03",
+      "display": "3.00%",
+      "unavailable_reason": null,
+      "reason_text": null
+     }
     }
+   ],
+   "exclusions": [
+    {
+     "baseline": "ALT",
+     "isin": "INE160A01022",
+     "symbol": "PNB",
+     "exchange": "NSE",
+     "reason": "INSUFFICIENT_HISTORY",
+     "reason_text": "There is not enough price history before the trip opened."
+    },
+    {
+     "baseline": "ALT",
+     "isin": "INE457A01014",
+     "symbol": "MAHABANK",
+     "exchange": "NSE",
+     "reason": "NO_SERIES",
+     "reason_text": "No price history is available for it."
+    }
+   ],
+   "zero_variance_features": []
   },
-  "regimes": {
-    "limitations": ["Heuristic grouping, not a model of markets: regimes are relative to each listing's own volatility history."],
-    "blocks": [
-      {"regime": "LOW", "trip_ids": [], "trip_count": 3, "sample": {"have": 3, "needed": 10, "enough": false, "text": "(3 of 10 trips needed)"},
-       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 3 trips available, 10 needed"},
-      {"regime": "NORMAL", "trip_ids": [], "trip_count": 9, "sample": {"have": 9, "needed": 10, "enough": false, "text": "(9 of 10 trips needed)"},
-       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 9 trips available, 10 needed"},
-      {"regime": "HIGH", "trip_ids": [], "trip_count": 2, "sample": {"have": 2, "needed": 10, "enough": false, "text": "(2 of 10 trips needed)"},
-       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 2 trips available, 10 needed"}
-    ]
+  "caveats": [
+   "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+  ],
+  "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
+ },
+ "trips_summary": {
+  "trip_count": 14,
+  "ALT": {
+   "trips_used": 14,
+   "trips_evaluated": 14,
+   "mean_excess": {
+    "value": "0.0084",
+    "display": "0.84%",
+    "unavailable_reason": null,
+    "reason_text": null
+   },
+   "mean_percentile": {
+    "value": "0.538",
+    "display": "54%",
+    "unavailable_reason": null,
+    "reason_text": null
+   },
+   "ci_lower": {
+    "value": "-0.0042",
+    "display": "-0.42%",
+    "unavailable_reason": null,
+    "reason_text": null
+   },
+   "ci_upper": {
+    "value": "0.0211",
+    "display": "2.11%",
+    "unavailable_reason": null,
+    "reason_text": null
+   },
+   "position": "CONTAINS_ZERO",
+   "sample": {
+    "have": 14,
+    "needed": 10,
+    "enough": true,
+    "text": ""
+   },
+   "mean_excess_direction": "ahead"
   }
+ },
+ "regimes": {
+  "none_ready_text": "Not enough trips in any regime yet: Low 3, Normal 9, High 2 (10 needed each)",
+  "limitations": [
+   "Heuristic grouping, not a model of markets: regimes are relative to each listing's own volatility history."
+  ]
+ }
 }
 </script>
-
 <script>
-/* Renders the server's own strings. No number is formatted or computed here. Geometry (the position strip and the volatility
-   band) reads `value` only to place a mark; the text beside each mark is the server's `display`. The ahead/behind word is chosen
-   by the sign of `value` ("-" prefix), which the production app should get from a server field instead (design doc, section 8). */
+/* Renders the server's own strings. No number is formatted or computed here. Geometry (the histogram and the volatility band)
+   reads `value` only to place marks; the text beside each mark is the server's `display`. */
 const D = JSON.parse(document.getElementById('data').textContent);
-const T = D.trip_detail.trip, ALT = T.alt, NIFTY = T.nifty;
+const T = D.trip_detail.trip, ALT = T.alt, NIFTY = T.nifty, H = T.histograms.ALT;
 const el = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) k === 'class' ? e.className = v : e.setAttribute(k, v);
@@ -329,16 +862,13 @@ const svgEl = (tag, attrs = {}) => {
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   return e;
 };
-/* A number object -> either its display text, or the hatched "Unavailable" word. */
 const fig = (n, strong) => n.value === null
   ? el('span', { class: 'na' }, 'Unavailable')
   : el('span', { class: 'fig' + (strong ? ' strong' : '') }, n.display);
-const reasonOf = n => n.value === null ? n.unavailable_reason : null;
-const isBehind = n => n.value !== null && n.value.startsWith('-');
 const arrow = up => { const s = svgEl('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' });
   s.append(svgEl('path', { d: up ? 'M5 1 L9.5 9 L0.5 9 Z' : 'M5 9 L9.5 1 L0.5 1 Z', fill: 'currentColor' })); return s; };
-const dir = n => { const behind = isBehind(n);
-  return el('span', { class: 'dir ' + (behind ? 'behind' : 'ahead') }, arrow(!behind), behind ? 'behind' : 'ahead'); };
+const dir = d => d === null ? '' : d === 'level' ? el('span', { class: 'dir' }, 'level')
+  : el('span', { class: 'dir ' + d }, arrow(d === 'ahead'), d);
 const th = (txt, cls = '') => el('th', { scope: 'col', class: cls }, txt);
 
 /* chart header */
@@ -353,132 +883,136 @@ ch.append(
 /* title + status codes */
 document.getElementById('t-symbol').textContent = T.symbol;
 document.getElementById('t-sub').textContent = `${T.exchange} · ${T.open_session.display} to ${T.close_session.display}`;
-const codes = document.getElementById('t-codes');
-codes.append(
+document.getElementById('t-codes').append(
   el('li', { class: 'code' }, T.evaluated ? 'Evaluated' : 'Not evaluated'),
   el('li', { class: 'code' }, 'Regime ' + T.regime.regime),
   el('li', { class: 'code hold' }, T.survivorship_flag ? `Survivorship: ${ALT.lost_count} alternative dropped` : 'No alternative dropped'));
 
-/* result sentence + position strip */
-const res = document.getElementById('result');
-res.append('Your return of ', fig(T.actual_return, true), ' was higher than ', fig(ALT.percentile, true), ' of the ',
-  String(ALT.portfolio_count), ' portfolios drawn from ', T.alternatives_label.charAt(0).toLowerCase() + T.alternatives_label.slice(1), '.');
-function renderStrip() {
-const host = document.getElementById('strip-wrap'); host.replaceChildren();
-const W = Math.min(640, Math.max(280, host.clientWidth || 640)), X = v => (Number(v) * W).toFixed(1);   // geometry only
-const strip = svgEl('svg', { class: 'strip', viewBox: `0 0 ${W} 74`, role: 'img',
-  'aria-label': `Position among alternative portfolios: ${ALT.percentile.display}` });
-strip.append(svgEl('rect', { class: 'track', x: 0.5, y: 34, width: W - 1, height: 14 }));
-if (ALT.percentile.value !== null) {
-  strip.append(svgEl('rect', { class: 'fillbar', x: 1, y: 35, width: X(ALT.percentile.value), height: 12 }));
+/* result sentence */
+document.getElementById('result').append('Your return of ', fig(T.actual_return, true), ' was higher than ', fig(ALT.percentile, true),
+  ' of the ', String(ALT.portfolio_count), ' portfolios drawn from ', T.alternatives_label.charAt(0).toLowerCase() + T.alternatives_label.slice(1), '.');
+
+/* histogram of the drawn portfolios' returns: bar heights are counts, the marker is the trip's own return */
+function renderHist() {
+  const host = document.getElementById('hist-wrap'); host.replaceChildren();
+  const W = Math.min(680, Math.max(280, host.clientWidth || 680)), Ht = 170, top = 28, base = 128, n = H.bins.length;
+  const maxC = Math.max(...H.bins.map(b => b.count));
+  const lo = Number(H.lower.value), hi = Number(H.upper.value), X = v => ((Number(v) - lo) / (hi - lo) * W);   // geometry only
+  const svg = svgEl('svg', { class: 'hist', viewBox: `0 0 ${W} ${Ht}`, role: 'img',
+    'aria-label': `Histogram of ${H.portfolio_count} drawn portfolio returns from ${H.lower.display} to ${H.upper.display}. ${H.text}` });
+  const bw = W / n;
+  H.bins.forEach((b, i) => {
+    const h = b.count / maxC * (base - top);
+    const r = svgEl('rect', { class: 'bar ' + (i < H.marker_bin ? 'less' : i === H.marker_bin ? 'you' : ''), x: (i * bw + .5).toFixed(1),
+      y: (base - h).toFixed(1), width: (bw - 1).toFixed(1), height: h.toFixed(1) });
+    const t = svgEl('title'); t.textContent = `${b.lower.display} to ${b.upper.display}: ${b.count} portfolios`; r.append(t); svg.append(r);
+  });
+  svg.append(svgEl('line', { class: 'base', x1: 0, x2: W, y1: base, y2: base }));
+  const mx = X(H.actual_return.value);
+  svg.append(svgEl('line', { class: 'you-line', x1: mx, x2: mx, y1: top - 8, y2: base + 6 }));
+  const anchor = mx > W - 110 ? 'end' : mx < 90 ? 'start' : 'middle';
+  const lbl = svgEl('text', { class: 'you-lbl', x: mx, y: top - 12, 'text-anchor': anchor });
+  lbl.textContent = 'Your trip ' + H.actual_return.display; svg.append(lbl);
+  const l = svgEl('text', { x: 0, y: base + 22, 'text-anchor': 'start' }); l.textContent = H.lower.display; svg.append(l);
+  const r = svgEl('text', { x: W, y: base + 22, 'text-anchor': 'end' }); r.textContent = H.upper.display; svg.append(r);
+  const c = svgEl('text', { x: W / 2, y: base + 22, 'text-anchor': 'middle' }); c.textContent = 'Return of a random portfolio'; svg.append(c);
+  host.append(svg);
 }
-[0, .25, .5, .75, 1].forEach((p, i) => {
-  strip.append(svgEl('line', { class: 'tick', x1: p * W, x2: p * W, y1: 48, y2: 54 }));
-  const t = svgEl('text', { x: p * W, y: 70, 'text-anchor': i === 0 ? 'start' : i === 4 ? 'end' : 'middle' });
-  t.textContent = ['0%', '25%', '50%', '75%', '100%'][i]; strip.append(t);
-});
-if (ALT.percentile.value !== null) {
-  const g = svgEl('g', { class: 'mark-g' });
-  g.append(svgEl('line', { class: 'mark', x1: X(ALT.percentile.value), x2: X(ALT.percentile.value), y1: 26, y2: 56 }));
-  g.append(svgEl('circle', { class: 'mark-dot', cx: X(ALT.percentile.value), cy: 26, r: 5 }));
-  const lab = svgEl('text', { class: 'mark-label', x: X(ALT.percentile.value), y: 14, 'text-anchor': 'middle' });
-  lab.textContent = ALT.percentile.display; g.append(lab); strip.append(g);
-}
-host.append(strip);
-}
-document.getElementById('strip-note').textContent =
-  'Percentile among the portfolios drawn; ties count half. A position, not a verdict.';
-const mr = document.getElementById('m-result');
-mr.append(el('h3', {}, 'Read with care'), el('ul', {}, D.trip_detail.caveats.map(c => el('li', {}, c))));
+document.getElementById('legend').append(
+  el('li', {}, el('i'), 'Portfolios that returned less than your trip'),
+  el('li', {}, el('i', { class: 'you' }), 'The bin holding your trip'),
+  el('li', {}, el('i', { class: 'rest' }), 'Portfolios that returned more'));
+document.getElementById('hist-text').textContent = H.text;
+document.getElementById('m-result').append(el('h3', {}, 'Read with care'), el('ul', {}, D.trip_detail.caveats.map(c => el('li', {}, c))));
 
 /* baseline table */
 document.getElementById('alt-note').textContent = D.meta.alternatives_note;
-const base = document.getElementById('base');
 document.getElementById('base-lede').append('Your return is ', fig(T.actual_return, true), ' in both rows; each row compares it with random portfolios from a different pool.');
+const base = document.getElementById('base');
 base.append(el('thead', {}, el('tr', {}, th('Baseline'), th('Alternatives’ mean', 'n'), th('Excess', 'n'), th('Percentile', 'n'),
-    th('Portfolios', 'n'), th('Status'), th('Note'))));
+  th('Portfolios', 'n'), th('Status'), th('Note'))));
 const rows = [[T.alternatives_label, ALT], ['Nifty 50 random portfolios', NIFTY]];
 const tb = el('tbody');
 rows.forEach(([name, o]) => {
   const na = o.unavailable_reason !== null;
   const tr = el('tr', {});
-  tr.append(el('th', { scope: 'row', 'data-label': 'Baseline' }, name));
+  tr.append(el('th', { scope: 'row' }, name));
   if (na) {
-    tr.append(el('td', { class: 'n na-cell', colspan: 4, 'data-label': 'Alternatives’ mean, excess, percentile, portfolios' },
-      el('span', { class: 'na-span' }, 'Unavailable')));
+    tr.append(el('td', { class: 'n na-cell', colspan: 4 }, el('span', { class: 'na-span' }, 'Unavailable')));
   } else {
     tr.append(
-      el('td', { class: 'n', 'data-label': 'Alternatives’ mean' }, fig(o.mean_return)),
-      el('td', { class: 'n', 'data-label': 'Excess' }, el('span', { class: 'nb' }, fig(o.excess, true), ' ', dir(o.excess))),
-      el('td', { class: 'n', 'data-label': 'Percentile' }, fig(o.percentile)),
-      el('td', { class: 'n', 'data-label': 'Portfolios' }, `${o.portfolio_count} from ${o.pool_size}`));
+      el('td', { class: 'n cell' }, fig(o.mean_return)),
+      el('td', { class: 'n cell' }, el('span', { class: 'nb' }, fig(o.excess, true), ' ', dir(o.excess_direction))),
+      el('td', { class: 'n cell' }, fig(o.percentile)),
+      el('td', { class: 'n cell' }, `${o.portfolio_count} from ${o.pool_size}`),
+      el('td', { class: 'm-line' },
+        el('span', { class: 'l' }, 'Mean '), o.mean_return.display, el('span', { class: 'sep' }, '·'),
+        el('span', { class: 'l' }, 'Excess '), o.excess.display, ' ', dir(o.excess_direction), el('span', { class: 'sep' }, '·'),
+        el('span', { class: 'l' }, 'Percentile '), o.percentile.display, el('span', { class: 'sep' }, '·'),
+        `${o.portfolio_count} from ${o.pool_size}`));
   }
   tr.append(
-    el('td', { 'data-label': 'Status' }, el('span', { class: 'code' + (na ? ' hold' : '') }, na ? 'Unavailable' : 'Evaluated')),
-    el('td', { class: 'note', 'data-label': 'Note' }, na ? el('span', { class: 'reason' }, o.unavailable_reason)
-       : (ALT.lost_count ? el('span', { class: 'reason' }, `${ALT.lost_count} alternative had no exit bar and was dropped`) : '')));
+    el('td', { class: 'status' }, el('span', { class: 'code' + (na ? ' hold' : '') }, na ? 'Unavailable' : 'Evaluated')),
+    el('td', { class: 'note' }, na ? el('span', { class: 'reason' }, o.reason_text)
+       : (ALT.lost_count ? el('span', { class: 'reason' }, `${ALT.lost_count} alternative had no price on the closing date and was dropped.`) : '')));
   tb.append(tr);
 });
 base.append(tb);
 
-/* picks */
+/* picks: the pool reconciles as picked + left out = the number in the label */
+const left = T.exclusions;
+document.getElementById('picks-sub').textContent =
+  `${T.picks.length} picked and ${left.length} left out of the ${T.alternatives_label.match(/, (\d+)\)/)[1]} in the group. Returns are over the same dates as your trip.`;
 const picks = document.getElementById('picks');
-picks.append(el('thead', {}, el('tr', {}, th('#', 'n'), th('Listing'), th('ISIN'), th('Return over the trip', 'n'))));
+picks.append(el('thead', {}, el('tr', {}, th('Listing'), th('Return over the trip', 'n'), th('Note'))));
 const pb = el('tbody');
-T.picks.forEach(p => pb.append(el('tr', {},
-  el('td', { class: 'n', 'data-label': 'Rank' }, String(p.rank)),
-  el('th', { scope: 'row', 'data-label': 'Listing' }, `${p.symbol} · ${p.exchange}`),
-  el('td', { 'data-label': 'ISIN' }, p.isin),
-  el('td', { class: 'n', 'data-label': 'Return over the trip' }, fig(p.return_ratio),
-    ...(p.return_ratio.value === null ? [' ', el('span', { class: 'reason' }, p.return_ratio.unavailable_reason)] : [])))));
+T.picks.forEach(p => {
+  const na = p.return_ratio.value === null;
+  pb.append(el('tr', {},
+    el('th', { scope: 'row' }, `${p.rank}. ${p.symbol} · ${p.exchange}`),
+    el('td', { class: 'n val' }, fig(p.return_ratio)),
+    el('td', { class: 'note' }, na ? el('span', { class: 'reason' }, p.return_ratio.reason_text + ' Dropped.') : '')));
+});
 picks.append(pb);
 document.getElementById('m-picks').append(el('h3', {}, 'Left out'),
-  el('ul', {}, T.exclusions.map(e => el('li', {}, `${e.isin}: ${e.reason}`))));
+  el('ul', {}, left.map(e => el('li', {}, el('b', {}, `${e.symbol} · ${e.exchange}`), ' ', e.reason_text))));
 
 /* regime band: geometry from the server's thresholds and volatility */
-const R = T.regime, hi = Number(R.high_threshold.value), lo = Number(R.low_threshold.value), vol = Number(R.volatility.value);
+const R = T.regime, hi = Number(R.high_threshold.value), lo2 = Number(R.low_threshold.value), vol = Number(R.volatility.value);
 function renderBand() {
-const host = document.getElementById('band-wrap'); host.replaceChildren();
-const BW = Math.min(640, Math.max(280, host.clientWidth || 640));
-const maxV = hi * 1.5, bx = v => (Math.min(v, maxV) / maxV * BW).toFixed(1);
-const band = svgEl('svg', { class: 'band', viewBox: `0 0 ${BW} 80`, role: 'img',
-  'aria-label': `Volatility ${R.volatility.display}; low below ${R.low_threshold.display}, high above ${R.high_threshold.display}; regime ${R.regime}` });
-[['LOW', 0, lo], ['NORMAL', lo, hi], ['HIGH', hi, maxV]].forEach(([n, a, b]) => {
-  band.append(svgEl('rect', { class: 'seg' + (n === R.regime ? ' on' : ''), x: bx(a), y: 30, width: bx(b) - bx(a), height: 16 }));
-  const t = svgEl('text', { x: (Number(bx(a)) + Number(bx(b))) / 2, y: 62, 'text-anchor': 'middle' }); t.textContent = n; band.append(t);
-});
-[[lo, R.low_threshold.display], [hi, R.high_threshold.display]].forEach(([v, d]) => {
-  const t = svgEl('text', { x: bx(v), y: 78, 'text-anchor': 'middle' }); t.textContent = d; band.append(t);
-});
-band.append(svgEl('line', { class: 'mk', x1: bx(vol), x2: bx(vol), y1: 22, y2: 50 }));
-const vl = svgEl('text', { class: 'lbl', x: bx(vol), y: 14, 'text-anchor': 'middle' }); vl.textContent = 'Trip opened at ' + R.volatility.display;
-band.append(vl);
-host.append(band);
+  const host = document.getElementById('band-wrap'); host.replaceChildren();
+  const BW = Math.min(680, Math.max(280, host.clientWidth || 680));
+  const maxV = hi * 1.5, bx = v => (Math.min(v, maxV) / maxV * BW).toFixed(1);
+  const band = svgEl('svg', { class: 'band', viewBox: `0 0 ${BW} 84`, role: 'img',
+    'aria-label': `Volatility ${R.volatility.display}; low below ${R.low_threshold.display}, high above ${R.high_threshold.display}; regime ${R.regime}` });
+  [['LOW', 0, lo2], ['NORMAL', lo2, hi], ['HIGH', hi, maxV]].forEach(([n, a, b]) => {
+    band.append(svgEl('rect', { class: 'seg' + (n === R.regime ? ' on' : ''), x: bx(a), y: 30, width: bx(b) - bx(a), height: 16 }));
+    const t = svgEl('text', { x: (Number(bx(a)) + Number(bx(b))) / 2, y: 62, 'text-anchor': 'middle' }); t.textContent = n; band.append(t);
+  });
+  [[lo2, R.low_threshold.display], [hi, R.high_threshold.display]].forEach(([v, d]) => {
+    const t = svgEl('text', { x: bx(v), y: 80, 'text-anchor': 'middle' }); t.textContent = d; band.append(t);
+  });
+  band.append(svgEl('line', { class: 'mk', x1: bx(vol), x2: bx(vol), y1: 22, y2: 50 }));
+  const vl = svgEl('text', { class: 'lbl', x: bx(vol), y: 14, 'text-anchor': 'middle' }); vl.textContent = 'Trip opened at ' + R.volatility.display;
+  band.append(vl);
+  host.append(band);
 }
-renderStrip(); renderBand();
-let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { renderStrip(); renderBand(); }, 120); });
-const rg = document.getElementById('regimes');
-rg.append(el('thead', {}, el('tr', {}, th('Regime'), th('Trips', 'n'), th('Mean excess vs alternatives', 'n'), th('Note'))));
-const rb = el('tbody');
-D.regimes.blocks.forEach(b => rb.append(el('tr', {},
-  el('th', { scope: 'row', 'data-label': 'Regime' }, b.regime),
-  el('td', { class: 'n', 'data-label': 'Trips' }, String(b.trip_count), el('span', { class: 'sub-fig' }, b.sample.text)),
-  el('td', { class: 'n', 'data-label': 'Mean excess vs alternatives' }, b.luck === null ? el('span', { class: 'na' }, 'Unavailable') : ''),
-  el('td', { class: 'note', 'data-label': 'Note' }, el('span', { class: 'reason' }, b.luck_unavailable_reason)))));
-rg.append(rb);
+document.getElementById('regime-sentence').append(el('strong', {}, D.regimes.none_ready_text + '.'));
 document.getElementById('m-regime').append(el('h3', {}, 'Limits'), el('ul', {}, D.regimes.limitations.map(c => el('li', {}, c))));
+
+renderHist(); renderBand();
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { renderHist(); renderBand(); }, 120); });
 
 /* across all trips */
 const S = D.trips_summary.ALT, all = document.getElementById('all');
-const facts = el('dl', { class: 'facts' },
-  el('div', {}, el('dt', {}, 'Mean excess'), el('dd', {}, fig(S.mean_excess))),
+all.append(el('dl', { class: 'facts' },
+  el('div', {}, el('dt', {}, 'Mean excess'), el('dd', {}, fig(S.mean_excess), ' ', dir(S.mean_excess_direction))),
   el('div', {}, el('dt', {}, 'Interval low'), el('dd', {}, fig(S.ci_lower))),
-  el('div', {}, el('dt', {}, 'Interval high'), el('dd', {}, fig(S.ci_upper))));
-all.append(facts);
+  el('div', {}, el('dt', {}, 'Interval high'), el('dd', {}, fig(S.ci_upper)))));
 all.append(S.sample.enough
   ? el('p', { class: 'hedge' }, `Across ${S.trips_used} trips the interval sits ${S.position === 'CONTAINS_ZERO' ? 'across zero' : S.position === 'ABOVE_ZERO' ? 'above zero' : 'below zero'}. Heuristic on a small sample, not proof of skill or luck.`)
   : el('div', { class: 'too-few' }, el('strong', {}, 'Not enough closed trips to say anything yet.'), el('span', {}, S.sample.text)));
-document.getElementById('m-all').append(el('h3', {}, 'Sample'), el('ul', {}, [el('li', {}, `${S.trips_used} trips used; ${S.sample.needed} needed for an interval`)]));
+document.getElementById('m-all').append(el('h3', {}, 'Sample'), el('ul', {}, [el('li', {}, `${S.trips_used} trips · ${S.sample.needed} needed for an interval`)]));
 </script>
 </body>
 </html>

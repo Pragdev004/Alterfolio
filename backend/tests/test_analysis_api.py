@@ -3,6 +3,7 @@
 import re
 import socket
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 import pytest
 from analysis_helpers import (
@@ -24,6 +25,7 @@ from app.services.portfolio_analysis import PortfolioAnalysisService
 ASOF = D_ASOF.isoformat()
 NOTE = "Same-sector or same-universe alternatives, not a prediction."
 CANONICAL = re.compile(r"^-?\d+(\.\d+)?$")
+RAW_CODE = re.compile(r"\b[A-Z]{2,}(?:_[A-Z]+)+\b")  # an enum code such as NO_MEMBERSHIP: never primary text
 ENDPOINTS = ("trips", "regimes", "biases")
 
 
@@ -61,15 +63,39 @@ def walk_numbers(obj, path="root"):
             yield from walk_numbers(v, f"{path}[{i}]")
 
 
+def text_key(key: str) -> str | None:
+    if key == "reason":
+        return "reason_text"
+    return key.replace("unavailable_reason", "reason_text") if key.endswith("unavailable_reason") else None
+
+
+def assert_reasons_have_plain_text(obj, path="root"):
+    """Every non-null reason string has a plain-English sibling that is not an enum code."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            tk = text_key(k)
+            if tk is not None and isinstance(v, str) and v:
+                assert obj.get(tk) and not RAW_CODE.search(obj[tk]), (path, k, obj.get(tk))
+                assert obj[tk] != v, (path, k)
+        for k, v in obj.items():
+            assert_reasons_have_plain_text(v, f"{path}.{k}")
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            assert_reasons_have_plain_text(v, f"{path}[{i}]")
+
+
 def assert_numbers_honest(body):
+    assert_reasons_have_plain_text(body)
     count = 0
     for path, n in walk_numbers(body):
         count += 1
         if n["value"] is None:
             assert n["display"] == "Unavailable" and n["unavailable_reason"], path  # T6/T7: missing is never 0 or blank
+            assert n["reason_text"] and not RAW_CODE.search(n["reason_text"]), (path, n["reason_text"])
         else:
             assert CANONICAL.match(n["value"]), (path, n["value"])  # T8: plain decimal text, no exponent, no NaN
             assert n["display"] not in ("", "Unavailable") and n["unavailable_reason"] is None, path
+            assert n["reason_text"] is None, path
     assert not list(walk_floats(body))  # T8
     return count
 
@@ -174,7 +200,7 @@ def test_regimes_always_three_blocks_with_sample_text(engine, seeded):
         assert blk["sample"]["needed"] == 3 and blk["sample"]["have"] == blk["trip_count"]
         assert blk["sample"]["enough"] == (blk["trip_count"] >= 3)
         if not blk["sample"]["enough"]:
-            assert blk["sample"]["text"] == f"({blk['trip_count']} of 3 trips needed)"
+            assert blk["sample"]["text"] == f"{blk['trip_count']} trips · 3 needed"
     assert b["limitations"]
     assert_numbers_honest(b)
 
@@ -199,7 +225,7 @@ def test_t7_nine_trips_say_nine_of_ten_and_no_interval(engine, session):
     seed_round_trips(session, USER_A, 9)
     b = get(TestClient(make_app(engine)), "trips").json()
     alt = b["summary"]["ALT"]
-    assert alt["sample"] == {"have": 9, "needed": 10, "text": "(9 of 10 trips needed)", "enough": False}
+    assert alt["sample"] == {"have": 9, "needed": 10, "text": "9 trips · 10 needed", "enough": False}
     assert alt["ci_lower"]["value"] is None and alt["ci_lower"]["display"] == "Unavailable"
     assert "INSUFFICIENT_TRIPS" in alt["ci_lower"]["unavailable_reason"]
     assert_numbers_honest(b)
@@ -420,3 +446,133 @@ def test_t4_per_trip_and_regime_luck_values_equal_the_quant_results(engine, seed
         fact = facts[f"regime.{blk['regime']}.luck.ALT.mean_excess"]
         got = blk["luck"]["ALT"]["mean_excess"]["value"] if blk["luck"] else None
         assert ("Unavailable" if got is None else got) == fact
+
+
+# --- review round: reason_text, percentile, histogram, direction, null counts, regimes sentence ---------------------------
+
+def _detail(engine, **cfg):
+    with sessionmaker(engine)() as s:
+        svc = PortfolioAnalysisService(repo=TradeRepository(s), provider=cfg.pop("provider", None) or FakeBars(), clock=lambda: NOW,
+                                       config=config(**cfg))
+        return svc.analyse_detail(USER_A, D_ASOF)
+
+
+def first_trip(client):
+    trips = get(client, "trips").json()["trips"]
+    return get(client, f"trips/{trips[0]['trip_id']}").json()["trip"]
+
+
+def test_reason_text_is_plain_english_in_every_scenario(engine, session):
+    seed_round_trips(session, USER_A, 14)
+    scenarios = [
+        {}, {"provider": FakeBars(missing=frozenset({TRADED}))}, {"corporate_action_reviewed": None}, {"nifty50": ()},
+        {"provider": FakeBars(missing=frozenset({UNIVERSE[3].instrument}))},
+    ]
+    seen = 0
+    for cfg in scenarios:
+        client = TestClient(make_app(engine, **cfg))
+        for path in ("meta", *ENDPOINTS):
+            body = get(client, path).json()
+            seen += assert_numbers_honest(body)
+        trip = get(client, "trips").json()["trips"][0]
+        assert_numbers_honest(get(client, f"trips/{trip['trip_id']}").json())
+    assert seen > 100
+
+
+def test_reason_text_when_nothing_is_there(engine, session):
+    client = TestClient(make_app(engine))
+    for path in ENDPOINTS:
+        assert_numbers_honest(get(client, path).json())
+
+
+def test_left_out_rows_name_the_ticker_and_a_plain_reason(engine, seeded):
+    client = TestClient(make_app(engine, provider=FakeBars(missing=frozenset({UNIVERSE[3].instrument}))))
+    ex = first_trip(client)["exclusions"]
+    row = next(e for e in ex if e["symbol"] == "UNIV03")
+    assert row["exchange"] == "NSE" and row["reason"] == "NO_SERIES" and row["baseline"] == "ALT"
+    assert row["reason_text"] and not RAW_CODE.search(row["reason_text"])
+
+
+def test_percentiles_display_with_no_decimals(engine, seeded):
+    b = get(TestClient(make_app(engine)), "trips").json()
+    t = first_trip(TestClient(make_app(engine)))
+    for n in (b["summary"]["ALT"]["mean_percentile"], t["alt"]["percentile"], t["nifty"]["percentile"]):
+        assert n["value"] is not None and re.fullmatch(r"-?\d+%", n["display"]), n
+    assert b["summary"]["ALT"]["mean_excess"]["display"].count(".") == 1  # other ratios keep two decimals
+
+
+def test_direction_is_explicit_and_follows_the_sign(engine, seeded):
+    client = TestClient(make_app(engine))
+    t = first_trip(client)
+    for key in ("alt", "nifty"):
+        o = t[key]
+        sign = Decimal(o["excess"]["value"])
+        assert o["excess_direction"] == ("ahead" if sign > 0 else "behind" if sign < 0 else "level")
+    s = get(client, "trips").json()["summary"]["ALT"]
+    mean = Decimal(s["mean_excess"]["value"])
+    assert s["mean_excess_direction"] == ("ahead" if mean > 0 else "behind" if mean < 0 else "level")
+
+
+def test_counts_and_direction_are_null_when_an_outcome_is_unavailable(engine, seeded):
+    t = first_trip(TestClient(make_app(engine, nifty50=())))
+    n = t["nifty"]
+    assert n["percentile"]["value"] is None and n["excess_direction"] is None
+    assert n["portfolio_count"] is None and n["pool_size"] is None and n["lost_count"] is None
+    assert n["unavailable_reason"] and n["reason_text"]
+    assert t["alt"]["portfolio_count"] is not None and t["histograms"]["NIFTY"] is None and t["histograms"]["ALT"] is not None
+
+
+def test_quant_retains_the_portfolio_returns_it_already_computed(engine, seeded):
+    detail = _detail(engine)
+    checked = 0
+    for g in detail.luck_groups:
+        for trip in g.result.trips:
+            for o in (trip.alt, trip.nifty):
+                if o.unavailable is None:
+                    assert o.portfolio_returns is not None and len(o.portfolio_returns) == o.portfolio_count
+                    assert sum(1 for r in o.portfolio_returns if r < trip.actual_return) == o.beaten
+                    checked += 1
+                else:
+                    assert o.portfolio_returns is None
+    assert checked >= 14
+
+
+def test_histogram_bins_match_the_computed_portfolios(engine, seeded):
+    detail = _detail(engine)
+    client = TestClient(make_app(engine))
+    trips = {t["trip_id"]: t for t in get(client, "trips").json()["trips"]}
+    group_trips = {t.trip_id: t for g in detail.luck_groups for t in g.result.trips}
+    for tid in list(trips)[:5]:
+        h = get(client, f"trips/{tid}").json()["trip"]["histograms"]["ALT"]
+        q = group_trips[tid]
+        assert len(h["bins"]) == 20 and sum(b["count"] for b in h["bins"]) == q.alt.portfolio_count == h["portfolio_count"]
+        for a, b in zip(h["bins"], h["bins"][1:]):
+            assert a["upper"]["value"] == b["lower"]["value"]  # contiguous, no gaps
+        assert all(Decimal(b["lower"]["value"]) < Decimal(b["upper"]["value"]) for b in h["bins"])
+        marker = h["bins"][h["marker_bin"]]
+        actual = Decimal(h["actual_return"]["value"])
+        assert Decimal(marker["lower"]["value"]) <= actual <= Decimal(marker["upper"]["value"])
+        below = sum(b["count"] for b in h["bins"][:h["marker_bin"]])
+        through = below + marker["count"]
+        assert below <= q.alt.beaten <= through  # the portfolios the trip beat sit in or before its bin
+        assert str(q.alt.portfolio_count) in h["text"] and "your trip" in h["text"]
+        assert h["lower"]["display"] == h["bins"][0]["lower"]["display"] and h["upper"]["display"] == h["bins"][-1]["upper"]["display"]
+    assert_numbers_honest(get(client, f"trips/{tid}").json())
+
+
+def test_regimes_say_so_in_one_sentence_when_no_regime_has_enough_trips(engine, seeded):
+    from app.quant.regime_split.types import RegimeParameters
+    client = TestClient(make_app(engine, regime_parameters=RegimeParameters(min_trips_per_regime=100)))
+    b = get(client, "regimes").json()
+    counts = {x["regime"]: x["trip_count"] for x in b["blocks"]}
+    assert b["none_ready_text"] == (f"Not enough trips in any regime yet: Low {counts['LOW']}, Normal {counts['NORMAL']}, "
+                                    f"High {counts['HIGH']} (100 needed each)")
+    assert all(x["sample"]["text"] == f"{x['trip_count']} trips · 100 needed" for x in b["blocks"])
+    ready = get(TestClient(make_app(engine)), "regimes").json()  # 3 needed each: at least one regime has enough
+    assert ready["none_ready_text"] is None
+
+
+def test_regimes_sentence_when_the_analysis_did_not_run(engine, session):
+    b = get(TestClient(make_app(engine)), "regimes").json()
+    assert b["none_ready_text"] is None  # nothing to count: the Unavailable reason speaks instead
+    assert b["unavailable_reason"] and b["reason_text"]

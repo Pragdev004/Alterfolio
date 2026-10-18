@@ -1,7 +1,7 @@
 """Immutable Feature 007 contracts. Validated at construction, never repaired. Money and returns are `Decimal`; the only
 floats are statistics (distance, excess, percentile, means, interval), produced through `numeric_boundary.to_float`."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -236,6 +236,9 @@ class BaselineOutcome:
     excess: float | None  # actual return - mean portfolio return (a statistic)
     percentile: float | None  # (beaten + ties / 2) / portfolio_count (a statistic)
     unavailable: Unavailable | None
+    # The drawn portfolios' returns, kept so a caller can show their distribution (Feature 013a). Not part of equality, the JSON
+    # form or the fingerprint: it only retains what `compare` already consumed.
+    portfolio_returns: tuple[Decimal, ...] | None = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.baseline, Baseline):
