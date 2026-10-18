@@ -6,13 +6,14 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routes import analyst, health, imports, portfolio, trades
+from app.api.routes import analysis, analyst, health, imports, portfolio, trades
 from app.config import Settings
 from app.db.session import make_session_factory
 from app.providers.market.port import MarketDataProvider
 from app.providers.market.yahoo import YahooProvider
 from app.services.portfolio_analysis import AnalysisConfig
-from app.services.errors import LedgerBusyError, LedgerError, TradeNotFoundError
+from app.services.analysis_read import AnalysisCache
+from app.services.errors import AnalysisTripNotFoundError, LedgerBusyError, LedgerError, TradeNotFoundError
 from app.services.users import ensure_user
 
 
@@ -21,7 +22,7 @@ def _utc_now() -> datetime:
 
 
 async def _ledger_error(_: Request, exc: LedgerError) -> JSONResponse:
-    if isinstance(exc, TradeNotFoundError):
+    if isinstance(exc, (TradeNotFoundError, AnalysisTripNotFoundError)):
         status = 404
     elif isinstance(exc, LedgerBusyError):
         status = 409
@@ -72,6 +73,7 @@ def create_app(
     app.state.market_data = market_data or YahooProvider(timeout_seconds=settings.market_timeout_seconds)
     app.state.history_provider = history_provider or YahooProvider(timeout_seconds=settings.market_timeout_seconds)
     app.state.analysis_config = analysis_config or AnalysisConfig()
+    app.state.analysis_cache = AnalysisCache()  # in process, no TTL; keyed by the ledger version (Feature 013a)
     app.state.retriever = retriever  # None: no document retrieval wired (the analyst then cites no passages)
     app.state.analyst_llm = analyst_llm  # None: AI_PROVIDER decides (default none, offline)
     app.add_exception_handler(LedgerError, _ledger_error)
@@ -80,4 +82,5 @@ def create_app(
     app.include_router(imports.router)
     app.include_router(portfolio.router)
     app.include_router(analyst.router)
+    app.include_router(analysis.router)
     return app

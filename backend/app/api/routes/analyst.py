@@ -1,10 +1,12 @@
+import os
 from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.analyst.service import ask
+from app.analyst.llm import TemplateLLM
+from app.analyst.service import ask, llm_from_provider
 from app.api.analyst_wiring import apply_caveats, quant_tools_with_caveats
 from app.api.display import render_fact
 from app.api.deps import get_analysis_service, get_current_user_id
@@ -35,6 +37,7 @@ def ask_route(
 ):
     analysis.require_sealed(body.as_of)  # rejected even when the question needs no quant tool
     tools, caveats = quant_tools_with_caveats(analysis.analyse)
-    answer = ask(user_id, body.question, body.as_of, llm=request.app.state.analyst_llm, tools=tools,
-                 retriever=request.app.state.retriever, render=render_fact)
-    return apply_caveats(answer, caveats()).to_dict()
+    llm = request.app.state.analyst_llm or llm_from_provider(os.environ.get("AI_PROVIDER", "none"))
+    answer = ask(user_id, body.question, body.as_of, llm=llm, tools=tools, retriever=request.app.state.retriever, render=render_fact)
+    # `answer_source` tells the reader whether the words came from the offline template or from a language model.
+    return {**apply_caveats(answer, caveats()).to_dict(), "answer_source": "template" if isinstance(llm, TemplateLLM) else "llm"}

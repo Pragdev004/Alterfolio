@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.providers.market.port import MarketDataProvider
+from app.services.analysis_read import AnalysisReadService
 from app.services.ledger import LedgerService
 from app.services.portfolio_analysis import PortfolioAnalysisService
 from app.services.portfolio_summary import PortfolioSummaryService
@@ -59,4 +60,11 @@ def get_analysis_service(request: Request, session: Session = Depends(get_sessio
     return PortfolioAnalysisService.for_session(
         session, provider=request.app.state.history_provider, clock=request.app.state.clock,
         config=request.app.state.analysis_config,
+    )
+
+
+def get_analysis_reader(request: Request, session: Session = Depends(get_session)) -> AnalysisReadService:
+    return AnalysisReadService.for_session(
+        session, provider=request.app.state.history_provider, clock=request.app.state.clock,
+        config=request.app.state.analysis_config, cache=request.app.state.analysis_cache,
     )

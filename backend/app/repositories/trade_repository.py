@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from app.domain.enums import Exchange, TradeStatus
@@ -56,6 +56,14 @@ class TradeRepository:
     def list_for_user(self, *, user_id: UUID) -> list[Trade]:
         rows = self._session.scalars(select(Trade).where(Trade.user_id == user_id)).all()
         return sorted(rows, key=lambda t: (t.trade_timestamp, t.recorded_at, t.id))
+
+    def ledger_version(self, *, user_id: UUID) -> tuple[int, datetime | None]:
+        """(row count, latest `recorded_at`) over ALL the user's rows (originals, corrections, voids): it changes whenever the
+        ledger does, so a cache keyed on it is invalidated by any import, manual trade, correction or void."""
+        count, latest = self._session.execute(
+            select(func.count(Trade.id), func.max(Trade.recorded_at)).where(Trade.user_id == user_id)
+        ).one()
+        return int(count), latest
 
     def list_effective(
         self,

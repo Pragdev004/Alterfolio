@@ -39,6 +39,16 @@ class TradeNotFoundError(LedgerError):
         super().__init__("trade not found")
 
 
+class AnalysisTripNotFoundError(LedgerError):
+    """The trip id is not among this user's round trips in the analysis for that day."""
+
+    code = "analysis_trip_not_found"
+
+    def __init__(self, trip_id: str):
+        self.trip_id = trip_id
+        super().__init__("trip not found in this analysis")
+
+
 class InvalidTradeError(LedgerError):
     code = "invalid_trade"
 

@@ -125,6 +125,64 @@ class AnalysisFacts:
                 "unavailable": [list(u) for u in self.unavailable]}
 
 
+@dataclass(frozen=True)
+class LuckGroup:
+    """One 007 run: the trips that share an alternatives set (Feature 014) and their result."""
+
+    label: str
+    result: LuckResult
+
+
+@dataclass(frozen=True)
+class ExcludedTrip:
+    """A closed round trip on a listing that was excluded from luck and regime. Listed from the ledger alone; no return is computed."""
+
+    trip_id: str
+    symbol: str
+    exchange: str
+    open_date: date  # IST calendar dates of the first buy and the closing sell
+    close_date: date
+    reason: str
+
+
+@dataclass(frozen=True)
+class Thresholds:
+    luck_min_trips: int
+    regime_min_trips_per_regime: int
+    bias_min_round_trips: int
+
+
+@dataclass(frozen=True)
+class AnalysisDetail:
+    """Everything `analyse` computed, kept whole (Feature 013a): the flat facts plus the per-trip, per-regime and per-bias results."""
+
+    facts: AnalysisFacts
+    bias: BiasAnalysisResult | None
+    luck_groups: tuple[LuckGroup, ...]
+    luck_facts: LuckResult | None  # the run behind the `luck.*` facts (the group holding the latest trip)
+    trip_labels: tuple[tuple[str, str], ...]  # (trip_id, stored alternatives label) for every trip 007 saw
+    regime: RegimeResult | None
+    excluded_trips: tuple[ExcludedTrip, ...]
+    thresholds: Thresholds
+    trips_total: int
+    errors: tuple[tuple[str, str], ...]  # (analysis "006"|"007"|"008", reason)
+
+
+def list_round_trips(trades) -> list[tuple[str, datetime, datetime]]:
+    """(opening buy id, opened at, closed at) of each flat -> open -> flat sequence; the same walk as `count_round_trips`."""
+    held, opened, out = Decimal(0), None, []
+    for t in sorted(trades, key=lambda t: (t.trade_timestamp, t.trade_id)):
+        if t.side is TradeSide.BUY and held == 0:
+            opened = t
+        held += t.quantity if t.side is TradeSide.BUY else -t.quantity
+        if held == 0 and opened is not None:
+            out.append((opened.trade_id, opened.trade_timestamp, t.trade_timestamp))
+            opened = None
+        elif held < 0:
+            held, opened = Decimal(0), None
+    return out
+
+
 class _Out:
     def __init__(self) -> None:
         self.facts: list[AnalysisFact] = []
@@ -267,6 +325,22 @@ class PortfolioAnalysisService:
     def for_session(cls, session, *, provider, clock: Callable[[], datetime], config: AnalysisConfig) -> "PortfolioAnalysisService":
         return cls(repo=TradeRepository(session), provider=provider, clock=clock, config=config)
 
+    def thresholds(self) -> Thresholds:
+        """The minimum-trip thresholds the analyses apply (their own parameter defaults / the injected config), without running them."""
+        now = self._clock()
+        bias = BiasParameters(chasing_lookback_sessions=20, window_start=BIAS_WINDOW_START, window_end=now, formula_version="bias-v1",
+                              rule_set_version=RULE_SET_VERSION)
+        return Thresholds(LuckParameters(seed=0, as_of=now).min_trips, self._config.regime_parameters.min_trips_per_regime,
+                          bias.min_round_trips)
+
+    @property
+    def config(self) -> AnalysisConfig:
+        return self._config
+
+    def latest_sealed(self) -> date:
+        """The newest as-of day the analyses accept: yesterday, exchange-local (IST). A calendar day, not a trading day."""
+        return local_date(self._clock(), IST_OFFSET) - timedelta(days=1)
+
     def require_sealed(self, as_of: date) -> None:
         """Raise AsOfNotSealedError unless D is before today's IST date (callable without running an analysis)."""
         self._require_sealed(as_of, self._clock())
@@ -281,6 +355,13 @@ class PortfolioAnalysisService:
             raise AsOfNotSealedError(as_of)
 
     def analyse(self, user_id: UUID, as_of: date) -> AnalysisFacts:
+        return self._run(user_id, as_of).facts
+
+    def analyse_detail(self, user_id: UUID, as_of: date) -> AnalysisDetail:
+        """The same run as `analyse` (same clock reading, seeds and inputs), keeping the per-trip, regime and bias results."""
+        return self._run(user_id, as_of)
+
+    def _run(self, user_id: UUID, as_of: date) -> AnalysisDetail:
         now = self._clock()  # the one clock reading of this run
         self._require_sealed(as_of, now)
         boundary = datetime.combine(as_of + timedelta(days=1), time.min, IST).astimezone(timezone.utc)  # IST midnight of D+1
@@ -309,6 +390,7 @@ class PortfolioAnalysisService:
         bias_res = luck_res = regime_res = None
         trip_count: int | None = None
         luck_alt: dict = {"per_trip": [], "groups": [], "facts_group": None}
+        luck_groups: tuple[LuckGroup, ...] = ()
         known = cfg.corporate_action_listings
         reviewed = cfg.corporate_action_reviewed
         traded = {t.instrument for t in ledger}
@@ -335,6 +417,9 @@ class PortfolioAnalysisService:
             by_listing[t.instrument].append(t)
         trips_total = sum(count_round_trips(v) for v in by_listing.values())
         excluded_rows = [[i.symbol, i.exchange.value, r, count_round_trips(by_listing[i])] for i, r in excluded.items()]
+        excluded_trips = tuple(
+            ExcludedTrip(tid, i.symbol, i.exchange.value, opened.astimezone(IST).date(), closed.astimezone(IST).date(), reason)
+            for i, reason in excluded.items() for tid, opened, closed in list_round_trips(by_listing[i]))
         if ledger and not part and not error:
             reasons["007"] = reasons["008"] = "all traded listings are excluded (see provenance.excluded_listings)"
         if not error:
@@ -353,7 +438,7 @@ class PortfolioAnalysisService:
                     mapped = map_round_trips(fold_positions(validated).round_trips) if validated.trades else ()
                     trips = [m.trip for m in mapped if m.unavailable is None]
                     trip_count = len(trips)
-                    luck_res, luck_alt = self._luck(trips, series, known, luck_p["luck_test"], reviewed)
+                    luck_res, luck_alt, luck_groups = self._luck(trips, series, known, luck_p["luck_test"], reviewed)
             except (BiasInputError, LuckInputError, RegimeInputError) as exc:
                 reasons["007"] = f"{type(exc).__name__}: {exc}"
             try:
@@ -401,7 +486,13 @@ class PortfolioAnalysisService:
                                    "008": None if regime_res is None else regime_res.input_fingerprint},
         }
         unavailable = tuple(out.unavailable) + tuple((k, v) for k, v in reasons.items() if v)
-        return AnalysisFacts(as_of=as_of, facts=tuple(out.facts), provenance=provenance, unavailable=unavailable)
+        facts = AnalysisFacts(as_of=as_of, facts=tuple(out.facts), provenance=provenance, unavailable=unavailable)
+        return AnalysisDetail(
+            facts=facts, bias=bias_res, luck_groups=luck_groups, luck_facts=luck_res,
+            trip_labels=tuple((tid, label) for tid, _, label in luck_alt["per_trip"]), regime=regime_res,
+            excluded_trips=excluded_trips,
+            thresholds=Thresholds(luck_p["luck_test"].min_trips, cfg.regime_parameters.min_trips_per_regime, bias_params.min_round_trips),
+            trips_total=trips_total, errors=tuple((k, v) for k, v in reasons.items() if v))
 
     def _luck(self, trips, series, known, params, reviewed):
         """007, once per distinct alternatives set (Feature 014; the quant call is unchanged). The luck FACTS come from the group
@@ -409,7 +500,8 @@ class PortfolioAnalysisService:
         cfg = self._config
         static_label = "alternatives: static universe"
         if not trips:
-            return analyze_luck([], series, cfg.universe, cfg.nifty50, known, params, corporate_action_reviewed=reviewed),                 {"per_trip": [], "groups": [], "facts_group": None}
+            empty = analyze_luck([], series, cfg.universe, cfg.nifty50, known, params, corporate_action_reviewed=reviewed)
+            return empty, {"per_trip": [], "groups": [], "facts_group": None}, ()
         chosen = [cfg.alternatives.get(t.isin or "", (cfg.universe, static_label)) for t in trips]
         order: list[tuple[tuple[Candidate, ...], str]] = []
         for c in chosen:
@@ -423,7 +515,8 @@ class PortfolioAnalysisService:
         info = {"per_trip": [[t.trip_id, t.instrument.symbol, c[1]] for t, c in zip(trips, chosen)],
                 "groups": [[label, len(cands), sum(1 for c in chosen if c == (cands, label))] for cands, label in order],
                 "facts_group": None if last is None else last[1]}
-        return (None if last is None else results[last[1], last[0]]), info
+        groups = tuple(LuckGroup(label, res) for (label, _), res in results.items())
+        return (None if last is None else results[last[1], last[0]]), info, groups
 
     @staticmethod
     def _content_id(t, seen: dict) -> str:
