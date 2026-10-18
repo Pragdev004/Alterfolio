@@ -125,6 +125,7 @@ def test_t3_meta_last_bar_date_unavailable_when_no_bars(engine, seeded):
     m = TestClient(make_app(engine, provider=FakeBars(missing=frozenset({TRADED, *[c.instrument for c in UNIVERSE]})))
                    ).get("/api/analysis/meta").json()
     assert m["last_bar_date"] is None and m["last_bar_date_unavailable_reason"]
+    assert m["last_bar_date_reason_text"] == "No price data yet."  # the UI shows "Latest bar" with this server sentence
 
 
 def test_t3_omitted_as_of_is_the_latest_sealed_day_and_never_today(engine, seeded):
@@ -673,3 +674,22 @@ def test_portfolios_text_for_the_universe_and_a_single_stock():
     assert portfolios_text("SAME_UNIVERSE", "Same-universe alternatives", 500, 12) == "500 portfolios built from 12 other stocks in the universe"
     assert portfolios_text("SAME_SECTOR", "Same-sector alternatives (NIFTY IT, 1)", 500, 1) == "500 portfolios built from 1 other Nifty IT stock"
     assert portfolios_text("SAME_SECTOR", "Same-sector alternatives (NIFTY BANK, 9)", None, None) is None
+
+
+def test_ask_with_an_unconfigured_provider_is_503_ai_provider_not_configured(engine, seeded, monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER", "openai_compatible")
+    monkeypatch.delenv("AI_BASE_URL", raising=False)
+    monkeypatch.delenv("AI_MODEL", raising=False)
+    r = TestClient(make_app(engine)).post("/api/analyst/ask", json={"question": "What did my behaviour cost me?", "as_of": ASOF})
+    assert r.status_code == 503 and r.json()["detail"]["code"] == "ai_provider_not_configured"
+    monkeypatch.setenv("AI_PROVIDER", "nonsense")
+    assert TestClient(make_app(engine)).post("/api/analyst/ask", json={"question": "x?", "as_of": ASOF}).status_code == 503
+    assert get(TestClient(make_app(engine)), "trips").status_code == 200  # analysis never needs the analyst
+
+
+def test_a_cost_without_a_fee_part_explains_the_missing_gross_figure(engine, seeded):
+    biases = {b["kind"]: b for b in get(TestClient(make_app(engine)), "biases").json()["biases"]}
+    gross = biases["CHASING"]["gross_cost_inr"]
+    assert biases["CHASING"]["cost_inr"]["value"] is not None and gross["value"] is None
+    assert gross["reason_text"] == "This habit's cost has no separate fee part."
+    assert biases["OVERTRADING"]["gross_cost_inr"]["value"] is not None

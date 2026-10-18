@@ -281,7 +281,7 @@ def _bias_views(res: BiasAnalysisResult | None, why: str) -> tuple[BiasView, ...
         m = r.metric
         reason = m.unavailable.reason if m.unavailable is not None else "not available"
         out.append(BiasView(
-            kind, _dec(m.cost_inr, "inr_lower_bound" if m.is_lower_bound else "inr", reason), _dec(m.gross_cost_inr, "inr", reason),
+            kind, _dec(m.cost_inr, "inr_lower_bound" if m.is_lower_bound else "inr", reason), _dec(m.gross_cost_inr, "inr", "no fee component" if m.cost_inr is not None else reason),
             _dec(m.fees_known, "inr", "no known fees or fees do not apply"), None if m.fee_status is None else m.fee_status.value,
             m.unknown_fee_trade_count if m.cost_inr is not None else None, tuple((e.subject, e.reason) for e in m.exclusions), tuple(m.details)))
     return tuple(out)

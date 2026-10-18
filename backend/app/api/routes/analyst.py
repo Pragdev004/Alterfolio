@@ -2,7 +2,7 @@ import os
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.analyst.llm import TemplateLLM
@@ -39,7 +39,10 @@ def ask_route(
     tools, caveats = quant_tools_with_caveats(analysis.analyse)
     provider = os.environ.get("AI_PROVIDER", "none")
     # The offline template renders facts through the display formatter, so its text matches the analysis API (whole percents, INR).
-    llm = request.app.state.analyst_llm or (TemplateLLM(render=render_fact) if provider == "none" else llm_from_provider(provider))
+    try:
+        llm = request.app.state.analyst_llm or (TemplateLLM(render=render_fact) if provider == "none" else llm_from_provider(provider))
+    except ValueError as exc:  # unknown provider or missing AI_BASE_URL/AI_MODEL: explicit, never a 500
+        raise HTTPException(status_code=503, detail={"code": "ai_provider_not_configured", "message": str(exc)}) from exc
     answer = ask(user_id, body.question, body.as_of, llm=llm, tools=tools, retriever=request.app.state.retriever, render=render_fact)
     # `answer_source` tells the reader whether the words came from the offline template or from a language model.
     return {**apply_caveats(answer, caveats()).to_dict(), "answer_source": "template" if isinstance(llm, TemplateLLM) else "llm"}
