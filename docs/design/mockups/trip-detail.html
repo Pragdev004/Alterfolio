@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BANKBARODA trip · Alterfolio</title>
+<!-- Static design mockup for Feature 013 (docs/design/013-frontend-design.md). Synthetic data, shaped like the 013a responses.
+     All text shown for a number is the server's `display` string; this script never formats a number. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:#f2f5f6; --paper-2:#e7ecee; --ink:#13202b; --ink-2:#44545f; --ink-3:#556570; --rule:#c3cdd3; --rule-ink:#13202b;
+  --ahead:#12508f; --ahead-wash:#dce8f4; --behind:#a1440b; --behind-wash:#f6e4d6; --hold:#7a5600; --hold-wash:#f5e8c0;
+  --focus:#13202b;
+  --hatch:repeating-linear-gradient(135deg, var(--rule) 0 1px, transparent 1px 6px);
+  --font:"Source Sans 3", system-ui, "Segoe UI", sans-serif;
+  --t-xs:.75rem; --t-sm:.8125rem; --t-md:.9375rem; --t-lg:1.125rem; --t-xl:1.375rem; --t-2xl:1.75rem; --t-3xl:2.125rem;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px; --s-8:64px;
+  --r-0:0; --r-ctl:2px;
+  --ease:cubic-bezier(.2,.8,.2,1); --d-fast:120ms; --d-base:200ms;
+}
+@media (prefers-color-scheme: dark) { :root[data-theme="auto"] { /* dark tokens ship with the app; light is the default */ } }
+*, *::before, *::after { box-sizing:border-box; }
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--paper); color:var(--ink); font:400 var(--t-md)/1.5 var(--font);
+  font-variant-numeric:tabular-nums lining-nums; text-rendering:optimizeLegibility; }
+::selection { background:var(--ink); color:var(--paper); }
+a { color:var(--ink); text-decoration-thickness:1px; text-underline-offset:3px; }
+a:hover { text-decoration-thickness:2px; }
+:focus-visible { outline:2px solid var(--focus); outline-offset:2px; box-shadow:0 0 0 4px var(--paper); }
+.skip { position:absolute; left:-999px; top:var(--s-2); background:var(--ink); color:var(--paper); padding:var(--s-2) var(--s-4); z-index:10; }
+.skip:focus { left:var(--s-2); }
+
+.shell { display:grid; grid-template-columns:200px minmax(0,1fr); min-height:100vh; }
+.rail { border-right:1px solid var(--rule); background:var(--paper-2); }
+.rail-in { padding:var(--s-6) var(--s-4); display:flex; flex-direction:column; gap:var(--s-6); position:sticky; top:0; min-height:100vh; }
+.brand { font-weight:700; font-size:var(--t-lg); letter-spacing:.01em; margin:0; }
+.rail ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--s-1); }
+.rail a { display:block; padding:var(--s-2) var(--s-2); text-decoration:none; font-weight:400; }
+.rail a:hover { text-decoration:underline; }
+.rail a[aria-current="page"] { font-weight:700; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:6px; }
+.rail small { margin-top:auto; color:var(--ink-3); font-size:var(--t-sm); }
+
+main { padding:0 var(--s-6) var(--s-8); max-width:1240px; width:100%; }
+.chart-head { display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-6); align-items:baseline; padding:var(--s-3) 0;
+  border-bottom:1px solid var(--rule-ink); font-size:var(--t-sm); }
+.chart-head .k { text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-2); font-size:var(--t-xs); margin-right:var(--s-2); }
+.chart-head .fig { font-weight:600; }
+.chart-head .spacer { flex:1; }
+.btn-link { font:inherit; background:none; border:0; padding:var(--s-1) 0; color:var(--ink); text-decoration:underline;
+  text-underline-offset:3px; cursor:pointer; border-radius:var(--r-ctl); }
+
+.title { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--s-2) var(--s-5); margin:var(--s-6) 0 var(--s-3); }
+h1 { font-size:var(--t-3xl); line-height:1.1; margin:0; font-weight:700; letter-spacing:-.005em; }
+.title .sub { color:var(--ink-2); font-size:var(--t-lg); }
+.codes { display:flex; flex-wrap:wrap; gap:var(--s-2); margin:0 0 var(--s-5); padding:0; list-style:none; }
+.code { display:inline-block; border:1px solid var(--rule-ink); padding:2px var(--s-2); font-size:var(--t-xs); font-weight:600;
+  text-transform:uppercase; letter-spacing:.08em; line-height:1.4; }
+.code.hold { border-color:var(--hold); color:var(--hold); background:var(--hold-wash); }
+
+.sec { display:grid; grid-template-columns:minmax(0,1fr) 280px; column-gap:var(--s-6); padding:var(--s-6) 0;
+  border-top:1px solid var(--rule); }
+.sec > h2 { grid-column:1 / -1; margin:0 0 var(--s-4); font-size:var(--t-xl); line-height:1.2; font-weight:700; }
+.sec > h2 .h-sub { display:block; font-size:var(--t-md); font-weight:400; color:var(--ink-2); margin-top:var(--s-1); }
+.margin { font-size:var(--t-sm); color:var(--ink-2); }
+.margin h3 { margin:0 0 var(--s-2); font-size:var(--t-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-2); }
+.margin ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:var(--s-3); }
+.margin li { padding-left:var(--s-3); text-indent:calc(-1 * var(--s-3)); }
+.margin li::before { content:"["; color:var(--ink-3); margin-right:2px; }
+.margin li::after { content:"]"; color:var(--ink-3); margin-left:2px; }
+
+.result { font-size:var(--t-2xl); line-height:1.3; margin:0 0 var(--s-5); max-width:36ch; font-weight:400; }
+.result .fig { white-space:nowrap; font-weight:700; }
+.dir { font-weight:700; white-space:nowrap; }
+.dir.ahead { color:var(--ahead); } .dir.behind { color:var(--behind); }
+.dir svg { width:.7em; height:.7em; vertical-align:-.02em; margin-right:.25em; }
+
+.strip { width:100%; max-width:640px; height:auto; display:block; margin:var(--s-2) 0 var(--s-1); overflow:visible; }
+.strip text { font:600 12px var(--font); fill:var(--ink-2); font-variant-numeric:tabular-nums; }
+.strip .mark-label { font-size:14px; font-weight:700; fill:var(--ink); }
+.strip .tick { stroke:var(--ink-3); stroke-width:1; }
+.strip .track { fill:var(--paper-2); stroke:var(--rule-ink); stroke-width:1; }
+.strip .fillbar { fill:var(--ahead-wash); }
+.strip .mark { stroke:var(--ahead); stroke-width:3; }
+.strip .mark-dot { fill:var(--ahead); }
+.strip-note { color:var(--ink-2); font-size:var(--t-sm); margin:0; max-width:64ch; }
+@media (prefers-reduced-motion: no-preference) {
+  .strip .mark-g { animation:settle var(--d-base) var(--ease) 1; }
+  @keyframes settle { from { transform:translateY(-4px); opacity:.0 } to { transform:none; opacity:1 } }
+}
+
+table { border-collapse:collapse; width:100%; font-size:var(--t-md); }
+caption { text-align:left; color:var(--ink-2); font-size:var(--t-sm); padding-bottom:var(--s-2); }
+th, td { text-align:left; padding:var(--s-3) var(--s-3) var(--s-3) 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+thead th { font-size:var(--t-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-2);
+  border-bottom:1px solid var(--rule-ink); vertical-align:bottom; }
+tbody th { font-weight:600; }
+td.n, th.n { text-align:right; font-variant-numeric:tabular-nums lining-nums; }
+td.note { font-size:var(--t-sm); color:var(--ink-2); padding-left:var(--s-3); border-bottom-color:transparent; width:260px; }
+.wide { grid-column:1 / -1; }
+.na { display:inline-block; min-width:5.5em; padding:1px var(--s-2); background:var(--hatch); border:1px solid var(--rule);
+  font-weight:600; color:var(--ink-2); font-size:var(--t-sm); letter-spacing:.02em; }
+.fig { font-weight:400; }
+.na-span { display:block; text-align:center; padding:2px var(--s-2); background:var(--hatch); border:1px solid var(--rule); font-weight:600; color:var(--ink-2); font-size:var(--t-sm); }
+.sub-fig { display:block; font-size:var(--t-sm); color:var(--ink-2); }
+nobr, .nb { white-space:nowrap; }
+td .fig.strong { font-weight:600; }
+.reason::before { content:"[ "; } .reason::after { content:" ]"; }
+.reason { color:var(--ink-2); }
+
+.band { width:100%; max-width:640px; height:auto; display:block; margin:0 0 var(--s-3); overflow:visible; }
+.band text { font:600 12px var(--font); fill:var(--ink-2); font-variant-numeric:tabular-nums; }
+.band .seg { fill:var(--paper-2); stroke:var(--rule-ink); stroke-width:1; }
+.band .seg.on { fill:var(--ahead-wash); }
+.band .mk { stroke:var(--ink); stroke-width:3; }
+.band .lbl { font-size:14px; font-weight:700; fill:var(--ink); }
+
+.too-few { border:1px solid var(--rule-ink); padding:var(--s-3) var(--s-4); margin:0 0 var(--s-4); max-width:56ch; background:var(--hold-wash); }
+.too-few strong { display:block; font-weight:700; }
+.too-few span { color:var(--ink); }
+
+.facts { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--s-5); margin:0 0 var(--s-4); }
+.facts dt { font-size:var(--t-xs); text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:var(--ink-2); }
+.facts dd { margin:var(--s-1) 0 0; font-size:var(--t-xl); font-weight:600; }
+.hedge { color:var(--ink-2); max-width:62ch; margin:0; }
+
+footer { border-top:1px solid var(--rule-ink); padding-top:var(--s-4); color:var(--ink-2); font-size:var(--t-sm); display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-6); }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns:1fr; }
+  .rail { border-right:0; border-bottom:1px solid var(--rule); }
+  .rail-in { position:static; min-height:0; flex-direction:row; align-items:baseline; flex-wrap:wrap; gap:var(--s-2) var(--s-5);
+    padding:var(--s-3) var(--s-4); }
+  .rail ul { flex-direction:row; flex-wrap:wrap; }
+  .rail small { display:none; }
+  main { padding:0 var(--s-4) var(--s-7); }
+  .sec { grid-template-columns:1fr; }
+  .sec > .margin { margin-top:var(--s-4); padding-top:var(--s-3); border-top:1px solid var(--rule); }
+  td.note { width:auto; }
+}
+@media (max-width: 640px) {
+  h1 { font-size:var(--t-2xl); }
+  .result { font-size:var(--t-xl); }
+  .facts { grid-template-columns:1fr; gap:var(--s-3); }
+  table, thead, tbody, tr, th, td { display:block; }
+  thead { position:absolute; left:-9999px; }
+  tr { border-bottom:1px solid var(--rule-ink); padding:var(--s-3) 0; }
+  th, td { border:0; padding:var(--s-1) 0; text-align:left; }
+  td.n, th.n { text-align:left; }
+  td[data-label]::before, th[data-label]::before { content:attr(data-label); display:block; font-size:var(--t-xs); text-transform:uppercase;
+    letter-spacing:.08em; font-weight:600; color:var(--ink-2); }
+  td.note { padding:var(--s-1) 0 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  a, .btn-link { transition:text-decoration-thickness var(--d-fast) var(--ease); }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<div class="shell">
+  <nav class="rail" aria-label="Screens"><div class="rail-in">
+    <p class="brand">Alterfolio</p>
+    <ul>
+      <li><a href="#">Holdings</a></li>
+      <li><a href="#" aria-current="page">Trips</a></li>
+      <li><a href="#">Costs</a></li>
+      <li><a href="#">Ask</a></li>
+      <li><a href="#">Upload</a></li>
+    </ul>
+    <small>Educational, not financial advice.</small>
+  </div></nav>
+
+  <main id="main" tabindex="-1">
+    <div class="chart-head" id="chart-head" role="group" aria-label="Data as of"></div>
+    <header>
+      <div class="title"><h1 id="t-symbol"></h1><span class="sub" id="t-sub"></span></div>
+      <ul class="codes" id="t-codes" aria-label="Status"></ul>
+    </header>
+
+    <section class="sec" aria-labelledby="h-result">
+      <h2 id="h-result">How this trip compares</h2>
+      <div>
+        <p class="result" id="result"></p>
+        <div id="strip-wrap"></div>
+        <p class="strip-note" id="strip-note"></p>
+      </div>
+      <aside class="margin" id="m-result" aria-label="Notes on this result"></aside>
+    </section>
+
+    <section class="sec" aria-labelledby="h-base">
+      <h2 id="h-base">Against each baseline<span class="h-sub" id="alt-note"></span></h2>
+      <p class="strip-note wide" id="base-lede" style="margin:0 0 var(--s-4)"></p>
+      <div class="wide"><table id="base"></table></div>
+    </section>
+
+    <section class="sec" aria-labelledby="h-picks">
+      <h2 id="h-picks">Alternatives picked<span class="h-sub">The portfolios drawn from these listings; returns are over the same dates as your trip.</span></h2>
+      <div><table id="picks"></table></div>
+      <aside class="margin" id="m-picks" aria-label="Notes on the alternatives"></aside>
+    </section>
+
+    <section class="sec" aria-labelledby="h-regime">
+      <h2 id="h-regime">Volatility regime<span class="h-sub">Relative to this stock's own history before the trip opened.</span></h2>
+      <div>
+        <div id="band-wrap"></div>
+        <table id="regimes"></table>
+      </div>
+      <aside class="margin" id="m-regime" aria-label="Notes on regimes"></aside>
+    </section>
+
+    <section class="sec" aria-labelledby="h-all">
+      <h2 id="h-all">Across all your trips</h2>
+      <div id="all"></div>
+      <aside class="margin" id="m-all" aria-label="Notes on the sample"></aside>
+    </section>
+
+    <footer>
+      <span>Synthetic sample data for design review. Not your trades.</span>
+      <span>Every figure is the server's own text; nothing here is calculated in the browser.</span>
+    </footer>
+  </main>
+</div>
+
+<script type="application/json" id="data">
+{
+  "meta": {
+    "latest_sealed_as_of": {"iso": "2026-11-30", "display": "30 Nov 2026"},
+    "today_ist": {"iso": "2026-12-01", "display": "1 Dec 2026"},
+    "last_bar_date": {"iso": "2026-11-30", "display": "30 Nov 2026"},
+    "last_bar_date_unavailable_reason": null,
+    "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
+  },
+  "trip_detail": {
+    "as_of": {"iso": "2026-11-30", "display": "30 Nov 2026"},
+    "as_of_defaulted": true,
+    "trip": {
+      "trip_id": "t51839313d844be78f2627f1",
+      "symbol": "BANKBARODA", "exchange": "NSE",
+      "open_session": {"iso": "2026-09-08", "display": "8 Sep 2026"},
+      "close_session": {"iso": "2026-10-12", "display": "12 Oct 2026"},
+      "evaluated": true,
+      "actual_return": {"value": "0.0410256", "display": "4.10% (fees excluded)", "unavailable_reason": null},
+      "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
+      "alternatives_kind": "SAME_SECTOR",
+      "alternatives_label": "Same-sector alternatives (NIFTY BANK, 9)",
+      "alt": {
+        "percentile": {"value": "0.612", "display": "61.20%", "unavailable_reason": null},
+        "excess": {"value": "0.0128", "display": "1.28%", "unavailable_reason": null},
+        "mean_return": {"value": "0.0282256", "display": "2.82%", "unavailable_reason": null},
+        "portfolio_count": 500, "pool_size": 8, "lost_count": 1, "unavailable_reason": null
+      },
+      "nifty": {
+        "percentile": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
+        "excess": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
+        "mean_return": {"value": null, "display": "Unavailable", "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"},
+        "portfolio_count": 0, "pool_size": 0, "lost_count": 0,
+        "unavailable_reason": "NO_MEMBERSHIP: Nifty 50 membership is not configured"
+      },
+      "survivorship_flag": true,
+      "regime": {
+        "regime": "NORMAL",
+        "volatility": {"value": "0.0184", "display": "1.84%", "unavailable_reason": null},
+        "low_threshold": {"value": "0.0131", "display": "1.31%", "unavailable_reason": null},
+        "high_threshold": {"value": "0.0227", "display": "2.27%", "unavailable_reason": null},
+        "calibration_count": 212, "reason": null
+      },
+      "unavailable_reason": null,
+      "picks": [
+        {"rank": 1, "symbol": "CANBK", "exchange": "NSE", "isin": "INE476A01022", "return_ratio": {"value": "0.0311", "display": "3.11%", "unavailable_reason": null}},
+        {"rank": 2, "symbol": "SBIN", "exchange": "NSE", "isin": "INE062A01020", "return_ratio": {"value": "0.0264", "display": "2.64%", "unavailable_reason": null}},
+        {"rank": 3, "symbol": "UNIONBANK", "exchange": "NSE", "isin": "INE692A01016", "return_ratio": {"value": "0.0407", "display": "4.07%", "unavailable_reason": null}},
+        {"rank": 4, "symbol": "INDIANB", "exchange": "NSE", "isin": "INE562A01011", "return_ratio": {"value": "-0.0058", "display": "-0.58%", "unavailable_reason": null}},
+        {"rank": 5, "symbol": "BANKINDIA", "exchange": "NSE", "isin": "INE084A01016", "return_ratio": {"value": null, "display": "Unavailable", "unavailable_reason": "no exit bar"}}
+      ],
+      "exclusions": [
+        {"baseline": "ALT", "isin": "INE141A01014", "reason": "INSUFFICIENT_HISTORY"}
+      ],
+      "zero_variance_features": []
+    },
+    "caveats": [
+      "not analysed in luck/regime: PNB.NSE (not covered by the corporate-action review register)",
+      "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+    ],
+    "alternatives_note": "Same-sector or same-universe alternatives, not a prediction."
+  },
+  "trips_summary": {
+    "trip_count": 14, "trips_evaluated": 14,
+    "ALT": {
+      "trips_used": 14, "trips_evaluated": 14,
+      "mean_excess": {"value": "0.0084", "display": "0.84%", "unavailable_reason": null},
+      "mean_percentile": {"value": "0.538", "display": "53.80%", "unavailable_reason": null},
+      "ci_lower": {"value": "-0.0042", "display": "-0.42%", "unavailable_reason": null},
+      "ci_upper": {"value": "0.0211", "display": "2.11%", "unavailable_reason": null},
+      "position": "CONTAINS_ZERO",
+      "sample": {"have": 14, "needed": 10, "enough": true, "text": ""}
+    }
+  },
+  "regimes": {
+    "limitations": ["Heuristic grouping, not a model of markets: regimes are relative to each listing's own volatility history."],
+    "blocks": [
+      {"regime": "LOW", "trip_ids": [], "trip_count": 3, "sample": {"have": 3, "needed": 10, "enough": false, "text": "(3 of 10 trips needed)"},
+       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 3 trips available, 10 needed"},
+      {"regime": "NORMAL", "trip_ids": [], "trip_count": 9, "sample": {"have": 9, "needed": 10, "enough": false, "text": "(9 of 10 trips needed)"},
+       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 9 trips available, 10 needed"},
+      {"regime": "HIGH", "trip_ids": [], "trip_count": 2, "sample": {"have": 2, "needed": 10, "enough": false, "text": "(2 of 10 trips needed)"},
+       "luck": null, "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 2 trips available, 10 needed"}
+    ]
+  }
+}
+</script>
+
+<script>
+/* Renders the server's own strings. No number is formatted or computed here. Geometry (the position strip and the volatility
+   band) reads `value` only to place a mark; the text beside each mark is the server's `display`. The ahead/behind word is chosen
+   by the sign of `value` ("-" prefix), which the production app should get from a server field instead (design doc, section 8). */
+const D = JSON.parse(document.getElementById('data').textContent);
+const T = D.trip_detail.trip, ALT = T.alt, NIFTY = T.nifty;
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === 'class' ? e.className = v : e.setAttribute(k, v);
+  kids.flat().forEach(k => e.append(k));
+  return e;
+};
+const svgEl = (tag, attrs = {}) => {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+/* A number object -> either its display text, or the hatched "Unavailable" word. */
+const fig = (n, strong) => n.value === null
+  ? el('span', { class: 'na' }, 'Unavailable')
+  : el('span', { class: 'fig' + (strong ? ' strong' : '') }, n.display);
+const reasonOf = n => n.value === null ? n.unavailable_reason : null;
+const isBehind = n => n.value !== null && n.value.startsWith('-');
+const arrow = up => { const s = svgEl('svg', { viewBox: '0 0 10 10', 'aria-hidden': 'true' });
+  s.append(svgEl('path', { d: up ? 'M5 1 L9.5 9 L0.5 9 Z' : 'M5 9 L9.5 1 L0.5 1 Z', fill: 'currentColor' })); return s; };
+const dir = n => { const behind = isBehind(n);
+  return el('span', { class: 'dir ' + (behind ? 'behind' : 'ahead') }, arrow(!behind), behind ? 'behind' : 'ahead'); };
+const th = (txt, cls = '') => el('th', { scope: 'col', class: cls }, txt);
+
+/* chart header */
+const ch = document.getElementById('chart-head');
+ch.append(
+  el('span', {}, el('span', { class: 'k' }, 'Chart prepared'), el('span', { class: 'fig' }, D.meta.latest_sealed_as_of.display)),
+  el('span', {}, el('span', { class: 'k' }, 'Latest bar'), el('span', { class: 'fig' }, D.meta.last_bar_date.display)),
+  el('span', {}, 'Data after this date is not used.'),
+  el('span', { class: 'spacer' }),
+  el('button', { class: 'btn-link', type: 'button' }, 'Change date'));
+
+/* title + status codes */
+document.getElementById('t-symbol').textContent = T.symbol;
+document.getElementById('t-sub').textContent = `${T.exchange} · ${T.open_session.display} to ${T.close_session.display}`;
+const codes = document.getElementById('t-codes');
+codes.append(
+  el('li', { class: 'code' }, T.evaluated ? 'Evaluated' : 'Not evaluated'),
+  el('li', { class: 'code' }, 'Regime ' + T.regime.regime),
+  el('li', { class: 'code hold' }, T.survivorship_flag ? `Survivorship: ${ALT.lost_count} alternative dropped` : 'No alternative dropped'));
+
+/* result sentence + position strip */
+const res = document.getElementById('result');
+res.append('Your return of ', fig(T.actual_return, true), ' was higher than ', fig(ALT.percentile, true), ' of the ',
+  String(ALT.portfolio_count), ' portfolios drawn from ', T.alternatives_label.charAt(0).toLowerCase() + T.alternatives_label.slice(1), '.');
+function renderStrip() {
+const host = document.getElementById('strip-wrap'); host.replaceChildren();
+const W = Math.min(640, Math.max(280, host.clientWidth || 640)), X = v => (Number(v) * W).toFixed(1);   // geometry only
+const strip = svgEl('svg', { class: 'strip', viewBox: `0 0 ${W} 74`, role: 'img',
+  'aria-label': `Position among alternative portfolios: ${ALT.percentile.display}` });
+strip.append(svgEl('rect', { class: 'track', x: 0.5, y: 34, width: W - 1, height: 14 }));
+if (ALT.percentile.value !== null) {
+  strip.append(svgEl('rect', { class: 'fillbar', x: 1, y: 35, width: X(ALT.percentile.value), height: 12 }));
+}
+[0, .25, .5, .75, 1].forEach((p, i) => {
+  strip.append(svgEl('line', { class: 'tick', x1: p * W, x2: p * W, y1: 48, y2: 54 }));
+  const t = svgEl('text', { x: p * W, y: 70, 'text-anchor': i === 0 ? 'start' : i === 4 ? 'end' : 'middle' });
+  t.textContent = ['0%', '25%', '50%', '75%', '100%'][i]; strip.append(t);
+});
+if (ALT.percentile.value !== null) {
+  const g = svgEl('g', { class: 'mark-g' });
+  g.append(svgEl('line', { class: 'mark', x1: X(ALT.percentile.value), x2: X(ALT.percentile.value), y1: 26, y2: 56 }));
+  g.append(svgEl('circle', { class: 'mark-dot', cx: X(ALT.percentile.value), cy: 26, r: 5 }));
+  const lab = svgEl('text', { class: 'mark-label', x: X(ALT.percentile.value), y: 14, 'text-anchor': 'middle' });
+  lab.textContent = ALT.percentile.display; g.append(lab); strip.append(g);
+}
+host.append(strip);
+}
+document.getElementById('strip-note').textContent =
+  'Percentile among the portfolios drawn; ties count half. A position, not a verdict.';
+const mr = document.getElementById('m-result');
+mr.append(el('h3', {}, 'Read with care'), el('ul', {}, D.trip_detail.caveats.map(c => el('li', {}, c))));
+
+/* baseline table */
+document.getElementById('alt-note').textContent = D.meta.alternatives_note;
+const base = document.getElementById('base');
+document.getElementById('base-lede').append('Your return is ', fig(T.actual_return, true), ' in both rows; each row compares it with random portfolios from a different pool.');
+base.append(el('thead', {}, el('tr', {}, th('Baseline'), th('Alternatives’ mean', 'n'), th('Excess', 'n'), th('Percentile', 'n'),
+    th('Portfolios', 'n'), th('Status'), th('Note'))));
+const rows = [[T.alternatives_label, ALT], ['Nifty 50 random portfolios', NIFTY]];
+const tb = el('tbody');
+rows.forEach(([name, o]) => {
+  const na = o.unavailable_reason !== null;
+  const tr = el('tr', {});
+  tr.append(el('th', { scope: 'row', 'data-label': 'Baseline' }, name));
+  if (na) {
+    tr.append(el('td', { class: 'n na-cell', colspan: 4, 'data-label': 'Alternatives’ mean, excess, percentile, portfolios' },
+      el('span', { class: 'na-span' }, 'Unavailable')));
+  } else {
+    tr.append(
+      el('td', { class: 'n', 'data-label': 'Alternatives’ mean' }, fig(o.mean_return)),
+      el('td', { class: 'n', 'data-label': 'Excess' }, el('span', { class: 'nb' }, fig(o.excess, true), ' ', dir(o.excess))),
+      el('td', { class: 'n', 'data-label': 'Percentile' }, fig(o.percentile)),
+      el('td', { class: 'n', 'data-label': 'Portfolios' }, `${o.portfolio_count} from ${o.pool_size}`));
+  }
+  tr.append(
+    el('td', { 'data-label': 'Status' }, el('span', { class: 'code' + (na ? ' hold' : '') }, na ? 'Unavailable' : 'Evaluated')),
+    el('td', { class: 'note', 'data-label': 'Note' }, na ? el('span', { class: 'reason' }, o.unavailable_reason)
+       : (ALT.lost_count ? el('span', { class: 'reason' }, `${ALT.lost_count} alternative had no exit bar and was dropped`) : '')));
+  tb.append(tr);
+});
+base.append(tb);
+
+/* picks */
+const picks = document.getElementById('picks');
+picks.append(el('thead', {}, el('tr', {}, th('#', 'n'), th('Listing'), th('ISIN'), th('Return over the trip', 'n'))));
+const pb = el('tbody');
+T.picks.forEach(p => pb.append(el('tr', {},
+  el('td', { class: 'n', 'data-label': 'Rank' }, String(p.rank)),
+  el('th', { scope: 'row', 'data-label': 'Listing' }, `${p.symbol} · ${p.exchange}`),
+  el('td', { 'data-label': 'ISIN' }, p.isin),
+  el('td', { class: 'n', 'data-label': 'Return over the trip' }, fig(p.return_ratio),
+    ...(p.return_ratio.value === null ? [' ', el('span', { class: 'reason' }, p.return_ratio.unavailable_reason)] : [])))));
+picks.append(pb);
+document.getElementById('m-picks').append(el('h3', {}, 'Left out'),
+  el('ul', {}, T.exclusions.map(e => el('li', {}, `${e.isin}: ${e.reason}`))));
+
+/* regime band: geometry from the server's thresholds and volatility */
+const R = T.regime, hi = Number(R.high_threshold.value), lo = Number(R.low_threshold.value), vol = Number(R.volatility.value);
+function renderBand() {
+const host = document.getElementById('band-wrap'); host.replaceChildren();
+const BW = Math.min(640, Math.max(280, host.clientWidth || 640));
+const maxV = hi * 1.5, bx = v => (Math.min(v, maxV) / maxV * BW).toFixed(1);
+const band = svgEl('svg', { class: 'band', viewBox: `0 0 ${BW} 80`, role: 'img',
+  'aria-label': `Volatility ${R.volatility.display}; low below ${R.low_threshold.display}, high above ${R.high_threshold.display}; regime ${R.regime}` });
+[['LOW', 0, lo], ['NORMAL', lo, hi], ['HIGH', hi, maxV]].forEach(([n, a, b]) => {
+  band.append(svgEl('rect', { class: 'seg' + (n === R.regime ? ' on' : ''), x: bx(a), y: 30, width: bx(b) - bx(a), height: 16 }));
+  const t = svgEl('text', { x: (Number(bx(a)) + Number(bx(b))) / 2, y: 62, 'text-anchor': 'middle' }); t.textContent = n; band.append(t);
+});
+[[lo, R.low_threshold.display], [hi, R.high_threshold.display]].forEach(([v, d]) => {
+  const t = svgEl('text', { x: bx(v), y: 78, 'text-anchor': 'middle' }); t.textContent = d; band.append(t);
+});
+band.append(svgEl('line', { class: 'mk', x1: bx(vol), x2: bx(vol), y1: 22, y2: 50 }));
+const vl = svgEl('text', { class: 'lbl', x: bx(vol), y: 14, 'text-anchor': 'middle' }); vl.textContent = 'Trip opened at ' + R.volatility.display;
+band.append(vl);
+host.append(band);
+}
+renderStrip(); renderBand();
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { renderStrip(); renderBand(); }, 120); });
+const rg = document.getElementById('regimes');
+rg.append(el('thead', {}, el('tr', {}, th('Regime'), th('Trips', 'n'), th('Mean excess vs alternatives', 'n'), th('Note'))));
+const rb = el('tbody');
+D.regimes.blocks.forEach(b => rb.append(el('tr', {},
+  el('th', { scope: 'row', 'data-label': 'Regime' }, b.regime),
+  el('td', { class: 'n', 'data-label': 'Trips' }, String(b.trip_count), el('span', { class: 'sub-fig' }, b.sample.text)),
+  el('td', { class: 'n', 'data-label': 'Mean excess vs alternatives' }, b.luck === null ? el('span', { class: 'na' }, 'Unavailable') : ''),
+  el('td', { class: 'note', 'data-label': 'Note' }, el('span', { class: 'reason' }, b.luck_unavailable_reason)))));
+rg.append(rb);
+document.getElementById('m-regime').append(el('h3', {}, 'Limits'), el('ul', {}, D.regimes.limitations.map(c => el('li', {}, c))));
+
+/* across all trips */
+const S = D.trips_summary.ALT, all = document.getElementById('all');
+const facts = el('dl', { class: 'facts' },
+  el('div', {}, el('dt', {}, 'Mean excess'), el('dd', {}, fig(S.mean_excess))),
+  el('div', {}, el('dt', {}, 'Interval low'), el('dd', {}, fig(S.ci_lower))),
+  el('div', {}, el('dt', {}, 'Interval high'), el('dd', {}, fig(S.ci_upper))));
+all.append(facts);
+all.append(S.sample.enough
+  ? el('p', { class: 'hedge' }, `Across ${S.trips_used} trips the interval sits ${S.position === 'CONTAINS_ZERO' ? 'across zero' : S.position === 'ABOVE_ZERO' ? 'above zero' : 'below zero'}. Heuristic on a small sample, not proof of skill or luck.`)
+  : el('div', { class: 'too-few' }, el('strong', {}, 'Not enough closed trips to say anything yet.'), el('span', {}, S.sample.text)));
+document.getElementById('m-all').append(el('h3', {}, 'Sample'), el('ul', {}, [el('li', {}, `${S.trips_used} trips used; ${S.sample.needed} needed for an interval`)]));
+</script>
+</body>
+</html>
