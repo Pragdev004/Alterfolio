@@ -109,7 +109,8 @@ ISIN_A, ISIN_B = "INE000000001", "INE000000002"
 ])
 def test_isin_is_never_guessed(isins, expected, excluded):
     trades = [led("A1", BUY, 10, 100, 20, isin=isins[0]), led("A2", SELL, 10, 110, 21, isin=isins[1])]
-    m = map_round_trips(_round_trips(trades))[0]
+    # Since the ISIN-keyed fold, trades with different ISINs never form one trip; the guard is exercised on a hand-built trip.
+    m = map_round_trips([_rt(trades)])[0]
     assert m.trip.isin == expected
     assert (m.unavailable is not None) is excluded
     if excluded:

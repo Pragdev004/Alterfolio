@@ -1,41 +1,58 @@
-# Feature 013 Phase C2 report (2026-10-18)
+# Report: NSE/BSE fungibility bug and the follow-ups (2026-10-19)
 
-## Fixes from the owner's live check
-1. **Horizontal overflow.** Two causes found and fixed: a single-column grid track that could not shrink (~700px), and the trip table's
-   `nowrap` listing name widening the page with a long name (reproduced at 1890 and 1366px). Long text now wraps. Playwright checks no
-   sideways scroll and the rail in view at 1920, 1366, 1000, 700 and 390px on every screen, plus a long-text case; reverting the CSS makes it fail.
-   I could not reproduce your exact 1890px state with synthetic data (your backend on :8000 was untouched); the long-name case is the closest cause I found.
-2. Disclaimer removed from the rail; the footer keeps it (now outside `<main>`, so it is a real landmark).
-3. `<html lang="en-IN">` was already set (now tested). The server's formatted date sits next to the native date input.
-4. Chart header shows "Latest bar: No price data yet." (server sentence) when `last_bar_date` is null.
+## Verdict
+Fixed where I could reproduce it. Backend: 2518 passed, 0 failed, 0 skipped (live PostgreSQL 16.15 + pgvector + Ollama,
+throwaway cluster, removed afterwards; the SQLite-only run is 2428 passed, 90 skipped, those 90 need the live services).
+Frontend: vitest 137 passed, lint, typecheck, build and Playwright (10) green.
 
-## Built
-Upload, Holdings (PARTIAL note from the server), Costs (archetype metrics labelled unitless; raw `details` deliberately not shown because they
-carry unformatted numbers), Ask (template / unverified labels, citation chips linking to the screen with `?as_of=`, "Analyst offline — your numbers
-are still here"), and a rail checkbox that turns the `g` shortcuts off (remembered in the browser).
+## 1. Reproduction (tests first)
+Synthetic: buy 10 NSE, buy 10 BSE, sell 20 BSE, one ISIN.
+- Import: accepted all 3 rows, 0 rejected. Holdings (service and `GET /portfolio/holdings`): 0 held. Separate files in any order,
+  BSE symbol differing from the NSE symbol: also 0. **I could not reproduce "20 still held" at import or holdings.** Those layers
+  were already ISIN-keyed (feature 002). `tests/test_cross_listing.py` and `test_api_imports.py` now pin that.
+- Reproduced in the analysis layer (`tests/test_cross_listing_analysis.py`): trips counted 0 of 14, because positions were
+  folded per listing, so the BSE sell of 20 looked like an oversell. If your screen showed 20 held, the likeliest cause is a
+  rejected row in your real file (see 3); I cannot confirm without the file. Re-import after the reset (7) and check Upload > Previous uploads.
 
-## Backend changes (suite: 2490 passed, 0 failed, 0 skipped, with local PostgreSQL, a no-vector DB and Ollama)
-- `POST /api/analyst/ask` returns 503 `ai_provider_not_configured` for a missing/unknown provider (it was a 500; rule 5 of CLAUDE.md).
-- Plain sentences: "No price data yet." and "This habit's cost has no separate fee part." (replacing "This is not available.").
-- New dev worlds `holdings`/`valued`, fake quotes, ask/import/meta fixtures recorded from the real API (`record_fixtures.py`).
+## 2. Everything that keyed on listing instead of ISIN
+Fixed (now `HoldingKey.of(isin, symbol, exchange)`, via `position_key`):
+- `quant/bias_cost/cost_basis.py` fold: states, sell-day realised/paper, round trips. A trip is priced by its opening buy's listing.
+- `quant/bias_cost/calculations.py`: late-loser index uses the opening listing (`SellEvent.open_instrument`).
+- `quant/bias_cost/validation.py`: an excluded or unseriesed listing now takes its ISIN siblings with it (else a false oversell).
+- `quant/regime_split/trips.py`: a trip must stay on one position, not one listing.
+- `services/portfolio_analysis.py`: `count_round_trips` / `list_round_trips` grouping, excluded-trip counts (each trip once, under
+  its opening listing), and a BSE listing priced by its NSE proxy now inherits that listing's corporate-action status.
+Already ISIN-keyed, unchanged: import oversell, ledger oversell/correction, holdings fold, quote candidates (NSE then BSE).
+Deliberately still per listing: price series and the BSE->NSE proxy; dedupe key `(broker, exchange, broker_trade_id)`;
+legacy NULL-ISIN rows (separate, flagged). Luck/regime read `trip.instrument`, which is the opening listing, same prices via the proxy.
 
-## Frontend verification
-125 vitest tests (MSW, recorded fixtures), 10 Playwright tests (smoke: upload -> trips -> trip detail -> Unavailable word and reason; overflow),
-`tsc`, `eslint`, `vite build` and the generated-types check all clean. Screenshots of every screen, desktop and mobile: `docs/reports/c2-screens/`.
-Nothing used your real tradebooks; uploads use the invented `tradebook_synthetic.csv`.
+## 3. Rejected rows never silent
+New `GET /imports/status`; `ImportResultOut.rejected_text`. Holdings, Trips list/detail and Costs show
+"N rows were rejected at import; figures may be wrong" with a link to Upload > Previous uploads (`/upload#previous`).
+Rejected rows are not stored, only counted, so the row-by-row list exists only right after an upload. A re-upload of the same
+file replaces that file's earlier count (the retry); other files' rejections always count.
 
-## Opus review (14 findings) and what I did
-Fixed: date input fought typing and the header could show the wrong date (draft state, full-date commit, "…" while loading); trip list lacked the
-alternatives note, caveats, limitations and analysis errors; several Unavailable values had no reason (fees known, sample, regimes, volatility band,
-across-trips); trip detail had no h1 while loading/erroring; Ask answers now show their date, clear on edit, and link with `?as_of=`; Ask shows an error
-when `/meta` fails; invented "no price on the closing date" cause removed, unknown interval position no longer renders "sits ."; histogram refuses to
-draw from null values and clamps the marker; `.dir` text no longer spills under neighbouring columns; vacuous tests replaced (regime sentence,
-unknown-fee count, footer landmark); trip ids encoded in links; Holdings header says Unavailable when prices fail; lint now rejects unary `+` and
-arithmetic on `.value`.
-Partly addressed: phone tables keep their table markup restyled as blocks. I added the alternatives label to the phone row but did not add explicit ARIA
-table roles, so some screen readers may announce phone rows without column headers. Open, worth a decision.
-Not changed: a few counts are still composed from raw integers in the browser ("N trips · …", "the first N of M", "(N trips)"); only 013a could supply those strings.
+## 4. Incomplete cost basis
+`ValuedHolding.unrealized_pnl` is None when cost basis is incomplete, with the reason; the total is None too. The chip comes from
+the new `status_label` (COMPLETE only if priced AND cost basis complete, else PARTIAL) with `status_text`. Note: every imported
+holding has unknown charges, so P&L is Unavailable for all imported holdings until fees are known. That is your rule, applied.
 
-## Notes
-- Costs shows Disposition/Chasing cost as the server's "₹0.00" for small samples; that is the server's number, not a UI default.
-- Not verified: any run on your real data, and the g-shortcut toggle in a browser with blocked storage.
+## 5-6. Stale data and small items
+- Failed refresh with data on screen: "Couldn't refresh. Showing figures from HH:MM" (India time) on Holdings, Trips, trip detail, Costs.
+- No status line at 0 holdings. True minus (U+2212) in all displays; the analyst number guard reads it as a minus, so a dropped sign
+  is still caught. "X of N" is server text (`rejected_text`, `status_text`). Explicit table/row/cell/columnheader/rowheader roles on every table.
+
+## 7. Reset (dev only)
+`python scripts/reset_ledger.py` (dry run), `--yes` to delete. Local database only, one user, README section added.
+
+## Tests I changed (you asked me never to weaken approved tests): please review
+- `test_bias_cost_audit`: "same ISIN on two listings is never merged" asserted the old behaviour; now asserts one position, plus a new
+  test that NULL-ISIN listings are still never merged. Direct consequence of your instruction.
+- `test_regime_split_analysis/contract`: AMBIGUOUS_ISIN can no longer come out of the fold (mixed ISINs are now separate positions);
+  the guard stays and is tested on a hand-built trip; the analysis-level test now asserts the mixed pair forms no trip.
+- Display tests: hyphen to U+2212. `test_api_summary`, `test_api_imports`: additive response keys. `test_import_batch_repository`: added read-only `list_for_user`.
+- Regenerated `docs/demo/alterfolio-demo.html` (minus sign) and the frontend fixtures; spec 006 line updated.
+
+## Not done / caveats
+- Mixed-calendar edge: a position whose NSE and BSE series differ would use the opening listing's calendar; with the proxy they are identical.
+- Real-data verification not possible here (I did not read your files). Please re-import after the reset and tell me what Previous uploads shows.

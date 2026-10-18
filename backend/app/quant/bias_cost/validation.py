@@ -101,6 +101,13 @@ def validate_inputs(
                     break
             else:
                 indexes[instrument] = index
+    # One ISIN is one position across its listings: if one listing cannot be used, the position's other listings go with it,
+    # otherwise the fold would see half of the position and report a false oversell.
+    for isin in sorted({t.isin for t in ordered if t.isin is not None and t.instrument in excluded}):
+        for sibling in sorted({t.instrument for t in ordered if t.isin == isin} - set(excluded), key=_listing_key):
+            excluded[sibling] = f"shares ISIN {isin} with an excluded listing, so the position cannot be rebuilt"
+            indexes.pop(sibling, None)
+            missing.discard(sibling)
     for instrument, reason in sorted(excluded.items(), key=lambda kv: _listing_key(kv[0])):
         exclusions.append(BiasExclusion(listing_name(instrument), f"listing excluded: {reason}"))
 

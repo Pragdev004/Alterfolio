@@ -18,13 +18,18 @@ _WORDS = re.compile(
 _MAX_EXPONENT = 40
 
 
+def _norm(text: str) -> str:
+    """NFKC, then the true minus sign (U+2212, used in every displayed figure) read as a hyphen-minus: a sign is never dropped."""
+    return unicodedata.normalize("NFKC", text).replace("\u2212", "-")
+
+
 def numeric_tokens(text: str) -> list[str]:
-    return _TOKEN.findall(unicodedata.normalize("NFKC", text))
+    return _TOKEN.findall(_norm(text))
 
 
 def canonical(token: str) -> str | None:
     """Plain decimal text of a numeric token (commas and % sign dropped, exponent expanded), or None if not a number."""
-    raw = unicodedata.normalize("NFKC", token).strip().replace(",", "").replace("₹", "")
+    raw = _norm(token).strip().replace(",", "").replace("₹", "")
     if raw.endswith("%"):
         raw = raw[:-1]
     try:

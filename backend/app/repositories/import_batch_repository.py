@@ -43,3 +43,9 @@ class ImportBatchRepository:
         batch.rejected_total = rejected_total
         self._session.flush()
         return batch
+
+    def list_for_user(self, *, user_id: UUID) -> list[ImportBatch]:
+        """The user's batches, newest first."""
+        return list(self._session.scalars(
+            select(ImportBatch).where(ImportBatch.user_id == user_id).order_by(ImportBatch.created_at.desc(), ImportBatch.id)
+        ))

@@ -24,6 +24,7 @@ from app.domain.instrument import Instrument
 from app.models.trade import Trade
 from app.repositories.import_batch_repository import ImportBatchRepository
 from app.repositories.trade_repository import TradeRepository
+from app.models.import_batch import ImportBatch
 from app.services.errors import NumericLimitError
 from app.services.holdings import LedgerEntry, find_oversell
 from app.services.ledger import LedgerService
@@ -35,6 +36,18 @@ AFTER_OVERSELL = "after_oversell"
 NUMERIC_LIMIT_EXCEEDED = "numeric_limit_exceeded"
 
 _ZERO = Decimal(0)
+
+
+@dataclass(frozen=True)
+class BatchSummary:
+    batch: ImportBatch
+    superseded: bool  # a newer upload of the byte-identical file exists, so this batch's rejections no longer count
+
+
+@dataclass(frozen=True)
+class ImportStatus:
+    batches: tuple[BatchSummary, ...]  # newest first
+    rejected_rows_total: int  # rejected rows of the newest batch of each distinct file
 
 
 @dataclass(frozen=True)
@@ -117,6 +130,20 @@ class TradebookImportService:
             clock=clock,
             id_factory=id_factory,
         )
+
+    def status(self, *, user_id: UUID) -> ImportStatus:
+        """Rejected rows are not stored, only counted. A re-upload of the same file replaces that file's earlier count (the
+        re-upload is the retry), so only the newest batch per file hash counts; a different file's rejections always count."""
+        seen: set[str] = set()
+        out: list[BatchSummary] = []
+        total = 0
+        for batch in self._batches.list_for_user(user_id=user_id):
+            superseded = batch.file_sha256 in seen
+            seen.add(batch.file_sha256)
+            if not superseded:
+                total += batch.rejected_total
+            out.append(BatchSummary(batch, superseded))
+        return ImportStatus(tuple(out), total)
 
     def import_tradebook(self, *, user_id: UUID, file_name: str, content: bytes) -> ImportResult:
         """Import one upload. File-level problems raise InvalidImportFileError before anything is written;

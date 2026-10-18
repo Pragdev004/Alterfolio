@@ -77,8 +77,10 @@ def test_session_dates_going_backwards_across_listings_are_rejected():  # spec 5
         fold_positions(inputs)
 
 
-# --- ISIN: listings are intentionally separate positions (spec 3, 7) -----------------------------------------------------------
-def test_same_isin_on_two_listings_is_never_merged_into_one_position():  # spec 7 (out of scope: ISIN merging)
+# --- ISIN: one ISIN is one position across its listings; legacy NULL-ISIN listings stay separate -----------------------------
+# Changed by owner instruction (real-data cross-listing bug, 2026-10-19): this used to assert the NSE and BSE listings of one ISIN
+# are never merged (006 spec 7, "out of scope"). Indian demat holdings are fungible across NSE/BSE by ISIN.
+def test_same_isin_on_two_listings_is_one_position():
     isin = "INE000A01010"
     import dataclasses
 
@@ -86,7 +88,16 @@ def test_same_isin_on_two_listings_is_never_merged_into_one_position():  # spec 
     sell = dataclasses.replace(trade("T2", BSE_A, SELL, 5, 110, 2), isin=isin)
     inputs = validated([buy, sell], [series(NSE_A, {}), series(BSE_A, {})])
     fold = fold_positions(inputs)
-    assert not fold.sells and not fold.round_trips  # the BSE sell cannot close the NSE position
+    assert len(fold.sells) == 1 and len(fold.round_trips) == 1 and fold.exclusions == ()
+    assert fold.round_trips[0].instrument == NSE_A  # priced by the listing of the opening buy
+
+
+def test_legacy_null_isin_listings_are_never_merged_into_one_position():
+    buy = trade("T1", NSE_A, BUY, 5, 100, 0)
+    sell = trade("T2", BSE_A, SELL, 5, 110, 2)
+    inputs = validated([buy, sell], [series(NSE_A, {}), series(BSE_A, {})])
+    fold = fold_positions(inputs)
+    assert not fold.sells and not fold.round_trips
     assert [e.subject for e in fold.exclusions] == ["T2"]
 
 

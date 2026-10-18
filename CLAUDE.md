@@ -46,7 +46,7 @@ quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/reposi
   frontend `frontend/src/{app,features/<feature>,shared/...}` (stage 3).
 - Three domain boundaries: Accounting (real ledger, long-only, append-only) / Quant (pure) / AI (read-only prose).
   Simulated portfolios never read or write the real ledger.
-- Holding identity = ISIN (002): NSE and BSE listings of one ISIN are one holding; legacy NULL-ISIN trades are separate,
+- Holding identity = ISIN (002), and also the position identity for the 006-008 analyses (`position_key` in `quant/bias_cost/cost_basis.py`): NSE and BSE listings of one ISIN are one holding; legacy NULL-ISIN trades are separate,
   flagged holdings keyed by `(symbol, exchange)`. `Instrument(symbol, exchange)` is the listing value. No instruments table.
 - Daily bars (004): provider numbers stay exact Decimals (no rounding; `to_dict`/fingerprint use canonical Decimal text);
   provider timestamps are kept as aware UTC. The service reads its clock once, passes that instant to the provider, requires
@@ -105,7 +105,7 @@ alembic upgrade head                      # or: alembic -x url=<pg url> upgrade 
 Tests use in-memory SQLite and need no env file. `ALTERFOLIO_TEST_DATABASE_URL` (an EMPTY throwaway database) enables
 the live-PostgreSQL migration/integration tests; they refuse to run if `users`/`trades` already exist. Python 3.11 is
 declared (`>=3.11`) but unverified. Regenerate pins: fresh venv, `pip install -e ".[dev]"`, `pip freeze --exclude-editable`.
-Frontend (from `frontend/`): `npm run dev|test|lint|typecheck|build|e2e`; `npm run gen:openapi && npm run gen:types` regenerates API types; backend test world: `python scripts/dev_server.py [full|few|open|holdings|valued|excluded|empty]`, fixtures: `python scripts/record_fixtures.py`.
+Frontend (from `frontend/`): `npm run dev|test|lint|typecheck|build|e2e`; `npm run gen:openapi && npm run gen:types` regenerates API types; backend test world: `python scripts/dev_server.py [full|few|open|holdings|valued|excluded|empty|imported]`; dev-only ledger reset: `python scripts/reset_ledger.py [--yes]` (local DB only, dry run by default), fixtures: `python scripts/record_fixtures.py`.
 
 ## 6. Critical Rules
 1. `quant/` and `domain/` import boundaries (above) are hard rules, checked by an AST import test over the package.

@@ -5,7 +5,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import get_current_user_id, get_import_service
 from app.api.uploads import read_tradebook_upload
-from app.schemas.imports import ImportResultOut, RejectedRowOut
+from app.schemas.imports import ImportBatchOut, ImportResultOut, ImportStatusOut, RejectedRowOut
 from app.services.tradebook_import import TradebookImportService
 
 router = APIRouter(prefix="/imports")
@@ -37,4 +37,28 @@ async def import_tradebook(
         rejected=[RejectedRowOut(row=r.line, code=r.code, message=r.message) for r in result.rejected],
         quarantined_isins=list(result.quarantined_isins),
         fees_taxes_provided=result.fees_taxes_provided,
+        rejected_text=None if result.rejected_total <= len(result.rejected)
+        else f"The first {len(result.rejected)} of {result.rejected_total} rejected rows",
+    )
+
+
+@router.get("/status", response_model=ImportStatusOut)
+def import_status(
+    user_id: UUID = Depends(get_current_user_id),
+    importer: TradebookImportService = Depends(get_import_service),
+):
+    """Past uploads and the rejected-row warning shown on Holdings and Trips."""
+    status = importer.status(user_id=user_id)
+    n = status.rejected_rows_total
+    return ImportStatusOut(
+        batches=[
+            ImportBatchOut(
+                import_batch_id=b.batch.id, file_name=b.batch.file_name, created_at=b.batch.created_at,
+                total_rows=b.batch.total_rows, imported=b.batch.imported, duplicates=b.batch.duplicates,
+                rejected_total=b.batch.rejected_total, superseded=b.superseded,
+            )
+            for b in status.batches
+        ],
+        rejected_rows_total=n,
+        warning=None if n == 0 else f"{n} {'row was' if n == 1 else 'rows were'} rejected at import; figures may be wrong",
     )

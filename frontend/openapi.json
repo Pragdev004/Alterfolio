@@ -699,6 +699,72 @@
     "title": "HoldingOut",
     "type": "object"
    },
+   "ImportBatchOut": {
+    "properties": {
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "created_at_display": {
+      "title": "created_at display",
+      "type": "string"
+     },
+     "created_at_unavailable_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "created_at unavailable reason"
+     },
+     "duplicates": {
+      "title": "Duplicates",
+      "type": "integer"
+     },
+     "file_name": {
+      "title": "File Name",
+      "type": "string"
+     },
+     "import_batch_id": {
+      "format": "uuid",
+      "title": "Import Batch Id",
+      "type": "string"
+     },
+     "imported": {
+      "title": "Imported",
+      "type": "integer"
+     },
+     "rejected_total": {
+      "title": "Rejected Total",
+      "type": "integer"
+     },
+     "superseded": {
+      "title": "Superseded",
+      "type": "boolean"
+     },
+     "total_rows": {
+      "title": "Total Rows",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "import_batch_id",
+     "file_name",
+     "created_at",
+     "total_rows",
+     "imported",
+     "duplicates",
+     "rejected_total",
+     "superseded",
+     "created_at_display"
+    ],
+    "title": "ImportBatchOut",
+    "type": "object"
+   },
    "ImportResultOut": {
     "properties": {
      "duplicates": {
@@ -740,6 +806,17 @@
       "title": "Rejected",
       "type": "array"
      },
+     "rejected_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejected Text"
+     },
      "rejected_total": {
       "title": "Rejected Total",
       "type": "integer"
@@ -762,6 +839,40 @@
      "fees_taxes_provided"
     ],
     "title": "ImportResultOut",
+    "type": "object"
+   },
+   "ImportStatusOut": {
+    "description": "What the ledger knows about past uploads. Rejected rows are not stored, only counted (the row list exists at upload time).",
+    "properties": {
+     "batches": {
+      "items": {
+       "$ref": "#/components/schemas/ImportBatchOut"
+      },
+      "title": "Batches",
+      "type": "array"
+     },
+     "rejected_rows_total": {
+      "title": "Rejected Rows Total",
+      "type": "integer"
+     },
+     "warning": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Warning"
+     }
+    },
+    "required": [
+     "batches",
+     "rejected_rows_total",
+     "warning"
+    ],
+    "title": "ImportStatusOut",
     "type": "object"
    },
    "LimitationsOut": {
@@ -1797,11 +1908,28 @@
       "title": "Holdings Count",
       "type": "integer"
      },
+     "incomplete_cost_basis_count": {
+      "readOnly": true,
+      "title": "Incomplete Cost Basis Count",
+      "type": "integer"
+     },
      "schema_version": {
       "const": 1,
       "default": 1,
       "title": "Schema Version",
       "type": "integer"
+     },
+     "status_label": {
+      "description": "The chip text: COMPLETE only when every holding is priced AND every cost basis is complete.",
+      "readOnly": true,
+      "title": "Status Label",
+      "type": "string"
+     },
+     "status_text": {
+      "description": "One sentence behind the chip: what was valued, and what is missing from the cost basis.",
+      "readOnly": true,
+      "title": "Status Text",
+      "type": "string"
      },
      "total_invested": {
       "title": "Total Invested",
@@ -1929,6 +2057,9 @@
      "cost_basis_complete",
      "holdings",
      "valuation_text",
+     "incomplete_cost_basis_count",
+     "status_label",
+     "status_text",
      "valuation_time_display",
      "total_invested_display",
      "total_market_value_display",
@@ -3396,6 +3527,25 @@
      }
     },
     "summary": "Health"
+   }
+  },
+  "/imports/status": {
+   "get": {
+    "description": "Past uploads and the rejected-row warning shown on Holdings and Trips.",
+    "operationId": "import_status_imports_status_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ImportStatusOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Import Status"
    }
   },
   "/imports/tradebook": {

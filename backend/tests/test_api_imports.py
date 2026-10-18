@@ -52,7 +52,7 @@ def test_a_valid_upload_is_201_with_the_import_result_contract(client, session):
     out = resp.json()
     assert set(out) == {
         "import_batch_id", "file_name", "file_sha256", "total_rows", "imported", "duplicates", "rejected_total",
-        "rejected", "quarantined_isins", "fees_taxes_provided",
+        "rejected", "quarantined_isins", "fees_taxes_provided", "rejected_text",
     }
     assert (out["file_name"], out["total_rows"], out["imported"], out["duplicates"], out["rejected_total"]) == (
         "tradebook_synthetic.csv", 7, 6, 0, 1,
@@ -290,3 +290,60 @@ def test_the_route_streams_through_the_reader_and_never_uses_uploadfile():
     names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
     assert "read_tradebook_upload" in names
     assert not names & {"UploadFile", "File", "Form"}
+
+
+# ---- import status: the rejected-row warning for Holdings and Trips ----------------------------------------------------
+
+def test_status_with_no_uploads_has_no_warning(client):
+    out = client.get("/imports/status").json()
+    assert out == {"batches": [], "rejected_rows_total": 0, "warning": None}
+
+
+def test_status_counts_rejected_rows_and_words_the_warning(client):
+    post_csv(client, csv_bytes(r(1), r(2, side="hold"), r(3, side="hold")), name="a.csv")
+    out = client.get("/imports/status").json()
+    assert out["rejected_rows_total"] == 2 and out["warning"] == "2 rows were rejected at import; figures may be wrong"
+    (b,) = out["batches"]
+    assert (b["file_name"], b["rejected_total"], b["imported"], b["superseded"]) == ("a.csv", 2, 1, False)
+    assert b["created_at_display"].endswith("IST")
+
+
+def test_status_singular_wording(client):
+    post_csv(client, csv_bytes(r(1), r(2, side="hold")))
+    assert client.get("/imports/status").json()["warning"] == "1 row was rejected at import; figures may be wrong"
+
+
+def test_a_reupload_of_the_same_file_replaces_its_earlier_rejection_count(client):
+    bad = csv_bytes(r(1, side="sell", qty="5", ts="2020-03-03T10:00:00"))
+    post_csv(client, bad, name="late.csv")
+    assert client.get("/imports/status").json()["rejected_rows_total"] == 1
+    post_csv(client, csv_bytes(r(2, qty="10")), name="early.csv")
+    post_csv(client, bad, name="late.csv")  # now the buy exists: the same bytes import cleanly
+    out = client.get("/imports/status").json()
+    assert out["rejected_rows_total"] == 0 and out["warning"] is None
+    assert [b["superseded"] for b in out["batches"]].count(True) == 1
+
+
+def test_oversized_rejection_list_has_server_text(client):
+    rows = [r(i, side="hold") for i in range(1, 206)]
+    out = post_csv(client, csv_bytes(*rows)).json()
+    assert out["rejected_text"] == "The first 200 of 205 rejected rows"
+    assert post_csv(client, csv_bytes(r(900))).json()["rejected_text"] is None
+
+
+def test_status_is_isolated_between_users(client, app):
+    post_csv(client, csv_bytes(r(1, side="hold")))
+    as_user(app, USER_B)
+    assert client.get("/imports/status").json() == {"batches": [], "rejected_rows_total": 0, "warning": None}
+
+
+def test_cross_listing_sell_leaves_nothing_held_through_the_routes(client):
+    out = post_csv(client, csv_bytes(
+        r(1, qty="10", exchange="NSE"), r(2, qty="10", exchange="BSE", ts="2020-03-03T09:30:00"),
+        r(3, side="sell", qty="20", exchange="BSE", ts="2020-03-04T09:30:00"),
+    )).json()
+    assert (out["imported"], out["rejected_total"]) == (3, 0)
+    assert client.get("/portfolio/holdings").json() == []
+    partial = post_csv(client, csv_bytes(r(4, qty="7", exchange="BSE", ts="2020-03-05T09:30:00"))).json()
+    (h,) = client.get("/portfolio/holdings").json()
+    assert partial["imported"] == 1 and h["quantity"] == "7.000000" and [x["exchange"] for x in h["listings"]] == ["BSE", "NSE"]

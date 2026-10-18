@@ -17,7 +17,7 @@ rule-based archetype. Observations only: never BUY/SELL, no clustering, no AI nu
 - Money is exact Decimal; `present_inr` (half-even, 6 places) is the only rounding, applied at presentation, never stored. Derived values (averages, ratios, products of them) use a fixed 60-digit half-even context.
 
 ## 3. Decisions (owner, 2026-10-14)
-- Listing: use each trade's own exchange; never fall back NSE/BSE. NSE and BSE listings are separate positions; ISIN never merges them.
+- Listing: use each trade's own exchange; never fall back NSE/BSE. Position identity is the ISIN when a trade has one (NSE and BSE listings of one ISIN are ONE position, changed 2026-10-19 after a real-data bug; a round trip is priced by the listing of its opening buy), else the legacy (symbol, exchange); NULL-ISIN rows are never merged into an ISIN position.
 - Strict completeness (owner, final): a listing WITH trades but no series makes every metric and the profile `Unavailable`; a
   series for a listing with no trades is ignored. Why: each metric pools all listings (paper positions, chasing baseline,
   session counts), so dropping one would silently change what the number means. Traded listings are never silently excluded.

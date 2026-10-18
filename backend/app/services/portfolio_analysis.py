@@ -19,7 +19,7 @@ from app.domain.enums import Exchange, TradeSide
 from app.domain.instrument import Instrument
 from app.domain.timezones import IST, IST_OFFSET
 from app.quant.bias_cost.analysis import analyze_biases
-from app.quant.bias_cost.cost_basis import fold_positions
+from app.quant.bias_cost.cost_basis import fold_positions, position_key
 from app.quant.bias_cost.errors import BiasInputError
 from app.quant.bias_cost.types import BiasAnalysisResult, BiasKind, BiasParameters, ChargeValue, LedgerTrade
 from app.quant.bias_cost.validation import validate_inputs
@@ -54,7 +54,7 @@ def content_trade_id(t, ordinal: int) -> str:
 
 
 def count_round_trips(trades) -> int:
-    """Flat -> open -> flat on one listing (the 006 definition), counted from the trade sequence alone (no series needed)."""
+    """Flat -> open -> flat on one position (one ISIN across its listings, else one listing; the 006 definition), counted from the trade sequence alone (no series needed)."""
     held, count = Decimal(0), 0
     for t in sorted(trades, key=lambda t: (t.trade_timestamp, t.trade_id)):
         held += t.quantity if t.side is TradeSide.BUY else -t.quantity
@@ -393,6 +393,11 @@ class PortfolioAnalysisService:
         luck_groups: tuple[LuckGroup, ...] = ()
         known = cfg.corporate_action_listings
         reviewed = cfg.corporate_action_reviewed
+        # A BSE listing priced by its NSE proxy carries that listing's corporate-action status (the prices ARE the NSE prices).
+        priced_as = {Instrument(b, Exchange(be)): Instrument(n, Exchange(ne)) for b, be, n, ne in proxies}
+        known = known | frozenset(b for b, n in priced_as.items() if n in known)
+        if reviewed is not None:
+            reviewed = reviewed | frozenset(b for b, n in priced_as.items() if n in reviewed)
         traded = {t.instrument for t in ledger}
         bias_known = known if reviewed is None else known | frozenset(traded - reviewed)
         bias_params = BiasParameters(chasing_lookback_sessions=20, window_start=BIAS_WINDOW_START, window_end=boundary,
@@ -411,15 +416,28 @@ class PortfolioAnalysisService:
                 excluded[inst] = "known corporate action inside the review window (prices unadjusted)"
             elif reviewed is not None and inst not in reviewed:
                 excluded[inst] = "not covered by the corporate-action review register"
+        # One ISIN is one position across NSE and BSE: a listing excluded drags its ISIN siblings along (same reason, named).
+        for isin in sorted({t.isin for t in ledger if t.isin and t.instrument in excluded}):
+            reason = next(r for i, r in excluded.items() if any(t.isin == isin and t.instrument == i for t in ledger))
+            for sibling in sorted({t.instrument for t in ledger if t.isin == isin} - set(excluded), key=lambda i: (i.symbol, i.exchange.value)):
+                excluded[sibling] = f"shares ISIN {isin} with an excluded listing ({reason})"
         part = [t for t in ledger if t.instrument not in excluded]
-        by_listing: dict[Instrument, list] = defaultdict(list)
+        by_position: dict = defaultdict(list)
         for t in ledger:
-            by_listing[t.instrument].append(t)
-        trips_total = sum(count_round_trips(v) for v in by_listing.values())
-        excluded_rows = [[i.symbol, i.exchange.value, r, count_round_trips(by_listing[i])] for i, r in excluded.items()]
+            by_position[position_key(t)].append(t)
+        trips_total = sum(count_round_trips(v) for v in by_position.values())
+
+        opened_on = {t.trade_id: t.instrument for t in ledger}
+
+        def trips_of(listing: Instrument) -> list:
+            """The round trips OPENED on `listing`: each trip is reported once, under its opening buy's listing."""
+            return [x for k in sorted(by_position, key=lambda k: k.sort_key)
+                    for x in list_round_trips(by_position[k]) if opened_on[x[0]] == listing]
+
+        excluded_rows = [[i.symbol, i.exchange.value, r, len(trips_of(i))] for i, r in excluded.items()]
         excluded_trips = tuple(
             ExcludedTrip(tid, i.symbol, i.exchange.value, opened.astimezone(IST).date(), closed.astimezone(IST).date(), reason)
-            for i, reason in excluded.items() for tid, opened, closed in list_round_trips(by_listing[i]))
+            for i, reason in excluded.items() for tid, opened, closed in trips_of(i))
         if ledger and not part and not error:
             reasons["007"] = reasons["008"] = "all traded listings are excluded (see provenance.excluded_listings)"
         if not error:

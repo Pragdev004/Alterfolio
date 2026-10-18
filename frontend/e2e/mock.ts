@@ -17,6 +17,7 @@ export async function mockApi(page: Page, opts: { imported?: boolean } = {}) {
   await page.route("**/trades", (r) => r.fulfill({ json: state.imported ? [{ id: "t" }] : [] }));
   await page.route("**/portfolio/summary", (r) => r.fulfill({ json: read("holdings/summary.json") }));
   await page.route("**/portfolio/holdings", (r) => r.fulfill({ json: read("holdings/holdings.json") }));
+  await page.route("**/imports/status", (r) => r.fulfill({ json: { batches: [], rejected_rows_total: 0, warning: null } }));
   await page.route("**/imports/tradebook", (r) => {
     state.imported = true;
     return r.fulfill({ status: 201, json: read("imports.json").ok.body });

@@ -20,6 +20,13 @@ _KINDS = ("inr", "inr_lower_bound", "price", "ratio", "ratio_fees_excluded", "pe
 _NOTES = {"inr_lower_bound": " (lower bound)", "ratio_fees_excluded": " (fees excluded)"}
 
 
+MINUS = "\u2212"  # a true minus sign (U+2212), never the hyphen-minus, in every figure shown to people
+
+
+def _minus(text: str) -> str:
+    return MINUS + text[1:] if text.startswith("-") else text
+
+
 def _q(d: Decimal) -> Decimal:
     q = d.quantize(_TWO, rounding=ROUND_HALF_EVEN)
     return Decimal("0.00") if q == 0 else q  # never "-0.00"
@@ -28,13 +35,13 @@ def _q(d: Decimal) -> Decimal:
 def format_percent(ratio: str | Decimal) -> str:
     """A ratio as a percentage: 0.003728 -> '0.37%'."""
     q = _q(Decimal(ratio) * _HUNDRED)
-    return f"{q:f}%"
+    return _minus(f"{q:f}%")
 
 
 def format_percentile(ratio: str | Decimal) -> str:
     """A percentile as a whole percentage (half-even): 0.612 -> '61%'. Percentiles are positions, so no decimals."""
     q = (Decimal(ratio) * _HUNDRED).quantize(_ONE, rounding=ROUND_HALF_EVEN)
-    return "0%" if q == 0 else f"{q:f}%"
+    return "0%" if q == 0 else _minus(f"{q:f}%")
 
 
 def direction(value: str | Decimal | None) -> str | None:
@@ -148,10 +155,10 @@ def _group(whole: str) -> str:
 
 
 def format_inr(amount: str | Decimal) -> str:
-    """INR with 2 decimals and Indian grouping: 123456.78 -> '₹1,23,456.78'; negatives '-₹1,23,456.78'."""
+    """INR with 2 decimals and Indian grouping: 123456.78 -> '₹1,23,456.78'; negatives '\u2212₹1,23,456.78'."""
     q = _q(Decimal(amount))
     whole, frac = f"{abs(q):f}".split(".")
-    return f"{'-' if q < 0 else ''}₹{_group(whole)}.{frac}"
+    return f"{MINUS if q < 0 else ''}₹{_group(whole)}.{frac}"
 
 
 def format_price(amount: str | Decimal) -> str:
@@ -166,7 +173,7 @@ def format_price(amount: str | Decimal) -> str:
     text = f"{abs(q):f}"
     while text.endswith("0") and len(text.split(".")[1]) > 2:
         text = text[:-1]
-    return f"{'-' if q < 0 else ''}₹{text}"
+    return f"{MINUS if q < 0 else ''}₹{text}"
 
 
 def format_plain(value: str | Decimal) -> str:
@@ -175,7 +182,7 @@ def format_plain(value: str | Decimal) -> str:
     if not d.is_finite():
         raise ValueError("not a finite decimal")
     text = f"{d.normalize():f}" if d != 0 else "0"
-    return "0" if text in ("-0", "") else text
+    return "0" if text in ("-0", "") else _minus(text)
 
 
 def format_date(d: date) -> str:

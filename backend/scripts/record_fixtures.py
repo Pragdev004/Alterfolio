@@ -27,7 +27,7 @@ def write(path: Path, body) -> None:
     path.write_text(json.dumps(body, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
 
-for name in ("full", "few", "open", "holdings", "valued", "excluded", "empty"):
+for name in ("full", "few", "open", "holdings", "valued", "excluded", "empty", "imported"):
     client = TestClient(scenario_app(name))
     write(OUT / name / "meta.json", client.get("/api/analysis/meta").json())
     trips = client.get("/api/analysis/trips").json()
@@ -37,7 +37,9 @@ for name in ("full", "few", "open", "holdings", "valued", "excluded", "empty"):
     if name in ("empty", "open"):
         trades = client.get("/trades").json()
         write(OUT / name / "trades.json", [{"id": t["id"], "symbol": t["symbol"], "side": t["side"]} for t in trades])
-    if name in ("holdings", "valued", "empty"):
+    if name in ("empty", "imported"):
+        write(OUT / name / "status.json", client.get("/imports/status").json())
+    if name in ("holdings", "valued", "empty", "imported"):
         write(OUT / name / "summary.json", client.get("/portfolio/summary").json())
         write(OUT / name / "holdings.json", client.get("/portfolio/holdings").json())
     if trips["trips"]:

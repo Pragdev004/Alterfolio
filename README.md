@@ -53,3 +53,9 @@ Test suite: **2346 passed, 0 skipped** (`python -m pytest -q -rs` from `backend/
 - No document retriever is wired into the API, and the analyst has no trading advice mode by design.
 
 See `CLAUDE.md` (architecture, rules, known issues), `docs/design.md`, `docs/spec.md`, `docs/specs/`.
+
+## Reset your local ledger (dev only)
+
+To re-import tradebooks from scratch (for example after a fix): from `backend/`, with `ALTERFOLIO_DATABASE_URL` pointing at your local database,
+run `python scripts/reset_ledger.py` for a dry run that prints what would go, then `python scripts/reset_ledger.py --yes`. It deletes only the
+configured user's trades and import batches, refuses any non-local database, and is not part of the API. Then upload the oldest tradebook first.

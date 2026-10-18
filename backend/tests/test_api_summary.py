@@ -71,7 +71,7 @@ def test_empty_portfolio_is_complete_zeros_not_an_error(client, market):
         "cost_basis_complete": True, "holdings": [],
         "valuation_time_display": "2 Mar 2026, 15:30 IST", "total_invested_display": "₹0.00",
         "total_market_value_display": "₹0.00", "total_unrealized_pnl_display": "₹0.00",
-        "valuation_text": "0 of 0 holdings valued",
+        "valuation_text": "0 of 0 holdings valued", "incomplete_cost_basis_count": 0, "status_label": "COMPLETE", "status_text": "",
     }
     assert market.calls == []
 
@@ -197,3 +197,41 @@ def test_existing_holdings_route_is_unchanged_by_the_provider(client, market):
     client.post("/trades", json=body())
     assert client.get("/portfolio/holdings").json()[0]["quantity"] == "10.000000"
     assert market.calls == []
+
+
+# ---- incomplete cost basis: P&L is Unavailable with a reason, and the chip never says COMPLETE ---------------------------
+
+def _imported_style_holding(session, market):
+    TradeRepository(session).add(user_id=USER_A, id=uuid4(), **trade_fields(charges_provided=False))
+    session.commit()
+    market.outcomes = {RELIANCE: q(RELIANCE, "120.5")}
+
+
+def test_incomplete_cost_basis_makes_pnl_unavailable_with_a_reason_never_a_number(client, session, market):
+    _imported_style_holding(session, market)
+    s = summary(client).json()
+    (h,) = s["holdings"]
+    assert h["quote_status"] == "VALUED" and h["market_value"] == "1205.000000"
+    assert h["unrealized_pnl"] is None and h["unrealized_pnl_display"] == "Unavailable"
+    assert "Cost basis is incomplete" in h["unrealized_pnl_unavailable_reason"]
+    assert s["total_unrealized_pnl"] is None and "Cost basis is incomplete" in s["total_unrealized_pnl_unavailable_reason"]
+    assert s["total_market_value"] == "1205.000000"
+
+
+def test_status_chip_is_not_complete_while_cost_basis_is_incomplete(client, session, market):
+    _imported_style_holding(session, market)
+    s = summary(client).json()
+    assert s["valuation_status"] == "COMPLETE" and s["cost_basis_complete"] is False
+    assert s["status_label"] == "PARTIAL" and s["incomplete_cost_basis_count"] == 1
+    assert s["status_text"] == "1 of 1 holdings valued. Cost basis is incomplete for 1 of 1 holding, so profit and loss is not shown."
+
+
+def test_complete_cost_basis_keeps_the_complete_chip_and_the_pnl(client, market):
+    client.post("/trades", json=body())
+    market.outcomes[RELIANCE] = q(RELIANCE, "120.5")
+    s = summary(client).json()
+    assert (s["status_label"], s["status_text"], s["total_unrealized_pnl"]) == ("COMPLETE", "1 of 1 holdings valued", "205.000000")
+
+
+def test_zero_holdings_has_no_status_text(client):
+    assert summary(client).json()["status_text"] == ""

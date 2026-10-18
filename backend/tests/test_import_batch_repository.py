@@ -68,10 +68,10 @@ def test_a_batch_needs_an_existing_user(session):
 
 def test_the_repository_exposes_no_delete_and_only_update_counts_mutates():
     public = {name for name in vars(ImportBatchRepository) if not name.startswith("_")}
-    assert public == {"add", "get", "update_counts"}
+    assert public == {"add", "get", "list_for_user", "update_counts"}  # list_for_user: read-only (import status)
 
 
-@pytest.mark.parametrize("method", ["get", "update_counts", "add"])
+@pytest.mark.parametrize("method", ["get", "update_counts", "add", "list_for_user"])
 def test_every_method_requires_keyword_only_user_id(method):
     import inspect
 

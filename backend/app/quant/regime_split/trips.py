@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.enums import TradeSide
+from app.domain.holding_key import HoldingKey
 from app.quant.bias_cost.context import CALC_CONTEXT as C
 from app.quant.bias_cost.cost_basis import RoundTrip
 from app.quant.luck_test.errors import LuckInputError
@@ -43,8 +44,9 @@ def map_round_trips(round_trips: Iterable[RoundTrip]) -> tuple[MappedTrip, ...]:
         trades = rt.trades
         if not trades or trades[0].side is not TradeSide.BUY or trades[-1].side is not TradeSide.SELL:
             raise RegimeInputError("a round trip must open with a BUY and close with a SELL")
-        if any(t.instrument != rt.instrument for t in trades):
-            raise RegimeInputError("a round trip must stay on one listing")
+        positions = {HoldingKey.of(t.isin, t.instrument.symbol, t.instrument.exchange) for t in trades}
+        if len(positions) != 1 and any(t.instrument != trades[0].instrument for t in trades):
+            raise RegimeInputError("a round trip must stay on one position (one ISIN across listings, else one listing)")
         zero = Decimal(0)
         bought, sold, cost, proceeds = zero, zero, zero, zero
         for t in trades:

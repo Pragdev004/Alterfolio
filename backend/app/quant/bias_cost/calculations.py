@@ -101,7 +101,7 @@ def calculate_disposition(inputs: ValidatedBiasInputs, fold: FoldResult) -> tupl
     cost, late_losers = ZERO, 0
     for sell in fold.sells:
         if sell.gross_pnl < 0 and sell.holding_sessions > h:
-            index = inputs.index_for(sell.trade.instrument)
+            index = inputs.index_for(sell.open_instrument or sell.trade.instrument)
             sell_index = sell.open_index + sell.holding_sessions
             price_at_h = index.close(sell.open_index + h, through=sell_index)
             cost = C.add(cost, C.multiply(C.subtract(price_at_h, sell.trade.price), sell.trade.quantity))

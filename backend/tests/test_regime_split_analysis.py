@@ -130,13 +130,13 @@ def test_a_listing_without_a_series_makes_the_whole_result_unavailable():
     assert result.unavailable.reason is UnavailableReason.NO_TRIP_SERIES and result.round_trip_count == 0
 
 
-def test_ambiguous_isin_trips_are_listed_and_in_no_regime():
+def test_an_isin_buy_and_a_null_isin_sell_never_form_a_trip():
+    # Changed by owner instruction (ISIN-keyed positions): a legacy NULL-ISIN row is a separate position from an ISIN row, so the
+    # mixed pair can no longer become one trip with AMBIGUOUS_ISIN (that guard now only protects hand-built trips).
     trades = ledger(range(10, 40, 3))
     trades[0] = led("B010", BUY, 10, 100 + 10 % 7, 10, isin="INE000000001")
     result, *_ = run(trades, regime=small(min_trips_per_regime=1))
-    row = next(t for t in result.trips if t.trip_id == "B010")
-    assert row.regime is None and row.unavailable.reason is UnavailableReason.AMBIGUOUS_ISIN
-    assert "B010" not in {i for b in result.blocks for i in b.trip_ids}
+    assert "B010" not in {t.trip_id for t in result.trips}
 
 
 def test_invalid_inputs_raise():

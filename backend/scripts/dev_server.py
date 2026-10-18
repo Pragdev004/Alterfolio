@@ -3,7 +3,7 @@
 Run from backend/:  python scripts/dev_server.py [full|few|open|holdings|valued|excluded|empty] [--port 8000]
 `full` = 14 closed trips with NIFTY BANK alternatives and no Nifty 50 membership (the Nifty baseline is Unavailable);
 `few` = 7 trips (below the 10 needed); `open` = one buy, no closed trip; `holdings` = two open positions, one has no quote (PARTIAL valuation); `valued` = the same with both quoted;
-`excluded` = the traded listing is under
+`imported` = one holding made by a tradebook import with one rejected row (charges unknown, so cost basis is incomplete); `excluded` = the traded listing is under
 corporate-action review, so its trips are listed but not compared; `empty` = no trades. Offline, AI_PROVIDER=none. `scenario_app` is also used by
 `record_fixtures.py`. Not part of the product: it reuses the test helpers, so it only runs from a source checkout.
 """
@@ -27,8 +27,9 @@ from app.config import Settings  # noqa: E402
 from app.domain.enums import Currency, TradeSide  # noqa: E402
 from app.providers.market.port import MarketQuote  # noqa: E402
 from app.repositories.user_repository import UserRepository  # noqa: E402
+from app.services.tradebook_import import TradebookImportService  # noqa: E402
 
-TRIPS = {"full": 14, "few": 7, "excluded": 14, "open": 0, "holdings": 0, "valued": 0, "empty": 0}
+TRIPS = {"full": 14, "few": 7, "excluded": 14, "open": 0, "holdings": 0, "valued": 0, "empty": 0, "imported": 0}
 
 
 class FakeQuotes:
@@ -54,6 +55,14 @@ def scenario_app(name: str, llm=None, bars=None):
         if name in ("holdings", "valued"):
             add_trade(s, USER_A, TradeSide.BUY, date(2026, 9, 2), qty="5", instrument=UNIVERSE[0].instrument, isin=UNIVERSE[0].isin)
         s.commit()
+        if name == "imported":
+            from test_tradebook_import import csv_bytes, r  # synthetic rows: one buy of the traded ISIN on each exchange, one bad side
+
+            rows = (r(1, "buy", "6", "100", isin=TRADED_ISIN, symbol=TRADED.symbol, exchange="NSE", ts="2026-09-01T09:30:00"),
+                    r(2, "buy", "4", "101", isin=TRADED_ISIN, symbol=TRADED.symbol, exchange="BSE", ts="2026-09-02T09:30:00"),
+                    r(3, "hold", "1", "100", isin=TRADED_ISIN, symbol=TRADED.symbol, exchange="NSE", ts="2026-09-03T09:30:00"))
+            TradebookImportService.for_session(s, clock=lambda: NOW).import_tradebook(user_id=USER_A, file_name="sept.csv", content=csv_bytes(*rows))
+            s.commit()
     prices = {TRADED: "123.45", **({UNIVERSE[0].instrument: "88.8"} if name == "valued" else {})}
     cfg = config(alternatives={TRADED_ISIN: (UNIVERSE, f"alternatives: NIFTY BANK ({len(UNIVERSE)})")}, nifty50=(), luck_portfolio_count=500,
                  **({"corporate_action_listings": frozenset({TRADED})} if name == "excluded" else {}))

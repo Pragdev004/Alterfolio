@@ -42,7 +42,7 @@ class ValuedHolding:
     quote_status: QuoteStatus
     quote: MarketQuote | None  # set only when quote_status is VALUED
     market_value: Decimal | None
-    unrealized_pnl: Decimal | None
+    unrealized_pnl: Decimal | None  # None when unvalued, or when the holding's cost basis is incomplete
 
 
 @dataclass(frozen=True)
@@ -119,7 +119,8 @@ def value_holdings(
             first_status = first_status or status
             if quote is None:
                 continue
-            pnl = MONEY_CONTEXT.subtract(market_value, holding.invested_amount)
+            # With unknown buy-side charges the invested amount is a lower bound, so profit and loss is not stated at all.
+            pnl = MONEY_CONTEXT.subtract(market_value, holding.invested_amount) if holding.cost_basis_complete else None
             row = ValuedHolding(holding, QuoteStatus.VALUED, quote, market_value, pnl)
             break
         if row is None:
@@ -144,7 +145,8 @@ def value_holdings(
         total_mv = total_pnl = Decimal(0)
         for r in valued:
             total_mv = MONEY_CONTEXT.add(total_mv, r.market_value)
-            total_pnl = MONEY_CONTEXT.add(total_pnl, r.unrealized_pnl)
+            if total_pnl is not None:
+                total_pnl = None if r.unrealized_pnl is None else MONEY_CONTEXT.add(total_pnl, r.unrealized_pnl)
     return PortfolioSummary(
         valuation_time=valuation_time,
         valuation_status=status,
