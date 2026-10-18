@@ -1,0 +1,49 @@
+{
+ "alternatives_note": "Same-sector or same-universe alternatives, not a prediction.",
+ "last_bar_date": null,
+ "last_bar_date_reason_text": "No price data yet.",
+ "last_bar_date_unavailable_reason": "no bars for TEST1.NSE: NOT_FOUND",
+ "latest_sealed_as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "limitations": {
+  "luck": [
+   "OVERLAPPING_TRIPS_MAKE_INTERVAL_OPTIMISTIC",
+   "NOT_PROOF_OF_SKILL_OR_CAUSATION",
+   "NIFTY_MEMBERSHIP_AND_UNIVERSE_ARE_CALLER_SUPPLIED",
+   "CORPORATE_ACTIONS_ARE_NOT_DETECTED",
+   "COVERAGE_IS_A_CALLER_DECLARATION_NOT_PROOF_OF_COMPLETENESS"
+  ],
+  "regime": [
+   "Heuristic grouping, not a model of markets: regimes are relative to each listing's own volatility history.",
+   "Calibration windows overlap, so the pool is autocorrelated and its effective sample is smaller than its size.",
+   "Per-regime Feature 006 results are computed over that regime's round trips only; pooled parts differ from the full run.",
+   "Regimes with fewer classified trips than the minimum are Unavailable; no multiple-testing adjustment is applied."
+  ]
+ },
+ "thresholds": {
+  "bias_min_round_trips": {
+   "display": "10",
+   "reason_text": null,
+   "unavailable_reason": null,
+   "value": "10"
+  },
+  "luck_min_trips": {
+   "display": "10",
+   "reason_text": null,
+   "unavailable_reason": null,
+   "value": "10"
+  },
+  "regime_min_trips_per_regime": {
+   "display": "3",
+   "reason_text": null,
+   "unavailable_reason": null,
+   "value": "3"
+  }
+ },
+ "today_ist": {
+  "display": "1 Dec 2026",
+  "iso": "2026-12-01"
+ }
+}

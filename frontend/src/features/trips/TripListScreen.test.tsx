@@ -27,7 +27,7 @@ describe("Trip list", () => {
     expect(rows).toHaveLength(scenarios.full.trips.trips.length);
     const first = scenarios.full.trips.trips[0]!;
     const row = rows[0]!;
-    expect(within(row).getByRole("link", { name: `${first.symbol} · ${first.exchange}` })).toBeInTheDocument();
+    expect(within(row).getByRole("link", { name: `${first.symbol}\u00a0·\u00a0${first.exchange}` })).toBeInTheDocument();
     expect(row).toHaveTextContent(first.open_session.display);
     expect(row).toHaveTextContent(first.actual_return.display);
     expect(row).toHaveTextContent(first.alt!.percentile.display);
@@ -103,7 +103,7 @@ describe("Trip list", () => {
   it("keeps ?as_of= in the URL: the request carries it, and links to a trip keep it", async () => {
     const seen = serve("full");
     renderApp("/trips?as_of=2026-11-20");
-    const link = await screen.findAllByRole("link", { name: /· NSE/ });
+    const link = await screen.findAllByRole("link", { name: /·\s+NSE/ });
     expect(seen.asOf).toContain("2026-11-20");
     expect(link[0]).toHaveAttribute("href", expect.stringContaining("as_of=2026-11-20"));
   });
@@ -122,7 +122,7 @@ describe("Trip list", () => {
   it("arrow keys move between rows", async () => {
     serve("full");
     renderApp("/trips");
-    const links = await screen.findAllByRole("link", { name: /· NSE/ });
+    const links = await screen.findAllByRole("link", { name: /·\s+NSE/ });
     links[0]!.focus();
     await userEvent.keyboard("{ArrowDown}");
     expect(links[1]).toHaveFocus();

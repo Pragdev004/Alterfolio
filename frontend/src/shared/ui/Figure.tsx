@@ -16,3 +16,8 @@ export const isUnavailable = (n: NumberOut | null | undefined): boolean => !n ||
 export function Reason({ n }: { n: NumberOut }) {
   return n.value === null && n.reason_text ? <span className="reason">{n.reason_text}</span> : null;
 }
+
+/** A value that arrives as separate `x`, `x_display` and `x_unavailable_reason` fields (the older endpoints). Null is the word, not a blank. */
+export function Shown({ value, display, strong = false }: { value: string | null; display: string; strong?: boolean }) {
+  return value === null ? <Unavailable /> : <span className={strong ? "fig strong" : "fig"}>{display}</span>;
+}

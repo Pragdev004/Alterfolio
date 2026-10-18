@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 
-import { recordedErrors, scenarios, type ScenarioName } from "./fixtures";
+import { recordedAsk, recordedErrors, recordedImports, scenarios, type ScenarioName } from "./fixtures";
 import { server } from "./server";
 
 export interface Seen {
@@ -26,6 +26,12 @@ export function serve(name: ScenarioName, seen: Seen = { asOf: [] }): Seen {
     }),
     http.get("*/api/analysis/regimes", () => HttpResponse.json(s.regimes)),
     http.get("*/trades", () => HttpResponse.json(s.trades)),
+    http.get("*/api/analysis/biases", ({ request }) => {
+      capture(request);
+      return HttpResponse.json(s.biases);
+    }),
+    http.get("*/portfolio/summary", () => HttpResponse.json(s.summary ?? scenarios.empty.summary!)),
+    http.get("*/portfolio/holdings", () => HttpResponse.json(s.holdings ?? [])),
   );
   return seen;
 }
@@ -35,3 +41,10 @@ export const failWith = {
   server: () => HttpResponse.json({ detail: "boom" }, { status: 500 }),
   notSealed: () => HttpResponse.json(recordedErrors.not_sealed.body, { status: recordedErrors.not_sealed.status }),
 };
+
+type Recorded = { status: number; body: Record<string, unknown> };
+const reply = (r: Recorded) => HttpResponse.json(r.body, { status: r.status });
+
+/** Answer the next POSTs with a recorded response. */
+export const serveImport = (key: keyof typeof recordedImports) => server.use(http.post("*/imports/tradebook", () => reply(recordedImports[key]!)));
+export const serveAsk = (key: keyof typeof recordedAsk) => server.use(http.post("*/api/analyst/ask", () => reply(recordedAsk[key]!)));

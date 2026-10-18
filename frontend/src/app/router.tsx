@@ -2,8 +2,12 @@ import { createBrowserRouter, createMemoryRouter, Navigate, type RouteObject } f
 
 import { TripDetailScreen } from "../features/trips/TripDetailScreen";
 import { TripListScreen } from "../features/trips/TripListScreen";
+import { AskScreen } from "../features/ask/AskScreen";
+import { CostsScreen } from "../features/costs/CostsScreen";
+import { HoldingsScreen } from "../features/holdings/HoldingsScreen";
+import { UploadScreen } from "../features/upload/UploadScreen";
 import { AppShell } from "./AppShell";
-import { NotBuilt, NotFound } from "./Placeholders";
+import { NotFound } from "./Placeholders";
 
 export const routes: RouteObject[] = [
   {
@@ -12,10 +16,10 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/trips" replace /> },
       { path: "trips", element: <TripListScreen /> },
       { path: "trips/:tripId", element: <TripDetailScreen /> },
-      { path: "holdings", element: <NotBuilt name="Holdings" /> },
-      { path: "costs", element: <NotBuilt name="Costs" /> },
-      { path: "ask", element: <NotBuilt name="Ask" /> },
-      { path: "upload", element: <NotBuilt name="Upload" /> },
+      { path: "holdings", element: <HoldingsScreen /> },
+      { path: "costs", element: <CostsScreen /> },
+      { path: "ask", element: <AskScreen /> },
+      { path: "upload", element: <UploadScreen /> },
       { path: "*", element: <NotFound /> },
     ],
   },

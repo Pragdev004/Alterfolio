@@ -53,7 +53,7 @@ function TripRowView({ trip, excluded, search }: { trip: TripRow; excluded: Trip
   const evaluated = trip.evaluated && trip.alt !== null;
   return (
     <tr>
-      <th scope="row"><Link data-row-link to={{ pathname: `/trips/${trip.trip_id}`, search }}>{trip.symbol} · {trip.exchange}</Link></th>
+      <th scope="row"><Link data-row-link to={{ pathname: `/trips/${trip.trip_id}`, search }}>{trip.symbol}&nbsp;·&nbsp;{trip.exchange}</Link></th>
       <td className="cell">{trip.open_session.display}</td>
       <td className="cell">{trip.close_session.display}</td>
       {evaluated && trip.alt ? (

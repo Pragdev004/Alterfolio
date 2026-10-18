@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getJson } from "./client";
+import { getJson, postFile, postJson } from "./client";
 import { ApiError } from "./errors";
-import type { MetaOut, RegimesOut, TradeOut, TripDetailOut, TripsOut } from "./types";
+import type { AskOut, BiasesOut, HoldingOut, ImportResult, MetaOut, RegimesOut, SummaryOut, TradeOut, TripDetailOut, TripsOut } from "./types";
 
 // The backend caches per ledger version and a sealed day never changes, so results stay fresh for a long time.
 const STALE = 30 * 60 * 1000;
@@ -38,3 +38,31 @@ export const useRegimes = (asOf: string | null) =>
     queryFn: ({ signal }) => getJson<RegimesOut>("/api/analysis/regimes", { as_of: asOf }, signal),
     staleTime: STALE,
   });
+
+export const useBiases = (asOf: string | null) =>
+  useQuery({
+    queryKey: ["analysis", "biases", asOf],
+    queryFn: ({ signal }) => getJson<BiasesOut>("/api/analysis/biases", { as_of: asOf }, signal),
+    staleTime: STALE,
+  });
+
+// Holdings are current, not as-of, and prices move: keep them fresh for a minute only.
+export const useSummary = () =>
+  useQuery({ queryKey: ["portfolio", "summary"], queryFn: ({ signal }) => getJson<SummaryOut>("/portfolio/summary", {}, signal), staleTime: 60_000 });
+
+export const useHoldings = () =>
+  useQuery({ queryKey: ["portfolio", "holdings"], queryFn: ({ signal }) => getJson<HoldingOut[]>("/portfolio/holdings", {}, signal), staleTime: 60_000 });
+
+/** An import changes the ledger, so everything derived from it is refetched. */
+export function useImportTradebook() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => postFile<ImportResult>("/imports/tradebook", file),
+    onSuccess: () => Promise.all([client.invalidateQueries({ queryKey: ["analysis"] }), client.invalidateQueries({ queryKey: ["portfolio"] }), client.invalidateQueries({ queryKey: ["trades"] })]),
+  });
+}
+
+export const ASK_TIMEOUT_MS = 60_000;
+
+export const useAsk = () =>
+  useMutation({ mutationFn: (body: { question: string; as_of: string }) => postJson<AskOut>("/api/analyst/ask", body, AbortSignal.timeout(ASK_TIMEOUT_MS)) });

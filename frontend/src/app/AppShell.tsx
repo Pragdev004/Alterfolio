@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
+import { useGShortcutsSetting } from "./preferences";
 import { useGChords } from "./useGChords";
 
 const SCREENS = [
@@ -11,7 +12,8 @@ const SCREENS = [
 ] as const;
 
 export function AppShell() {
-  useGChords();
+  const [shortcuts, setShortcuts] = useGShortcutsSetting();
+  useGChords(shortcuts);
   const { search } = useLocation();
   return (
     <>
@@ -25,7 +27,10 @@ export function AppShell() {
                 <li key={to}><NavLink to={{ pathname: to, search }}>{label}</NavLink></li>
               ))}
             </ul>
-            <small>Educational, not financial advice.</small>
+            <label className="pref">
+              <input type="checkbox" checked={shortcuts} onChange={(e) => setShortcuts(e.target.checked)} />
+              <span>Keyboard shortcuts<small>g then h, t, c, a or u</small></span>
+            </label>
           </div>
         </nav>
         <main id="main" tabIndex={-1}>

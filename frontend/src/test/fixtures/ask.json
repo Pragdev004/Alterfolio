@@ -1,0 +1,76 @@
+{
+ "not_sealed": {
+  "body": {
+   "detail": {
+    "code": "as_of_not_sealed",
+    "message": "as_of 2026-12-01 must be before today's exchange-local date"
+   }
+  },
+  "status": 422
+ },
+ "offline": {
+  "body": {
+   "detail": {
+    "code": "ai_provider_not_configured",
+    "message": "AI_PROVIDER=openai_compatible requires AI_BASE_URL and AI_MODEL"
+   }
+  },
+  "status": 503
+ },
+ "template": {
+  "body": {
+   "answer_source": "template",
+   "as_of": "2026-11-30",
+   "attempts": 1,
+   "citations": [
+    {
+     "kind": "tool",
+     "ref": "006:DISPOSITION.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:CHASING.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:OVERTRADING.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:OVERTRADING.unknown_fee_trade_count"
+    }
+   ],
+   "text": "bias.DISPOSITION.cost_inr: \u20b90.00\nbias.CHASING.cost_inr: \u20b919.59\nbias.OVERTRADING.cost_inr: \u20b9105.80\nbias.OVERTRADING.unknown_fee_trade_count: 0",
+   "verified": true
+  },
+  "status": 200
+ },
+ "unverified": {
+  "body": {
+   "answer_source": "llm",
+   "as_of": "2026-11-30",
+   "attempts": 2,
+   "citations": [
+    {
+     "kind": "tool",
+     "ref": "006:DISPOSITION.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:CHASING.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:OVERTRADING.cost_inr"
+    },
+    {
+     "kind": "tool",
+     "ref": "006:OVERTRADING.unknown_fee_trade_count"
+    }
+   ],
+   "text": "bias.DISPOSITION.cost_inr: \u20b90.00\nbias.CHASING.cost_inr: \u20b919.59\nbias.OVERTRADING.cost_inr: \u20b9105.80\nbias.OVERTRADING.unknown_fee_trade_count: 0",
+   "verified": false
+  },
+  "status": 200
+ }
+}

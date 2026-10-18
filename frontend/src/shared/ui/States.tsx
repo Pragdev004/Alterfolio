@@ -29,6 +29,7 @@ export function ErrorState({ error, onRetry, children }: { error: unknown; onRet
     <div className="state" role="alert">
       <h2>{copy.title}</h2>
       <p>{copy.body}</p>
+      {error instanceof ApiError && error.kind === "client" && error.message && <p className="reason">Server said: {error.message}</p>}
       {code && <p className="reason">Server code: {code}</p>}
       {copy.retry && onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
       {children}

@@ -1,0 +1,76 @@
+{
+ "duplicate": {
+  "body": {
+   "duplicates": 6,
+   "fees_taxes_provided": false,
+   "file_name": "tradebook_synthetic.csv",
+   "file_sha256": "c6cc3f95faa9a7d292e9dfc7092b317b7534c55d1575626521da76678bfb41fe",
+   "import_batch_id": "48542a06-d2df-401d-8ee8-d72bc7b407b6",
+   "imported": 0,
+   "quarantined_isins": [],
+   "rejected": [
+    {
+     "code": "invalid_side",
+     "message": "trade_type must be buy or sell, got 'hold'",
+     "row": 8
+    }
+   ],
+   "rejected_total": 1,
+   "total_rows": 7
+  },
+  "status": 201
+ },
+ "invalid": {
+  "body": {
+   "detail": {
+    "code": "invalid_import_file",
+    "message": "the header does not match the 13 expected columns: missing symbol, isin, trade_date, exchange, segment, series, trade_type, auction, quantity, price, trade_id, order_id, order_execution_time; unexpected 'this is not a tradebook'"
+   }
+  },
+  "status": 422
+ },
+ "ok": {
+  "body": {
+   "duplicates": 0,
+   "fees_taxes_provided": false,
+   "file_name": "tradebook_synthetic.csv",
+   "file_sha256": "c6cc3f95faa9a7d292e9dfc7092b317b7534c55d1575626521da76678bfb41fe",
+   "import_batch_id": "b2741139-6cf0-459d-be42-025dcd42ad1d",
+   "imported": 6,
+   "quarantined_isins": [],
+   "rejected": [
+    {
+     "code": "invalid_side",
+     "message": "trade_type must be buy or sell, got 'hold'",
+     "row": 8
+    }
+   ],
+   "rejected_total": 1,
+   "total_rows": 7
+  },
+  "status": 201
+ },
+ "oversell": {
+  "body": {
+   "duplicates": 0,
+   "fees_taxes_provided": false,
+   "file_name": "sells_first.csv",
+   "file_sha256": "741cf564c2b7ee11b80840b1fd5c00f9154899270b1c4610d116a1f40c5f543c",
+   "import_batch_id": "48c6a7e5-90e5-43d1-b6db-8b41cb41ec44",
+   "imported": 0,
+   "quarantined_isins": [
+    "ZZ0ALPHA0001"
+   ],
+   "rejected": [
+    {
+     "code": "oversell",
+     "message": "10.000000 of ZZ0ALPHA0001 would be sold while only 0 is held at that point (the ledger is replayed in trade-time order; if the earlier tradebook is not uploaded yet, upload it first and then re-upload this file)",
+     "row": 2
+    }
+   ],
+   "rejected_total": 1,
+   "total_rows": 1
+  },
+  "status": 201
+ }
+}

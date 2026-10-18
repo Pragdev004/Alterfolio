@@ -1,0 +1,19 @@
+{
+ "basis": "CURRENT",
+ "cost_basis_complete": true,
+ "holdings": [],
+ "holdings_count": 0,
+ "schema_version": 1,
+ "total_invested": "0.000000",
+ "total_invested_display": "\u20b90.00",
+ "total_market_value": "0.000000",
+ "total_market_value_display": "\u20b90.00",
+ "total_trades": 0,
+ "total_unrealized_pnl": "0.000000",
+ "total_unrealized_pnl_display": "\u20b90.00",
+ "valuation_status": "COMPLETE",
+ "valuation_text": "0 of 0 holdings valued",
+ "valuation_time": "2026-12-01T10:00:00Z",
+ "valuation_time_display": "1 Dec 2026, 15:30 IST",
+ "valued_holdings_count": 0
+}

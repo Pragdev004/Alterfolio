@@ -11,8 +11,10 @@
   .rail a { display: block; padding: var(--s-2); text-decoration: none; }
   .rail a:hover { text-decoration: underline; }
   .rail a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
-  .rail small { margin-top: auto; color: var(--ink-3); font-size: var(--t-sm); }
-  main { padding: 0 var(--s-6) var(--s-8); max-width: 1240px; width: 100%; }
+  .pref { margin-top: auto; display: flex; gap: var(--s-2); align-items: flex-start; font-size: var(--t-sm); color: var(--ink-2); }
+  .pref small { display: block; color: var(--ink-3); }
+  .pref input { margin-top: 3px; }
+  main { padding: 0 var(--s-6) var(--s-8); max-width: 1240px; width: 100%; min-width: 0; overflow-wrap: anywhere; }
   main:focus { outline: none; }
 
   /* chart header */
@@ -92,7 +94,6 @@
   th, td { text-align: left; padding: var(--s-3) var(--s-3) var(--s-3) 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
   thead th { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--rule-ink); vertical-align: bottom; }
   tbody th { font-weight: 600; }
-  .table-trips tbody th { white-space: nowrap; }
   td.n, th.n { text-align: right; }
   td.note { font-size: var(--t-sm); color: var(--ink-2); padding-left: var(--s-3); width: 260px; }
   .table-trips tbody tr:focus-within { background: var(--paper-2); }
@@ -120,6 +121,14 @@
   .skeleton .label { color: var(--ink-2); margin-bottom: var(--s-3); }
   .skeleton .row { height: 44px; border-bottom: 1px solid var(--rule); background: var(--hatch); opacity: 0.4; }
   .offline { color: var(--ink-2); font-size: var(--t-sm); margin-top: var(--s-2); }
+  .k-label { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--ink-2); }
+  .ask-box { width: 100%; max-width: 70ch; font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--rule-ink); border-radius: var(--r-ctl); padding: var(--s-2) var(--s-3); }
+  input[type="file"], input[type="date"] { font: inherit; color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .chips li { padding: 0; border: 0; }
+  .chip { display: inline-block; border: 1px solid var(--rule-ink); padding: 2px var(--s-2); font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.02em; }
+  .margin a.chip { color: var(--ink); }
+  tfoot th, tfoot td { border-top: 1px solid var(--rule-ink); font-weight: 600; }
   footer { border-top: 1px solid var(--rule-ink); padding-top: var(--s-4); color: var(--ink-2); font-size: var(--t-sm); display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); margin-top: var(--s-6); }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -127,11 +136,11 @@
   }
 
   @media (max-width: 900px) {
-    .shell { grid-template-columns: 1fr; }
+    .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
     .rail { border-right: 0; border-bottom: 1px solid var(--rule); }
     .rail-in { position: static; min-height: 0; flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: var(--s-2) var(--s-5); padding: var(--s-3) var(--s-4); }
     .rail ul { flex-direction: row; flex-wrap: wrap; }
-    .rail small { display: none; }
+    .pref { margin-top: 0; }
     main { padding: 0 var(--s-4) var(--s-7); }
     .sec { grid-template-columns: 1fr; }
     .sec > .margin { margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--rule); }
@@ -145,7 +154,7 @@
     .rail a { padding: var(--s-3) var(--s-2); min-height: 44px; }
     .btn, .btn-link { min-height: 44px; }
     /* compact two-line rows: a title line (status or value at the right) and one line of figures, never a label per field */
-    table, thead, tbody, tr, th, td { display: block; }
+    table, caption, thead, tbody, tfoot, tr, th, td { display: block; }
     thead { position: absolute; left: -9999px; }
     tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s-3); row-gap: 2px; padding: var(--s-3) 0; border-bottom: 1px solid var(--rule); }
     th, td { border: 0; padding: 0; text-align: left; }
@@ -158,5 +167,7 @@
     td.m-line .sep { color: var(--ink-3); margin: 0 var(--s-1); }
     td.m-line .l { color: var(--ink-2); }
     td.note { padding: 0; width: auto; }
+    tfoot th, tfoot td { border-top: 0; }
+    tfoot tr { border-top: 1px solid var(--rule-ink); }
   }
 }

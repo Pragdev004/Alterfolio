@@ -65,8 +65,8 @@
    },
    "gross_cost_inr": {
     "display": "Unavailable",
-    "reason_text": "This is not available.",
-    "unavailable_reason": "not available",
+    "reason_text": "This habit's cost has no separate fee part.",
+    "unavailable_reason": "no fee component",
     "value": null
    },
    "kind": "DISPOSITION",
@@ -115,8 +115,8 @@
    },
    "gross_cost_inr": {
     "display": "Unavailable",
-    "reason_text": "This is not available.",
-    "unavailable_reason": "not available",
+    "reason_text": "This habit's cost has no separate fee part.",
+    "unavailable_reason": "no fee component",
     "value": null
    },
    "kind": "CHASING",

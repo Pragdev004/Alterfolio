@@ -15,3 +15,19 @@ export type RegimeTag = S["RegimeTagOut"];
 export type BaselineSummary = S["BaselineSummaryOut"];
 export type RegimesOut = S["RegimesOut"];
 export type TradeOut = S["TradeOut"];
+export type SummaryOut = S["SummaryOut"];
+export type SummaryHolding = S["SummaryHoldingOut"];
+export type HoldingOut = S["HoldingOut"];
+export type ImportResult = S["ImportResultOut"];
+export type BiasesOut = S["BiasesOut"];
+export type BiasOut = S["BiasOut"];
+
+/** `POST /api/analyst/ask` has no response model in OpenAPI; this is its documented body (spec 013 section 3). */
+export interface AskOut {
+  text: string;
+  citations: { kind: string; ref: string }[];
+  verified: boolean;
+  as_of: string;
+  attempts: number;
+  answer_source: "template" | "llm";
+}
