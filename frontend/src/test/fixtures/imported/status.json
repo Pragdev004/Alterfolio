@@ -1,0 +1,17 @@
+{
+ "batches": [
+  {
+   "created_at": "2026-12-01T10:00:00Z",
+   "created_at_display": "1 Dec 2026, 15:30 IST",
+   "duplicates": 0,
+   "file_name": "sept.csv",
+   "import_batch_id": "460a2479-ddc2-4db8-a84b-4a896281214d",
+   "imported": 2,
+   "rejected_total": 1,
+   "superseded": false,
+   "total_rows": 3
+  }
+ ],
+ "rejected_rows_total": 1,
+ "warning": "1 row was rejected at import; figures may be wrong"
+}

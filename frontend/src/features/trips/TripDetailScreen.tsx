@@ -11,6 +11,7 @@ import { Figure, Unavailable } from "../../shared/ui/Figure";
 import { Histogram } from "../../shared/ui/Histogram";
 import { TooFew } from "../../shared/ui/SampleSentence";
 import { StatusCode } from "../../shared/ui/StatusCode";
+import { RefreshFailed, RejectedRowsWarning } from "../../shared/ui/Notices";
 import { EmptyState, ErrorState, NotFinal, Skeleton } from "../../shared/ui/States";
 import { VolatilityBand } from "../../shared/ui/VolatilityBand";
 
@@ -48,17 +49,17 @@ function BaselineRow({ name, o }: { name: string; o: Outcome | null }) {
   const na = o.unavailable_reason !== null;
   const lost = dropped(o.lost_count);
   return (
-    <tr>
-      <th scope="row">{name}</th>
+    <tr role="row">
+      <th role="rowheader" scope="row">{name}</th>
       {na ? (
-        <td className="n na-cell" colSpan={4}><Unavailable span /></td>
+        <td role="cell" className="n na-cell" colSpan={4}><Unavailable span /></td>
       ) : (
         <>
-          <td className="n cell"><Figure n={o.mean_return} /></td>
-          <td className="n cell"><span className="nb"><Figure n={o.excess} strong /> <Direction direction={o.excess_direction} /></span></td>
-          <td className="n cell"><Figure n={o.percentile} /></td>
-          <td className="cell">{o.portfolios_text}</td>
-          <td className="m-line">
+          <td role="cell" className="n cell"><Figure n={o.mean_return} /></td>
+          <td role="cell" className="n cell"><span className="nb"><Figure n={o.excess} strong /> <Direction direction={o.excess_direction} /></span></td>
+          <td role="cell" className="n cell"><Figure n={o.percentile} /></td>
+          <td role="cell" className="cell">{o.portfolios_text}</td>
+          <td role="cell" className="m-line">
             <span className="l">Mean </span>{o.mean_return.display}<span className="sep">·</span>
             <span className="l">Excess </span>{o.excess.display} <Direction direction={o.excess_direction} /><span className="sep">·</span>
             <span className="l">Percentile </span>{o.percentile.display}<span className="sep">·</span>
@@ -66,8 +67,8 @@ function BaselineRow({ name, o }: { name: string; o: Outcome | null }) {
           </td>
         </>
       )}
-      <td className="status"><StatusCode hold={na}>{na ? "Unavailable" : "Evaluated"}</StatusCode></td>
-      <td className="note">{na ? <span className="reason">{o.reason_text}</span> : lost && <span className="reason">{lost}.</span>}</td>
+      <td role="cell" className="status"><StatusCode hold={na}>{na ? "Unavailable" : "Evaluated"}</StatusCode></td>
+      <td role="cell" className="note">{na ? <span className="reason">{o.reason_text}</span> : lost && <span className="reason">{lost}.</span>}</td>
     </tr>
   );
 }
@@ -124,8 +125,10 @@ export function TripDetailScreen() {
       <ChartHeader meta={meta.data} asOf={detail.data?.as_of} selected={asOf} onChange={setAsOf} />
       <p style={{ marginTop: "var(--s-4)" }}><Link to={{ pathname: "/trips", search }}>← All trips</Link></p>
 
+      <RejectedRowsWarning />
       {detail.isPending && <Skeleton />}
-      {detail.isError && (notFinal
+      {detail.isError && detail.data && !notFinal && !notFound && <RefreshFailed at={detail.dataUpdatedAt} onRetry={() => void detail.refetch()} />}
+      {detail.isError && !detail.data && (notFinal
         ? <NotFinal onUseLatest={() => setAsOf(null)} latestDisplay={meta.data?.latest_sealed_as_of.display ?? null} />
         : notFound
           ? <EmptyState title="That trip is not in your analysis."><p>It may belong to a different date. <Link to={{ pathname: "/trips", search }}>Back to the list</Link>.</p></EmptyState>
@@ -163,14 +166,14 @@ export function TripDetailScreen() {
               Your return is <Figure n={trip.actual_return} strong /> in both rows; each row compares it with random portfolios from a different pool.
             </p>
             <div className="wide">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Baseline</th><th scope="col" className="n">Alternatives’ mean</th><th scope="col" className="n">Excess</th>
-                    <th scope="col" className="n">Percentile</th><th scope="col">Portfolios</th><th scope="col">Status</th><th scope="col">Note</th>
+              <table role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader" scope="col">Baseline</th><th role="columnheader" scope="col" className="n">Alternatives’ mean</th><th role="columnheader" scope="col" className="n">Excess</th>
+                    <th role="columnheader" scope="col" className="n">Percentile</th><th role="columnheader" scope="col">Portfolios</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Note</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   <BaselineRow name={trip.alternatives_label ?? "Alternatives"} o={trip.alt} />
                   <BaselineRow name="Nifty 50 random portfolios" o={trip.nifty} />
                 </tbody>
@@ -182,14 +185,14 @@ export function TripDetailScreen() {
             <h2 id="h-picks">Alternatives picked<span className="h-sub">{trip.picks.length} picked and {left.length} left out. Returns are over the same dates as your trip.</span></h2>
             <div>
               {trip.picks.length === 0 ? <p className="strip-note">No alternatives were picked for this trip.</p> : (
-                <table>
-                  <thead><tr><th scope="col">Listing</th><th scope="col" className="n">Return over the trip</th><th scope="col">Note</th></tr></thead>
-                  <tbody>
+                <table role="table">
+                  <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Listing</th><th role="columnheader" scope="col" className="n">Return over the trip</th><th role="columnheader" scope="col">Note</th></tr></thead>
+                  <tbody role="rowgroup">
                     {trip.picks.map((p) => (
-                      <tr key={`${p.symbol}-${p.exchange}`}>
-                        <th scope="row">{p.rank}. {p.symbol} · {p.exchange}</th>
-                        <td className="n val"><Figure n={p.return_ratio} /></td>
-                        <td className="note">{p.return_ratio.value === null && <span className="reason">{p.return_ratio.reason_text} Dropped.</span>}</td>
+                      <tr role="row" key={`${p.symbol}-${p.exchange}`}>
+                        <th role="rowheader" scope="row">{p.rank}. {p.symbol} · {p.exchange}</th>
+                        <td role="cell" className="n val"><Figure n={p.return_ratio} /></td>
+                        <td role="cell" className="note">{p.return_ratio.value === null && <span className="reason">{p.return_ratio.reason_text} Dropped.</span>}</td>
                       </tr>
                     ))}
                   </tbody>

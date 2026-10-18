@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { recordedImports } from "../../test/fixtures";
+import { recordedImports, scenarios } from "../../test/fixtures";
 import { failWith, serve, serveImport } from "../../test/handlers";
 import { renderApp } from "../../test/render";
 import { server } from "../../test/server";
@@ -134,5 +134,24 @@ describe("Upload", () => {
     await screen.findByRole("heading", { name: /Import result/ });
     fireEvent.click(screen.getByRole("link", { name: "See your trips" }));
     await waitFor(() => expect(screen.getAllByRole("link", { name: /·\s+NSE/ }).length).toBeGreaterThan(0));
+  });
+
+  it("the 'first X of N' caption is the server's rejected_text, not composed here", async () => {
+    const ok = recordedImports.ok!.body as { rejected: unknown[] };
+    server.use(http.post("*/imports/tradebook", () => HttpResponse.json({ ...ok, rejected_text: "The first 200 of 350 rejected rows" })));
+    renderApp("/upload");
+    await pick(csv());
+    await importNow();
+    expect(await screen.findByRole("table", { name: "Rejected rows: The first 200 of 350 rejected rows" })).toBeInTheDocument();
+  });
+
+  it("lists previous uploads with their rejected counts, as the target of the warning link", async () => {
+    serve("imported");
+    renderApp("/upload#previous");
+    const section = (await screen.findByRole("heading", { name: /Previous uploads/ })).closest("section")!;
+    expect(section).toHaveAttribute("id", "previous");
+    expect(section).toHaveTextContent("1 row was rejected at import; figures may be wrong");
+    const row = within(section).getByRole("rowheader", { name: "sept.csv" }).closest("tr")!;
+    expect(row).toHaveTextContent(scenarios.imported.status!.batches[0]!.created_at_display);
   });
 });

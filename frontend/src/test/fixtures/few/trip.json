@@ -10,7 +10,7 @@
  ],
  "trip": {
   "actual_return": {
-   "display": "-0.13% (fees excluded)",
+   "display": "\u22120.13% (fees excluded)",
    "reason_text": null,
    "unavailable_reason": null,
    "value": "-0.001290322580645161290322580645161290322580645161290322580645"
@@ -18,7 +18,7 @@
   "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
   "alt": {
    "excess": {
-    "display": "-0.20%",
+    "display": "\u22120.20%",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.001971069588373794"
@@ -55,7 +55,7 @@
   "histograms": {
    "ALT": {
     "actual_return": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001290322580645161290322580645161290322580645161290322580645"
@@ -64,13 +64,13 @@
      {
       "count": 104,
       "lower": {
-       "display": "-0.13%",
+       "display": "\u22120.13%",
        "reason_text": null,
        "unavailable_reason": null,
        "value": "-0.001290322580645161290322580645161290322580645161290322580645"
       },
       "upper": {
-       "display": "-0.08%",
+       "display": "\u22120.08%",
        "reason_text": null,
        "unavailable_reason": null,
        "value": "-0.0007946645003365413534359396398"
@@ -79,13 +79,13 @@
      {
       "count": 98,
       "lower": {
-       "display": "-0.08%",
+       "display": "\u22120.08%",
        "reason_text": null,
        "unavailable_reason": null,
        "value": "-0.0007946645003365413534359396398"
       },
       "upper": {
-       "display": "-0.03%",
+       "display": "\u22120.03%",
        "reason_text": null,
        "unavailable_reason": null,
        "value": "-0.0002990064200279214165492986344"
@@ -94,7 +94,7 @@
      {
       "count": 64,
       "lower": {
-       "display": "-0.03%",
+       "display": "\u22120.03%",
        "reason_text": null,
        "unavailable_reason": null,
        "value": "-0.0002990064200279214165492986344"
@@ -363,7 +363,7 @@
      }
     ],
     "lower": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001290322580645161290322580645161290322580645161290322580645"
@@ -417,7 +417,7 @@
     "isin": "INE010U01011",
     "rank": 1,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001290322580645161290322580645161290322580645161290322580645"
@@ -429,7 +429,7 @@
     "isin": "INE008U01011",
     "rank": 2,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001287948482060717571297148114075436982520699172033118675253"
@@ -441,7 +441,7 @@
     "isin": "INE001U01011",
     "rank": 3,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001292705447830101569713758079409048938134810710987996306556"
@@ -453,7 +453,7 @@
     "isin": "INE006U01011",
     "rank": 4,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001285583103764921946740128558310376492194674012855831037649"
@@ -465,7 +465,7 @@
     "isin": "INE004U01011",
     "rank": 5,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001283226397800183318056828597616865261228230980751604032997"
@@ -477,7 +477,7 @@
     "isin": "INE002U01011",
     "rank": 6,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001280878316559926806953339432753888380603842634949679780421"
@@ -489,7 +489,7 @@
     "isin": "INE000U01011",
     "rank": 7,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001278538812785388127853881278538812785388127853881278538813"
@@ -501,7 +501,7 @@
     "isin": "INE011U01011",
     "rank": 8,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001278538812785388127853881278538812785388127853881278538813"
@@ -525,7 +525,7 @@
     "isin": "INE007U01011",
     "rank": 10,
     "return_ratio": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001299907149489322191272051996285979572887650882079851439183"

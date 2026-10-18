@@ -119,6 +119,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imports/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Import Status
+         * @description Past uploads and the rejected-row warning shown on Holdings and Trips.
+         */
+        get: operations["import_status_imports_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/imports/tradebook": {
         parameters: {
             query?: never;
@@ -451,6 +471,35 @@ export interface components {
             /** quantity unavailable reason */
             quantity_unavailable_reason?: string | null;
         };
+        /** ImportBatchOut */
+        ImportBatchOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** created_at display */
+            created_at_display: string;
+            /** created_at unavailable reason */
+            created_at_unavailable_reason?: string | null;
+            /** Duplicates */
+            duplicates: number;
+            /** File Name */
+            file_name: string;
+            /**
+             * Import Batch Id
+             * Format: uuid
+             */
+            import_batch_id: string;
+            /** Imported */
+            imported: number;
+            /** Rejected Total */
+            rejected_total: number;
+            /** Superseded */
+            superseded: boolean;
+            /** Total Rows */
+            total_rows: number;
+        };
         /** ImportResultOut */
         ImportResultOut: {
             /** Duplicates */
@@ -472,10 +521,24 @@ export interface components {
             quarantined_isins: string[];
             /** Rejected */
             rejected: components["schemas"]["RejectedRowOut"][];
+            /** Rejected Text */
+            rejected_text?: string | null;
             /** Rejected Total */
             rejected_total: number;
             /** Total Rows */
             total_rows: number;
+        };
+        /**
+         * ImportStatusOut
+         * @description What the ledger knows about past uploads. Rejected rows are not stored, only counted (the row list exists at upload time).
+         */
+        ImportStatusOut: {
+            /** Batches */
+            batches: components["schemas"]["ImportBatchOut"][];
+            /** Rejected Rows Total */
+            rejected_rows_total: number;
+            /** Warning */
+            warning: string | null;
         };
         /** LimitationsOut */
         LimitationsOut: {
@@ -767,12 +830,24 @@ export interface components {
             holdings: components["schemas"]["SummaryHoldingOut"][];
             /** Holdings Count */
             holdings_count: number;
+            /** Incomplete Cost Basis Count */
+            readonly incomplete_cost_basis_count: number;
             /**
              * Schema Version
              * @default 1
              * @constant
              */
             schema_version: 1;
+            /**
+             * Status Label
+             * @description The chip text: COMPLETE only when every holding is priced AND every cost basis is complete.
+             */
+            readonly status_label: string;
+            /**
+             * Status Text
+             * @description One sentence behind the chip: what was valued, and what is missing from the cost basis.
+             */
+            readonly status_text: string;
             /** Total Invested */
             total_invested: string;
             /** total_invested display */
@@ -1333,6 +1408,26 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    import_status_imports_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportStatusOut"];
                 };
             };
         };

@@ -12,5 +12,5 @@ export function renderApp(path: string) {
       <RouterProvider router={router} future={routerProviderFuture} />
     </QueryClientProvider>,
   );
-  return { ...view, router };
+  return { ...view, router, client };
 }

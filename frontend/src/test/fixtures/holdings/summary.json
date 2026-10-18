@@ -63,7 +63,10 @@
   }
  ],
  "holdings_count": 2,
+ "incomplete_cost_basis_count": 0,
  "schema_version": 1,
+ "status_label": "PARTIAL",
+ "status_text": "1 of 2 holdings valued",
  "total_invested": "1702.500000",
  "total_invested_display": "\u20b91,702.50",
  "total_market_value": "1234.500000",

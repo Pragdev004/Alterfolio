@@ -19,6 +19,8 @@ export type SummaryOut = S["SummaryOut"];
 export type SummaryHolding = S["SummaryHoldingOut"];
 export type HoldingOut = S["HoldingOut"];
 export type ImportResult = S["ImportResultOut"];
+export type ImportStatus = S["ImportStatusOut"];
+export type ImportBatch = S["ImportBatchOut"];
 export type BiasesOut = S["BiasesOut"];
 export type BiasOut = S["BiasOut"];
 

@@ -433,7 +433,7 @@
       "value": null
      },
      "mean_excess": {
-      "display": "-0.73%",
+      "display": "\u22120.73%",
       "reason_text": null,
       "unavailable_reason": null,
       "value": "-0.007257148278555908"
@@ -679,7 +679,7 @@
       "value": null
      },
      "mean_excess": {
-      "display": "-1.64%",
+      "display": "\u22121.64%",
       "reason_text": null,
       "unavailable_reason": null,
       "value": "-0.016369614096126296"

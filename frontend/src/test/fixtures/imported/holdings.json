@@ -1,0 +1,23 @@
+[
+ {
+  "average_buy_price": "100.400000",
+  "average_buy_price_display": "\u20b9100.40",
+  "cost_basis_complete": false,
+  "invested_amount": "1004.000000",
+  "invested_amount_display": "\u20b91,004.00",
+  "isin": "INE000T01011",
+  "listings": [
+   {
+    "exchange": "BSE",
+    "symbol": "TEST1"
+   },
+   {
+    "exchange": "NSE",
+    "symbol": "TEST1"
+   }
+  ],
+  "name": null,
+  "quantity": "10.000000",
+  "quantity_display": "10"
+ }
+]

@@ -8,6 +8,7 @@ import { ChartHeader } from "../../shared/ui/ChartHeader";
 import { Figure, Unavailable } from "../../shared/ui/Figure";
 import { TooFew } from "../../shared/ui/SampleSentence";
 import { StatusCode } from "../../shared/ui/StatusCode";
+import { RefreshFailed, RejectedRowsWarning } from "../../shared/ui/Notices";
 import { ErrorState, NotFinal, Skeleton } from "../../shared/ui/States";
 
 const NAMES: Record<string, string> = { DISPOSITION: "Disposition", CHASING: "Chasing", OVERTRADING: "Overtrading" };
@@ -15,18 +16,18 @@ const NAMES: Record<string, string> = { DISPOSITION: "Disposition", CHASING: "Ch
 function Row({ b }: { b: BiasOut }) {
   const name = NAMES[b.kind] ?? b.kind;
   return (
-    <tr>
-      <th scope="row">{name}</th>
-      <td className="n val"><Figure n={b.cost_inr} strong /></td>
-      <td className="n cell"><Figure n={b.gross_cost_inr} /></td>
-      <td className="n cell"><Figure n={b.fees_known} /></td>
-      <td className="n cell">{b.unknown_fee_trade_count === null ? <Unavailable /> : b.unknown_fee_trade_count}</td>
-      <td className="m-line">
+    <tr role="row">
+      <th role="rowheader" scope="row">{name}</th>
+      <td role="cell" className="n val"><Figure n={b.cost_inr} strong /></td>
+      <td role="cell" className="n cell"><Figure n={b.gross_cost_inr} /></td>
+      <td role="cell" className="n cell"><Figure n={b.fees_known} /></td>
+      <td role="cell" className="n cell">{b.unknown_fee_trade_count === null ? <Unavailable /> : b.unknown_fee_trade_count}</td>
+      <td role="cell" className="m-line">
         <span className="l">Gross </span>{b.gross_cost_inr.display}<span className="sep">·</span>
         <span className="l">Fees known </span>{b.fees_known.display}<span className="sep">·</span>
         <span className="l">Unknown-fee trades </span>{b.unknown_fee_trade_count ?? "Unavailable"}
       </td>
-      <td className="note">
+      <td role="cell" className="note">
         {[...new Set([b.cost_inr, b.gross_cost_inr, b.fees_known].filter((n) => n.value === null && n.reason_text).map((n) => n.reason_text))].map((t) => (
           <span key={t} className="reason">{t} </span>
         ))}
@@ -50,10 +51,13 @@ export function CostsScreen() {
       <div className="title"><h1>Costs</h1><span className="sub">What three trading habits cost, in rupees</span></div>
       <p className="lede">These are observations from your own ledger, each with the figures behind it. They are not instructions, and not proof of a cause.</p>
 
+      <RejectedRowsWarning />
       {q.isPending && <Skeleton />}
       {q.isError && (notFinal
         ? <NotFinal onUseLatest={() => setAsOf(null)} latestDisplay={meta.data?.latest_sealed_as_of.display ?? null} />
-        : <ErrorState error={q.error} onRetry={() => void q.refetch()} />)}
+        : d
+          ? <RefreshFailed at={q.dataUpdatedAt} onRetry={() => void q.refetch()} />
+          : <ErrorState error={q.error} onRetry={() => void q.refetch()} />)}
 
       {d && (
         <>
@@ -63,14 +67,14 @@ export function CostsScreen() {
           <section className="sec" aria-labelledby="h-costs">
             <h2 id="h-costs">Cost of each habit<span className="h-sub">Notes such as “lower bound” and “fees excluded” are the server’s, shown as it wrote them.</span></h2>
             <div className="wide">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Habit</th><th scope="col" className="n">Cost</th><th scope="col" className="n">Gross cost</th>
-                    <th scope="col" className="n">Fees known</th><th scope="col" className="n">Trades with unknown fees</th><th scope="col">Note</th>
+              <table role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader" scope="col">Habit</th><th role="columnheader" scope="col" className="n">Cost</th><th role="columnheader" scope="col" className="n">Gross cost</th>
+                    <th role="columnheader" scope="col" className="n">Fees known</th><th role="columnheader" scope="col" className="n">Trades with unknown fees</th><th role="columnheader" scope="col">Note</th>
                   </tr>
                 </thead>
-                <tbody>{d.biases.map((b) => <Row key={b.kind} b={b} />)}</tbody>
+                <tbody role="rowgroup">{d.biases.map((b) => <Row key={b.kind} b={b} />)}</tbody>
               </table>
             </div>
           </section>

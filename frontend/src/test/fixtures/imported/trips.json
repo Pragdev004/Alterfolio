@@ -1,0 +1,106 @@
+{
+ "alternatives_note": "Same-sector or same-universe alternatives, not a prediction.",
+ "analysis_errors": [],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "caveats": [
+  "price proxy: NSE series for BSE listing: TEST1.BSE",
+  "2 rows were recorded after this date; trades are placed by trade time",
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "excluded_listings": [],
+ "groups": [],
+ "luck_limitations": [
+  "OVERLAPPING_TRIPS_MAKE_INTERVAL_OPTIMISTIC",
+  "NOT_PROOF_OF_SKILL_OR_CAUSATION",
+  "NIFTY_MEMBERSHIP_AND_UNIVERSE_ARE_CALLER_SUPPLIED",
+  "CORPORATE_ACTIONS_ARE_NOT_DETECTED",
+  "COVERAGE_IS_A_CALLER_DECLARATION_NOT_PROOF_OF_COMPLETENESS"
+ ],
+ "summary": {
+  "ALT": {
+   "ci_lower": {
+    "display": "Unavailable",
+    "reason_text": "Not enough closed trips for an interval yet: 0 trips \u00b7 10 needed.",
+    "unavailable_reason": "INSUFFICIENT_TRIPS: 0 trips available, 10 needed",
+    "value": null
+   },
+   "ci_upper": {
+    "display": "Unavailable",
+    "reason_text": "Not enough closed trips for an interval yet: 0 trips \u00b7 10 needed.",
+    "unavailable_reason": "INSUFFICIENT_TRIPS: 0 trips available, 10 needed",
+    "value": null
+   },
+   "mean_excess": {
+    "display": "Unavailable",
+    "reason_text": "No trip has a result for this comparison yet.",
+    "unavailable_reason": "NO_AVAILABLE_TRIPS: no trip has an outcome for this baseline",
+    "value": null
+   },
+   "mean_excess_direction": null,
+   "mean_excess_direction_text": null,
+   "mean_percentile": {
+    "display": "Unavailable",
+    "reason_text": "No trip has a result for this comparison yet.",
+    "unavailable_reason": "NO_AVAILABLE_TRIPS: no trip has an outcome for this baseline",
+    "value": null
+   },
+   "position": null,
+   "sample": {
+    "enough": false,
+    "have": 0,
+    "needed": 10,
+    "text": "0 trips \u00b7 10 needed"
+   },
+   "trips_evaluated": 0,
+   "trips_used": 0
+  },
+  "NIFTY": {
+   "ci_lower": {
+    "display": "Unavailable",
+    "reason_text": "Not enough closed trips for an interval yet: 0 trips \u00b7 10 needed.",
+    "unavailable_reason": "INSUFFICIENT_TRIPS: 0 trips available, 10 needed",
+    "value": null
+   },
+   "ci_upper": {
+    "display": "Unavailable",
+    "reason_text": "Not enough closed trips for an interval yet: 0 trips \u00b7 10 needed.",
+    "unavailable_reason": "INSUFFICIENT_TRIPS: 0 trips available, 10 needed",
+    "value": null
+   },
+   "mean_excess": {
+    "display": "Unavailable",
+    "reason_text": "No trip has a result for this comparison yet.",
+    "unavailable_reason": "NO_AVAILABLE_TRIPS: no trip has an outcome for this baseline",
+    "value": null
+   },
+   "mean_excess_direction": null,
+   "mean_excess_direction_text": null,
+   "mean_percentile": {
+    "display": "Unavailable",
+    "reason_text": "No trip has a result for this comparison yet.",
+    "unavailable_reason": "NO_AVAILABLE_TRIPS: no trip has an outcome for this baseline",
+    "value": null
+   },
+   "position": null,
+   "sample": {
+    "enough": false,
+    "have": 0,
+    "needed": 10,
+    "text": "0 trips \u00b7 10 needed"
+   },
+   "trips_evaluated": 0,
+   "trips_used": 0
+  },
+  "alternatives_kind": null,
+  "alternatives_label": null,
+  "trip_count": 0,
+  "trip_count_reason_text": null,
+  "trip_count_unavailable_reason": null,
+  "trips_evaluated": 0
+ },
+ "trips": []
+}

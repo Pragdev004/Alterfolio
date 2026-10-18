@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { http } from "msw";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { failWith, serve } from "../../test/handlers";
@@ -138,5 +138,25 @@ describe("Trip list", () => {
     expect(links[1]).toHaveFocus();
     await userEvent.keyboard("{ArrowUp}");
     expect(links[0]).toHaveFocus();
+  });
+
+  it("rejected import rows are never silent here either", async () => {
+    serve("imported");
+    server.use(http.get("*/api/analysis/trips", () => HttpResponse.json(scenarios.full.trips)));
+    renderApp("/trips");
+    const warning = await screen.findByRole("alert");
+    expect(warning).toHaveTextContent("1 row was rejected at import; figures may be wrong");
+    expect(within(warning).getByRole("link", { name: "See the upload results" })).toHaveAttribute("href", "/upload#previous");
+  });
+
+  it("a failed refresh keeps the trips on screen and says when they are from", async () => {
+    serve("full");
+    const { client } = renderApp("/trips");
+    const table = await screen.findByRole("table");
+    server.use(http.get("*/api/analysis/trips", failWith.network));
+    await client.refetchQueries({ queryKey: ["analysis", "trips"] });
+    expect(await screen.findByText(/Couldn.t refresh\. Showing figures from \d\d:\d\d\./)).toBeInTheDocument();
+    expect(screen.queryByText("Cannot reach the server.")).toBeNull();
+    expect(screen.getByRole("table")).toBe(table);
   });
 });

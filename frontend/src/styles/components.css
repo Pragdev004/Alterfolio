@@ -110,6 +110,7 @@
   /* too few, partial, states */
   .too-few { border: 1px solid var(--rule-ink); padding: var(--s-3) var(--s-4); margin: 0 0 var(--s-4); max-width: 56ch; background: var(--hold-wash); }
   .too-few strong { display: block; font-weight: 700; }
+  .warn { border: 1px solid var(--rule-ink); padding: var(--s-3) var(--s-4); margin: 0 0 var(--s-4); max-width: 64ch; background: var(--hold-wash); }
   .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5); margin: 0 0 var(--s-4); }
   .facts dt { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--ink-2); }
   .facts dd { margin: var(--s-1) 0 0; font-size: var(--t-xl); font-weight: 600; }

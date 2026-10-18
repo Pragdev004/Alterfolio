@@ -9,6 +9,7 @@ import { ChartHeader } from "../../shared/ui/ChartHeader";
 import { Figure, Unavailable } from "../../shared/ui/Figure";
 import { TooFew } from "../../shared/ui/SampleSentence";
 import { StatusCode } from "../../shared/ui/StatusCode";
+import { RefreshFailed, RejectedRowsWarning } from "../../shared/ui/Notices";
 import { EmptyState, ErrorState, NotFinal, Skeleton } from "../../shared/ui/States";
 import { tripNote, tripStatus } from "./status";
 
@@ -26,21 +27,21 @@ function TripTable({ data, search }: { data: TripsOut; search: string }) {
     }
   };
   return (
-    <table className="table-trips" onKeyDown={onKeyDown}>
+    <table role="table" className="table-trips" onKeyDown={onKeyDown}>
       <caption>One row per closed trip, oldest first. Returns use ledger prices and exclude fees.</caption>
-      <thead>
-        <tr>
-          <th scope="col">Listing</th>
-          <th scope="col">Opened</th>
-          <th scope="col">Closed</th>
-          <th scope="col" className="n">Return (fees excluded)</th>
-          <th scope="col">Alternatives</th>
-          <th scope="col" className="n">Percentile</th>
-          <th scope="col">Status</th>
-          <th scope="col">Note</th>
+      <thead role="rowgroup">
+        <tr role="row">
+          <th role="columnheader" scope="col">Listing</th>
+          <th role="columnheader" scope="col">Opened</th>
+          <th role="columnheader" scope="col">Closed</th>
+          <th role="columnheader" scope="col" className="n">Return (fees excluded)</th>
+          <th role="columnheader" scope="col">Alternatives</th>
+          <th role="columnheader" scope="col" className="n">Percentile</th>
+          <th role="columnheader" scope="col">Status</th>
+          <th role="columnheader" scope="col">Note</th>
         </tr>
       </thead>
-      <tbody ref={body}>
+      <tbody role="rowgroup" ref={body}>
         {data.trips.map((t) => <TripRowView key={t.trip_id} trip={t} excluded={data.excluded_listings} search={search} />)}
       </tbody>
     </table>
@@ -52,16 +53,16 @@ function TripRowView({ trip, excluded, search }: { trip: TripRow; excluded: Trip
   const note = tripNote(trip, excluded);
   const evaluated = trip.evaluated && trip.alt !== null;
   return (
-    <tr>
-      <th scope="row"><Link data-row-link to={{ pathname: `/trips/${encodeURIComponent(trip.trip_id)}`, search }}>{trip.symbol}&nbsp;·&nbsp;{trip.exchange}</Link></th>
-      <td className="cell">{trip.open_session.display}</td>
-      <td className="cell">{trip.close_session.display}</td>
+    <tr role="row">
+      <th role="rowheader" scope="row"><Link data-row-link to={{ pathname: `/trips/${encodeURIComponent(trip.trip_id)}`, search }}>{trip.symbol}&nbsp;·&nbsp;{trip.exchange}</Link></th>
+      <td role="cell" className="cell">{trip.open_session.display}</td>
+      <td role="cell" className="cell">{trip.close_session.display}</td>
       {evaluated && trip.alt ? (
         <>
-          <td className="n cell"><Figure n={trip.actual_return} /></td>
-          <td className="cell">{trip.alternatives_label}</td>
-          <td className="n cell"><Figure n={trip.alt.percentile} /></td>
-          <td className="m-line">
+          <td role="cell" className="n cell"><Figure n={trip.actual_return} /></td>
+          <td role="cell" className="cell">{trip.alternatives_label}</td>
+          <td role="cell" className="n cell"><Figure n={trip.alt.percentile} /></td>
+          <td role="cell" className="m-line">
             <span className="l">Opened </span>{trip.open_session.display}<span className="sep">·</span>
             <span className="l">Closed </span>{trip.close_session.display}<span className="sep">·</span>
             <span className="l">Return </span>{trip.actual_return.display}<span className="sep">·</span>
@@ -71,12 +72,12 @@ function TripRowView({ trip, excluded, search }: { trip: TripRow; excluded: Trip
         </>
       ) : (
         <>
-          <td className="n na-cell" colSpan={3}><Unavailable span /></td>
-          <td className="m-line"><span className="l">Opened </span>{trip.open_session.display}<span className="sep">·</span><span className="l">Closed </span>{trip.close_session.display}</td>
+          <td role="cell" className="n na-cell" colSpan={3}><Unavailable span /></td>
+          <td role="cell" className="m-line"><span className="l">Opened </span>{trip.open_session.display}<span className="sep">·</span><span className="l">Closed </span>{trip.close_session.display}</td>
         </>
       )}
-      <td className="status"><StatusCode hold={status !== "EVALUATED"}>{status}</StatusCode></td>
-      <td className="note">{note && <span className="reason">{note}</span>}</td>
+      <td role="cell" className="status"><StatusCode hold={status !== "EVALUATED"}>{status}</StatusCode></td>
+      <td role="cell" className="note">{note && <span className="reason">{note}</span>}</td>
     </tr>
   );
 }
@@ -85,7 +86,7 @@ export function TripListScreen() {
   const { asOf, setAsOf, search } = useAsOf();
   const meta = useMeta();
   const trips = useTrips(asOf);
-  const empty = trips.isSuccess && trips.data.trips.length === 0;
+  const empty = trips.data?.trips.length === 0;
   const trades = useTrades(empty);
   useEffect(() => { document.title = "Trips · Alterfolio"; }, []);
 
@@ -97,12 +98,15 @@ export function TripListScreen() {
       <div className="title"><h1>Trips</h1><span className="sub">Closed round trips, each compared with similar alternatives</span></div>
       <p className="lede">Each trip is compared with random portfolios built from alternatives, to show how much of the result could be chance.</p>
 
+      <RejectedRowsWarning />
       {trips.isPending && <Skeleton />}
       {trips.isError && (notFinal
         ? <NotFinal onUseLatest={() => setAsOf(null)} latestDisplay={meta.data?.latest_sealed_as_of.display ?? null} />
-        : <ErrorState error={trips.error} onRetry={() => void trips.refetch()} />)}
+        : trips.data
+          ? <RefreshFailed at={trips.dataUpdatedAt} onRetry={() => void trips.refetch()} />
+          : <ErrorState error={trips.error} onRetry={() => void trips.refetch()} />)}
 
-      {trips.isSuccess && (
+      {trips.data && (
         <>
           {sample && !sample.enough && !empty && (sample.have === null
             ? <div className="too-few"><strong>Trip comparison</strong><Unavailable /> <span>{trips.data.summary.trip_count_reason_text}</span></div>

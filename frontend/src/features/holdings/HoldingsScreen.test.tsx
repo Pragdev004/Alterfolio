@@ -77,4 +77,68 @@ describe("Holdings", () => {
     renderApp("/holdings");
     expect(await screen.findByText("Cannot reach the server.")).toBeInTheDocument();
   });
+
+  it("incomplete cost basis: P&L is the word Unavailable with the server's reason, and the chip is not COMPLETE", async () => {
+    serve("imported");
+    renderApp("/holdings");
+    const table = await screen.findByRole("table");
+    const imported = scenarios.imported.summary!;
+    expect(imported.valuation_status).toBe("COMPLETE"); // prices are all there; it is the cost basis that is not
+    expect(screen.queryByText("COMPLETE")).toBeNull();
+    expect(screen.getByText("PARTIAL")).toBeInTheDocument();
+    expect(screen.getByText(imported.status_text)).toBeInTheDocument();
+    const h = imported.holdings[0]!;
+    const row = within(table).getByRole("rowheader", { name: /TEST1/ }).closest("tr")!;
+    expect(row).toHaveTextContent(h.market_value_display);
+    expect(within(row).getAllByText("Unavailable").length).toBe(1); // P&L only
+    expect(row).toHaveTextContent(h.unrealized_pnl_unavailable_reason!);
+    const total = within(table).getByRole("rowheader", { name: "Total" }).closest("tr")!;
+    expect(total).toHaveTextContent(imported.total_unrealized_pnl_unavailable_reason!);
+  });
+
+  it("rejected import rows are never silent: a warning that links to the upload results", async () => {
+    serve("imported");
+    renderApp("/holdings");
+    const warning = await screen.findByRole("alert");
+    expect(warning).toHaveTextContent("1 row was rejected at import; figures may be wrong");
+    expect(within(warning).getByRole("link", { name: "See the upload results" })).toHaveAttribute("href", "/upload#previous");
+  });
+
+  it("no warning when nothing was rejected", async () => {
+    serve("valued");
+    renderApp("/holdings");
+    await screen.findByRole("table");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("a failed refresh with figures on screen says when they are from, not 'Cannot reach the server'", async () => {
+    serve("valued");
+    const { client } = renderApp("/holdings");
+    const table = await screen.findByRole("table");
+    server.use(http.get("*/portfolio/summary", failWith.network));
+    await client.refetchQueries({ queryKey: ["portfolio", "summary"] });
+    const notice = await screen.findByText(/Couldn.t refresh\. Showing figures from \d\d:\d\d\./);
+    expect(notice).toBeInTheDocument();
+    expect(screen.queryByText("Cannot reach the server.")).toBeNull();
+    expect(screen.getByRole("table")).toBe(table);
+    expect(table).toHaveTextContent(valued.total_market_value_display);
+  });
+
+  it("with zero holdings there is no valuation status line", async () => {
+    serve("empty");
+    renderApp("/holdings");
+    await screen.findByText("Nothing is held right now.");
+    for (const word of ["COMPLETE", "PARTIAL", "UNAVAILABLE"]) expect(screen.queryByText(word)).toBeNull();
+    expect(screen.queryByText(/holdings valued/)).toBeNull();
+  });
+
+  it("stacked mobile tables keep explicit table, row and cell roles", async () => {
+    serve("valued");
+    renderApp("/holdings");
+    const table = await screen.findByRole("table");
+    expect(within(table).getAllByRole("columnheader").length).toBeGreaterThan(0);
+    expect(within(table).getAllByRole("row").length).toBeGreaterThan(1);
+    expect(within(table).getAllByRole("cell").length).toBeGreaterThan(0);
+    expect(table.querySelectorAll("tr:not([role=row]), td:not([role=cell]), th:not([role])").length).toBe(0);
+  });
 });

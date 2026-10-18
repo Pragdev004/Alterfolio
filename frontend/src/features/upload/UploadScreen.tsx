@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ApiError } from "../../shared/api/errors";
-import { useImportTradebook } from "../../shared/api/queries";
+import { useImportStatus, useImportTradebook } from "../../shared/api/queries";
 import type { ImportResult } from "../../shared/api/types";
 import { StatusCode } from "../../shared/ui/StatusCode";
 import { ErrorState } from "../../shared/ui/States";
@@ -29,28 +29,28 @@ function Summary({ result }: { result: ImportResult }) {
     <section className="sec" aria-labelledby="h-result">
       <h2 id="h-result">Import result<span className="h-sub">{result.file_name}</span></h2>
       <div>
-        <table>
+        <table role="table">
           <caption>What happened to each row in the file</caption>
-          <tbody>
-            <tr><th scope="row">Rows in the file</th><td className="n">{result.total_rows}</td></tr>
-            <tr><th scope="row">Imported</th><td className="n">{result.imported}</td></tr>
-            <tr><th scope="row">Already imported</th><td className="n">{result.duplicates}</td></tr>
-            <tr><th scope="row">Rejected</th><td className="n">{result.rejected_total}</td></tr>
+          <tbody role="rowgroup">
+            <tr role="row"><th role="rowheader" scope="row">Rows in the file</th><td role="cell" className="n">{result.total_rows}</td></tr>
+            <tr role="row"><th role="rowheader" scope="row">Imported</th><td role="cell" className="n">{result.imported}</td></tr>
+            <tr role="row"><th role="rowheader" scope="row">Already imported</th><td role="cell" className="n">{result.duplicates}</td></tr>
+            <tr role="row"><th role="rowheader" scope="row">Rejected</th><td role="cell" className="n">{result.rejected_total}</td></tr>
           </tbody>
         </table>
         {oversold && <OversellNote />}
         {result.rejected.length > 0 && (
-          <table style={{ marginTop: "var(--s-5)" }}>
+          <table role="table" style={{ marginTop: "var(--s-5)" }}>
             <caption>
-              Rejected rows{result.rejected_total > result.rejected.length ? `: the first ${result.rejected.length} of ${result.rejected_total}` : ""}
+              Rejected rows{result.rejected_text ? `: ${result.rejected_text}` : ""}
             </caption>
-            <thead><tr><th scope="col" className="n">Line</th><th scope="col">Code</th><th scope="col">Message</th></tr></thead>
-            <tbody>
+            <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col" className="n">Line</th><th role="columnheader" scope="col">Code</th><th role="columnheader" scope="col">Message</th></tr></thead>
+            <tbody role="rowgroup">
               {result.rejected.map((r) => (
-                <tr key={`${r.row}-${r.code}`}>
-                  <td className="n">{r.row}</td>
-                  <td><StatusCode hold>{r.code}</StatusCode></td>
-                  <td className="reason">{r.message}</td>
+                <tr role="row" key={`${r.row}-${r.code}`}>
+                  <td role="cell" className="n">{r.row}</td>
+                  <td role="cell"><StatusCode hold>{r.code}</StatusCode></td>
+                  <td role="cell" className="reason">{r.message}</td>
                 </tr>
               ))}
             </tbody>
@@ -69,6 +69,40 @@ function Summary({ result }: { result: ImportResult }) {
           )}
         </ul>
       </aside>
+    </section>
+  );
+}
+
+/** Past uploads, from the ledger's own record. Rejected rows are counted, not stored, so their list exists only at upload time. */
+function PreviousUploads() {
+  const status = useImportStatus();
+  const batches = status.data?.batches ?? [];
+  if (batches.length === 0) return null;
+  return (
+    <section className="sec" id="previous" aria-labelledby="h-previous">
+      <h2 id="h-previous">Previous uploads<span className="h-sub">{status.data?.warning ?? "No rows were rejected."}</span></h2>
+      <table role="table">
+        <caption>Newest first. The rows that were rejected are listed only in the result shown right after an upload.</caption>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">File</th><th role="columnheader" scope="col">Uploaded</th><th role="columnheader" scope="col" className="n">Rows</th>
+            <th role="columnheader" scope="col" className="n">Imported</th><th role="columnheader" scope="col" className="n">Already imported</th><th role="columnheader" scope="col" className="n">Rejected</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {batches.map((b) => (
+            <tr role="row" key={b.import_batch_id}>
+              <th role="rowheader" scope="row">{b.file_name}</th>
+              <td role="cell" className="cell">{b.created_at_display}</td>
+              <td role="cell" className="n cell">{b.total_rows}</td>
+              <td role="cell" className="n cell">{b.imported}</td>
+              <td role="cell" className="n cell">{b.duplicates}</td>
+              <td role="cell" className="n val">{b.rejected_total}{b.superseded && b.rejected_total > 0 ? " (replaced by a newer upload of this file)" : ""}</td>
+              <td role="cell" className="m-line">{b.created_at_display}<span className="sep">·</span>{b.imported} imported<span className="sep">·</span>{b.duplicates} already imported<span className="sep">·</span>{b.rejected_total} rejected</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -115,6 +149,7 @@ export function UploadScreen() {
         </ErrorState>
       )}
       {upload.isSuccess && <Summary result={upload.data} />}
+      <PreviousUploads />
     </>
   );
 }

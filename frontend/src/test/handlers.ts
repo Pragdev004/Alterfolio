@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 
 import { recordedAsk, recordedErrors, recordedImports, scenarios, type ScenarioName } from "./fixtures";
-import { server } from "./server";
+import { noRejections, server } from "./server";
 
 export interface Seen {
   asOf: (string | null)[];
@@ -32,6 +32,7 @@ export function serve(name: ScenarioName, seen: Seen = { asOf: [] }): Seen {
     }),
     http.get("*/portfolio/summary", () => HttpResponse.json(s.summary ?? scenarios.empty.summary!)),
     http.get("*/portfolio/holdings", () => HttpResponse.json(s.holdings ?? [])),
+    http.get("*/imports/status", () => HttpResponse.json(s.status ?? noRejections)),
   );
   return seen;
 }

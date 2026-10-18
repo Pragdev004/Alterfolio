@@ -68,18 +68,21 @@
    },
    "quote_status": "VALUED",
    "unrealized_pnl": "-96.900000",
-   "unrealized_pnl_display": "-\u20b996.90"
+   "unrealized_pnl_display": "\u2212\u20b996.90"
   }
  ],
  "holdings_count": 2,
+ "incomplete_cost_basis_count": 0,
  "schema_version": 1,
+ "status_label": "COMPLETE",
+ "status_text": "2 of 2 holdings valued",
  "total_invested": "1702.500000",
  "total_invested_display": "\u20b91,702.50",
  "total_market_value": "1678.500000",
  "total_market_value_display": "\u20b91,678.50",
  "total_trades": 2,
  "total_unrealized_pnl": "-24.000000",
- "total_unrealized_pnl_display": "-\u20b924.00",
+ "total_unrealized_pnl_display": "\u2212\u20b924.00",
  "valuation_status": "COMPLETE",
  "valuation_text": "2 of 2 holdings valued",
  "valuation_time": "2026-12-01T10:00:00Z",

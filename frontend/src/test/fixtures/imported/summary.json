@@ -1,0 +1,63 @@
+{
+ "basis": "CURRENT",
+ "cost_basis_complete": false,
+ "holdings": [
+  {
+   "average_buy_price": "100.400000",
+   "average_buy_price_display": "\u20b9100.40",
+   "cost_basis_complete": false,
+   "invested_amount": "1004.000000",
+   "invested_amount_display": "\u20b91,004.00",
+   "isin": "INE000T01011",
+   "listings": [
+    {
+     "exchange": "BSE",
+     "symbol": "TEST1"
+    },
+    {
+     "exchange": "NSE",
+     "symbol": "TEST1"
+    }
+   ],
+   "market_value": "1234.500000",
+   "market_value_display": "\u20b91,234.50",
+   "name": null,
+   "quantity": "10.000000",
+   "quantity_display": "10",
+   "quote": {
+    "currency": "INR",
+    "exchange": "NSE",
+    "price": "123.450000",
+    "price_display": "\u20b9123.45",
+    "price_timestamp": "2026-12-01T09:00:00Z",
+    "price_timestamp_display": "1 Dec 2026, 14:30 IST",
+    "retrieved_at": "2026-12-01T10:00:00Z",
+    "retrieved_at_display": "1 Dec 2026, 15:30 IST",
+    "source": "fake",
+    "symbol": "TEST1"
+   },
+   "quote_status": "VALUED",
+   "unrealized_pnl": null,
+   "unrealized_pnl_display": "Unavailable",
+   "unrealized_pnl_unavailable_reason": "Cost basis is incomplete: brokerage and taxes are unknown for imported buys, so profit and loss cannot be stated exactly."
+  }
+ ],
+ "holdings_count": 1,
+ "incomplete_cost_basis_count": 1,
+ "schema_version": 1,
+ "status_label": "PARTIAL",
+ "status_text": "1 of 1 holdings valued. Cost basis is incomplete for 1 of 1 holding, so profit and loss is not shown.",
+ "total_invested": "1004.000000",
+ "total_invested_display": "\u20b91,004.00",
+ "total_market_value": "1234.500000",
+ "total_market_value_display": "\u20b91,234.50",
+ "total_trades": 2,
+ "total_unrealized_pnl": null,
+ "total_unrealized_pnl_display": "Unavailable",
+ "total_unrealized_pnl_unavailable_reason": "Cost basis is incomplete: brokerage and taxes are unknown for imported buys, so profit and loss cannot be stated exactly.",
+ "valuation_status": "COMPLETE",
+ "valuation_text": "1 of 1 holdings valued",
+ "valuation_time": "2026-12-01T10:00:00Z",
+ "valuation_time_display": "1 Dec 2026, 15:30 IST",
+ "valued_holdings_count": 1
+}

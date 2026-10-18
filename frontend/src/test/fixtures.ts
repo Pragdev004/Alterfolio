@@ -1,5 +1,5 @@
 // Responses recorded from the real 013a API (backend/scripts/record_fixtures.py), typed by the generated OpenAPI schema.
-import type { BiasesOut, HoldingOut, MetaOut, RegimesOut, SummaryOut, TripDetailOut, TripsOut } from "../shared/api/types";
+import type { BiasesOut, HoldingOut, ImportStatus, MetaOut, RegimesOut, SummaryOut, TripDetailOut, TripsOut } from "../shared/api/types";
 import ask from "./fixtures/ask.json";
 import imports from "./fixtures/imports.json";
 import errors from "./fixtures/errors.json";
@@ -43,7 +43,14 @@ import excludedBiases from "./fixtures/excluded/biases.json";
 import emptySummary from "./fixtures/empty/summary.json";
 import emptyHoldings from "./fixtures/empty/holdings.json";
 import openBiases from "./fixtures/open/biases.json";
-export type ScenarioName = "full" | "few" | "excluded" | "open" | "empty" | "holdings" | "valued";
+import importedMeta from "./fixtures/imported/meta.json";
+import importedRegimes from "./fixtures/imported/regimes.json";
+import importedSummary from "./fixtures/imported/summary.json";
+import importedHoldings from "./fixtures/imported/holdings.json";
+import importedTrips from "./fixtures/imported/trips.json";
+import importedBiases from "./fixtures/imported/biases.json";
+import importedStatus from "./fixtures/imported/status.json";
+export type ScenarioName = "full" | "few" | "excluded" | "open" | "empty" | "holdings" | "valued" | "imported";
 
 export interface Scenario {
   meta: MetaOut;
@@ -54,6 +61,7 @@ export interface Scenario {
   biases: BiasesOut;
   summary?: SummaryOut;
   holdings?: HoldingOut[];
+  status?: ImportStatus;
 }
 
 export const scenarios = {
@@ -64,11 +72,12 @@ export const scenarios = {
   empty: { summary: emptySummary as SummaryOut, holdings: emptyHoldings as HoldingOut[], biases: emptyBiases as BiasesOut, meta: emptyMeta as MetaOut, trips: emptyTrips as TripsOut, regimes: emptyRegimes as RegimesOut, trades: emptyTrades },
 } as unknown as Record<ScenarioName, Scenario>;
 
-const owned = (n: "holdings" | "valued", meta: unknown, regimes: unknown, trips: unknown, biases: unknown, summary: unknown, holdings: unknown): Scenario => ({
+const owned = (n: "holdings" | "valued" | "imported", meta: unknown, regimes: unknown, trips: unknown, biases: unknown, summary: unknown, holdings: unknown): Scenario => ({
   meta: meta as MetaOut, regimes: regimes as RegimesOut, trips: trips as TripsOut, biases: biases as BiasesOut, summary: summary as SummaryOut,
   holdings: holdings as HoldingOut[], trades: [{ n }],
 });
 scenarios.holdings = owned("holdings", holdingsMeta, holdingsRegimes, holdingsTrips, holdingsBiases, holdingsSummary, holdingsHoldings);
+scenarios.imported = { ...owned("imported", importedMeta, importedRegimes, importedTrips, importedBiases, importedSummary, importedHoldings), status: importedStatus as ImportStatus };
 scenarios.valued = owned("valued", valuedMeta, valuedRegimes, valuedTrips, valuedBiases, valuedSummary, valuedHoldings);
 
 type Recorded = Record<string, { status: number; body: Record<string, unknown> }>;

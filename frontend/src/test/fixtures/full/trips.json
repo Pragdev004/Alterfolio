@@ -14,7 +14,7 @@
   {
    "ALT": {
     "ci_lower": {
-     "display": "-1.25%",
+     "display": "\u22121.25%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.012542096524234625"
@@ -26,7 +26,7 @@
      "value": "0.01023391425481941"
     },
     "mean_excess": {
-     "display": "-0.38%",
+     "display": "\u22120.38%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.00375752305386517"
@@ -102,7 +102,7 @@
  "summary": {
   "ALT": {
    "ci_lower": {
-    "display": "-1.25%",
+    "display": "\u22121.25%",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.012542096524234625"
@@ -114,7 +114,7 @@
     "value": "0.01023391425481941"
    },
    "mean_excess": {
-    "display": "-0.38%",
+    "display": "\u22120.38%",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.00375752305386517"
@@ -184,7 +184,7 @@
  "trips": [
   {
    "actual_return": {
-    "display": "-0.13% (fees excluded)",
+    "display": "\u22120.13% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.001290322580645161290322580645161290322580645161290322580645"
@@ -192,7 +192,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.20%",
+     "display": "\u22120.20%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001971069588373794"
@@ -288,7 +288,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.13% (fees excluded)",
+    "display": "\u22120.13% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.001286055484108028660665074407495866250229652765019290832262"
@@ -296,7 +296,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.41%",
+     "display": "\u22120.41%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.004112039435000201"
@@ -392,7 +392,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.13% (fees excluded)",
+    "display": "\u22120.13% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.001281816517121406335835927485808459989013001281816517121406"
@@ -400,7 +400,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.20%",
+     "display": "\u22120.20%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.001975548481245893"
@@ -512,7 +512,7 @@
     "excess_direction": "ahead",
     "lost_count": 0,
     "mean_return": {
-     "display": "-0.13%",
+     "display": "\u22120.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.00125707558964900577503041946736344111308038192183031413230153"
@@ -600,7 +600,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.66% (fees excluded)",
+    "display": "\u22120.66% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.006587146163432437244080470001780309773900658714616343243724"
@@ -608,7 +608,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.86%",
+     "display": "\u22120.86%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.008559240592015332"
@@ -704,7 +704,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.65% (fees excluded)",
+    "display": "\u22120.65% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.006531332744924977934686672550750220653133274492497793468667"
@@ -712,7 +712,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.81%",
+     "display": "\u22120.81%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.008057790239044784"
@@ -912,7 +912,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.70% (fees excluded)",
+    "display": "\u22120.70% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.006953580154106370982897951512873520015034767900770531854914"
@@ -920,7 +920,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.87%",
+     "display": "\u22120.87%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.008732590388950105"
@@ -1016,7 +1016,7 @@
   },
   {
    "actual_return": {
-    "display": "-0.69% (fees excluded)",
+    "display": "\u22120.69% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.006891413671074688023840566213447569379772769603278077854349"
@@ -1024,7 +1024,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-0.85%",
+     "display": "\u22120.85%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.00853496332822131"
@@ -1120,7 +1120,7 @@
   },
   {
    "actual_return": {
-    "display": "-1.35% (fees excluded)",
+    "display": "\u22121.35% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.013465494669908359827940901440059846642977370488124181784178"
@@ -1128,7 +1128,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-1.62%",
+     "display": "\u22121.62%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.01617506529000913"
@@ -1224,7 +1224,7 @@
   },
   {
    "actual_return": {
-    "display": "-1.33% (fees excluded)",
+    "display": "\u22121.33% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.013259668508287292817679558011049723756906077348066298342541"
@@ -1232,7 +1232,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-1.71%",
+     "display": "\u22121.71%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.017123672383014675"
@@ -1328,7 +1328,7 @@
   },
   {
    "actual_return": {
-    "display": "-1.31% (fees excluded)",
+    "display": "\u22121.31% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.013060039905677489570107019771449301650643932523127153999637"
@@ -1336,7 +1336,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-1.59%",
+     "display": "\u22121.59%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.015857805059765005"
@@ -1432,7 +1432,7 @@
   },
   {
    "actual_return": {
-    "display": "-1.29% (fees excluded)",
+    "display": "\u22121.29% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.012866333095067905646890636168691922802001429592566118656183"
@@ -1440,7 +1440,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-3.13%",
+     "display": "\u22123.13%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.03132457382143798"
@@ -1536,7 +1536,7 @@
   },
   {
    "actual_return": {
-    "display": "-1.27% (fees excluded)",
+    "display": "\u22121.27% (fees excluded)",
     "reason_text": null,
     "unavailable_reason": null,
     "value": "-0.012678288431061806656101426307448494453248811410459587955626"
@@ -1544,7 +1544,7 @@
    "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
    "alt": {
     "excess": {
-     "display": "-1.59%",
+     "display": "\u22121.59%",
      "reason_text": null,
      "unavailable_reason": null,
      "value": "-0.015852911682542097"

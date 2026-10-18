@@ -5,7 +5,7 @@
    "fees_taxes_provided": false,
    "file_name": "tradebook_synthetic.csv",
    "file_sha256": "c6cc3f95faa9a7d292e9dfc7092b317b7534c55d1575626521da76678bfb41fe",
-   "import_batch_id": "48542a06-d2df-401d-8ee8-d72bc7b407b6",
+   "import_batch_id": "6a1a79b3-665a-41b8-833b-f529ad26a349",
    "imported": 0,
    "quarantined_isins": [],
    "rejected": [
@@ -15,6 +15,7 @@
      "row": 8
     }
    ],
+   "rejected_text": null,
    "rejected_total": 1,
    "total_rows": 7
   },
@@ -35,7 +36,7 @@
    "fees_taxes_provided": false,
    "file_name": "tradebook_synthetic.csv",
    "file_sha256": "c6cc3f95faa9a7d292e9dfc7092b317b7534c55d1575626521da76678bfb41fe",
-   "import_batch_id": "b2741139-6cf0-459d-be42-025dcd42ad1d",
+   "import_batch_id": "b91af16a-3023-4afe-927f-825bdc6bbaf8",
    "imported": 6,
    "quarantined_isins": [],
    "rejected": [
@@ -45,6 +46,7 @@
      "row": 8
     }
    ],
+   "rejected_text": null,
    "rejected_total": 1,
    "total_rows": 7
   },
@@ -56,7 +58,7 @@
    "fees_taxes_provided": false,
    "file_name": "sells_first.csv",
    "file_sha256": "741cf564c2b7ee11b80840b1fd5c00f9154899270b1c4610d116a1f40c5f543c",
-   "import_batch_id": "48c6a7e5-90e5-43d1-b6db-8b41cb41ec44",
+   "import_batch_id": "7f8d034e-0006-4703-a5bb-6d5924608365",
    "imported": 0,
    "quarantined_isins": [
     "ZZ0ALPHA0001"
@@ -68,6 +70,7 @@
      "row": 2
     }
    ],
+   "rejected_text": null,
    "rejected_total": 1,
    "total_rows": 1
   },
