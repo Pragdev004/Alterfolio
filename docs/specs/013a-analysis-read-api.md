@@ -167,3 +167,10 @@ existing endpoints. A PARTIAL summary appends "(partial: n of m holdings valued)
   `marker_bin`, `actual_return`, and a text equivalent. Counts only; no new statistic. To expose them, `BaselineOutcome` retains
   the returns it already computed (`portfolio_returns`, excluded from equality, JSON and fingerprint): the one `quant/` change.
 - Sealed dates in examples are before today: sealed Sun 18 Oct 2026, latest bar Fri 16 Oct 2026.
+
+## 14. 013 C1 additions (owner, 2026-10-18)
+- Aggregate `mean_excess_direction` is `inconclusive` when `ci_lower <= 0 <= ci_upper`; `mean_excess_direction_text` is then
+  "not distinguishable from zero" (no arrow, no colour). Per-trip `excess_direction` is unchanged.
+- Outcomes carry `portfolios_text`: "500 portfolios built from 9 other Nifty Bank stocks" (universe: "... other stocks in the
+  universe"; Nifty baseline: "... from 49 Nifty 50 stocks"); null when the outcome is unavailable.
+- Histogram text omits the "0 the same" clause when no portfolio tied.

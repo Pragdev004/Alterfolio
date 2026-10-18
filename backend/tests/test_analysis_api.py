@@ -510,7 +510,11 @@ def test_direction_is_explicit_and_follows_the_sign(engine, seeded):
         assert o["excess_direction"] == ("ahead" if sign > 0 else "behind" if sign < 0 else "level")
     s = get(client, "trips").json()["summary"]["ALT"]
     mean = Decimal(s["mean_excess"]["value"])
-    assert s["mean_excess_direction"] == ("ahead" if mean > 0 else "behind" if mean < 0 else "level")
+    lo, hi = Decimal(s["ci_lower"]["value"]), Decimal(s["ci_upper"]["value"])
+    if lo <= 0 <= hi:  # an aggregate whose interval crosses zero is inconclusive, whatever the sign of its mean
+        assert s["mean_excess_direction"] == "inconclusive" and s["mean_excess_direction_text"] == "not distinguishable from zero"
+    else:
+        assert s["mean_excess_direction"] == ("ahead" if mean > 0 else "behind")
 
 
 def test_counts_and_direction_are_null_when_an_outcome_is_unavailable(engine, seeded):
@@ -616,12 +620,12 @@ def test_histogram_bin_counts_are_pinned_for_a_seeded_fixture(engine, seeded):
     assert len(ids) == 14
     first = get(client, f"trips/{ids[0]}").json()["trip"]["histograms"]["ALT"]
     assert [b["count"] for b in first["bins"]] == [97, 77, 78, 56, 40, 24, 25, 16, 25, 11, 12, 12, 10, 6, 3, 2, 2, 1, 1, 2]
-    assert first["marker_bin"] == 0 and first["text"] == "Of the 500 portfolios drawn, 0 returned less than your trip, 0 the same and 500 more."
+    assert first["marker_bin"] == 0 and first["text"] == "Of the 500 portfolios drawn, 0 returned less than your trip and 500 more."
     second = get(client, f"trips/{ids[1]}").json()["trip"]["histograms"]["ALT"]
     assert [b["count"] for b in second["bins"]] == [13, 32, 45, 67, 58, 52, 61, 36, 27, 26, 22, 16, 13, 12, 8, 5, 4, 1, 1, 1]
     last = get(client, f"trips/{ids[-1]}").json()["trip"]["histograms"]["ALT"]
     assert [b["count"] for b in last["bins"]] == [120, 96, 81, 54, 39, 29, 20, 17, 15, 13, 6, 2, 3, 0, 2, 0, 0, 2, 0, 1]
-    assert last["text"] == "Of the 500 portfolios drawn, 7 returned less than your trip, 0 the same and 493 more."
+    assert last["text"] == "Of the 500 portfolios drawn, 7 returned less than your trip and 493 more."
     assert all(sum(b["count"] for b in get(client, f"trips/{i}").json()["trip"]["histograms"]["ALT"]["bins"]) == 500 for i in ids)
 
 
@@ -640,3 +644,32 @@ def test_analysis_cache_is_size_bounded_oldest_first():
     for i in range(5):
         small.put(i, i)
     assert len(small) == 2 and small.get(3) == 3 and small.get(4) == 4
+
+
+def test_aggregate_with_an_interval_across_zero_is_inconclusive(engine, seeded):
+    body = get(TestClient(make_app(engine)), "trips").json()
+    for key in ("ALT", "NIFTY"):
+        s = body["summary"][key]
+        if s["ci_lower"]["value"] is None:
+            assert s["mean_excess_direction"] is None and s["mean_excess_direction_text"] is None
+            continue
+        crosses = Decimal(s["ci_lower"]["value"]) <= 0 <= Decimal(s["ci_upper"]["value"])
+        assert (s["mean_excess_direction"] == "inconclusive") == crosses
+        assert (s["mean_excess_direction_text"] == "not distinguishable from zero") == crosses
+
+
+def test_portfolios_text_names_the_pool_in_words(engine, seeded):
+    cfg = {"alternatives": {TRADED_ISIN: (UNIVERSE, f"alternatives: NIFTY BANK ({len(UNIVERSE)})")}, "luck_portfolio_count": 500}
+    t = first_trip(TestClient(make_app(engine, **cfg)))
+    pool = t["alt"]["pool_size"]
+    assert t["alt"]["portfolios_text"] == f"500 portfolios built from {pool} other Nifty Bank stocks"
+    assert t["nifty"]["portfolios_text"].startswith("500 portfolios built from ") and t["nifty"]["portfolios_text"].endswith(" Nifty 50 stocks")
+    unavailable = first_trip(TestClient(make_app(engine, nifty50=())))["nifty"]
+    assert unavailable["portfolios_text"] is None
+
+
+def test_portfolios_text_for_the_universe_and_a_single_stock():
+    from app.api.analysis_presenter import portfolios_text
+    assert portfolios_text("SAME_UNIVERSE", "Same-universe alternatives", 500, 12) == "500 portfolios built from 12 other stocks in the universe"
+    assert portfolios_text("SAME_SECTOR", "Same-sector alternatives (NIFTY IT, 1)", 500, 1) == "500 portfolios built from 1 other Nifty IT stock"
+    assert portfolios_text("SAME_SECTOR", "Same-sector alternatives (NIFTY BANK, 9)", None, None) is None

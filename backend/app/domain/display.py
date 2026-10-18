@@ -45,6 +45,20 @@ def direction(value: str | Decimal | None) -> str | None:
     return "ahead" if d > 0 else "behind" if d < 0 else "level"
 
 
+def interval_direction(mean: str | Decimal | None, lower: str | Decimal | None, upper: str | Decimal | None) -> str | None:
+    """Direction of an aggregate: 'inconclusive' when its interval touches or crosses zero, else the sign of the mean."""
+    if mean is None:
+        return None
+    if lower is not None and upper is not None and Decimal(lower) <= 0 <= Decimal(upper):
+        return "inconclusive"
+    return direction(mean)
+
+
+def direction_text(word: str | None) -> str | None:
+    """The words shown for a direction; an inconclusive aggregate has no arrow or colour, only this sentence."""
+    return "not distinguishable from zero" if word == "inconclusive" else word
+
+
 _CODE = re.compile(r"^([A-Z][A-Z0-9_]+)(?:: (.*))?$", re.DOTALL)
 _TRIPS_DETAIL = re.compile(r"(\d+) trips? available, (\d+) needed")
 _CODE_TEXT = {

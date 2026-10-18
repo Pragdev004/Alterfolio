@@ -52,7 +52,8 @@ class BaselineSummaryOut(BaseModel):
     ci_upper: NumberOut
     position: str | None
     sample: SampleOut
-    mean_excess_direction: str | None  # "ahead" | "behind" | "level"; null when the mean is unavailable
+    mean_excess_direction: str | None  # "ahead" | "behind" | "level" | "inconclusive" (interval touches zero); null when unavailable
+    mean_excess_direction_text: str | None  # "not distinguishable from zero" for inconclusive, else the direction word
 
 
 class LuckSummariesOut(BaseModel):
@@ -61,6 +62,7 @@ class LuckSummariesOut(BaseModel):
 
 
 class OutcomeOut(BaseModel):
+    portfolios_text: str | None  # "500 portfolios built from 9 other Nifty Bank stocks"; null when unavailable
     percentile: NumberOut
     excess: NumberOut
     mean_return: NumberOut

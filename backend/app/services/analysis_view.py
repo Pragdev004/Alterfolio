@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from app.domain.display import direction
+from app.domain.display import direction, interval_direction
 from app.quant.bias_cost.types import BiasAnalysisResult
 from app.quant.luck_test.types import BaselineOutcome, BaselineSummary, LuckResult
 from app.quant.market_data.fingerprint import canonical_decimal
@@ -224,10 +224,11 @@ def _summary(s: BaselineSummary | None, gate: str, needed: int, why: str) -> Sum
     mean_why = gate or (why_text(s.mean_unavailable) if s.mean_unavailable else "")
     ci_why = gate or (why_text(s.ci_unavailable) if s.ci_unavailable else "")
     mean_excess = _num(s.mean_excess, "ratio", mean_why)
+    ci_lo, ci_hi = _num(s.ci_lower, "ratio", ci_why), _num(s.ci_upper, "ratio", ci_why)
     return SummaryView(
-        s.trips_used, s.trips_evaluated, mean_excess, _num(s.mean_percentile, "percentile", mean_why),
-        _num(s.ci_lower, "ratio", ci_why), _num(s.ci_upper, "ratio", ci_why), None if s.position is None else s.position.value,
-        Sample(s.trips_used, needed), direction(mean_excess.value))
+        s.trips_used, s.trips_evaluated, mean_excess, _num(s.mean_percentile, "percentile", mean_why), ci_lo, ci_hi, None if s.position is None else s.position.value,
+        Sample(s.trips_used, needed),
+        interval_direction(mean_excess.value, ci_lo.value, ci_hi.value))
 
 
 def _summaries(res: LuckResult | None, needed: int, why: str) -> dict[str, SummaryView]:
@@ -253,8 +254,8 @@ def _histogram(o: BaselineOutcome, actual: Decimal) -> HistogramView:
     bins = tuple(BinView(Num(canonical_decimal(edges[i]), "ratio"), Num(canonical_decimal(edges[i + 1]), "ratio"), counts[i])
                  for i in range(n))
     total, less, same = len(returns), o.beaten, o.ties
-    text = (f"Of the {total} portfolios drawn, {less} returned less than your trip, {same} the same and "
-            f"{total - less - same} more.")
+    same_clause = f", {same} the same and" if same else " and"  # a zero count is left out, not spelled "0 the same"
+    text = f"Of the {total} portfolios drawn, {less} returned less than your trip{same_clause} {total - less - same} more."
     return HistogramView(bins, index(actual), Num(canonical_decimal(actual), "ratio"), bins[0].lower, bins[-1].upper, total, text)
 
 

@@ -4,6 +4,7 @@ All rounding and wording happens here and in `domain/display.py`; the frontend r
 computes a statistic, and a missing value is never turned into 0 (spec 013a section 4).
 """
 
+import re
 from datetime import date
 
 from app.domain import display as fmt
@@ -38,17 +39,38 @@ def _sample(s: Sample) -> dict:
 def _summary(s: SummaryView) -> dict:
     return {"trips_used": s.trips_used, "trips_evaluated": s.trips_evaluated, "mean_excess": _num(s.mean_excess),
             "mean_percentile": _num(s.mean_percentile), "ci_lower": _num(s.ci_lower), "ci_upper": _num(s.ci_upper),
-            "position": s.position, "sample": _sample(s.sample), "mean_excess_direction": s.mean_excess_direction}
+            "position": s.position, "sample": _sample(s.sample), "mean_excess_direction": s.mean_excess_direction,
+            "mean_excess_direction_text": fmt.direction_text(s.mean_excess_direction)}
 
 
 def _summaries(d: dict[str, SummaryView]) -> dict:
     return {b: _summary(s) for b, s in d.items()}
 
 
-def _outcome(o: OutcomeView | None) -> dict | None:
+_ACRONYMS = {"FMCG", "CPSE"}
+
+
+def _sector_words(name: str) -> str:
+    """'NIFTY BANK' -> 'Nifty Bank'; short or known acronyms (IT, FMCG) stay upper case."""
+    return " ".join(w.capitalize() if w.isalpha() and w.isupper() and len(w) > 3 and w not in _ACRONYMS else w for w in name.split())
+
+
+def portfolios_text(kind: str | None, label: str | None, count: int | None, pool: int | None) -> str | None:
+    """'500 portfolios built from 9 other Nifty Bank stocks': the pool in words; None when the outcome is unavailable."""
+    if count is None or pool is None:
+        return None
+    stocks = "stock" if pool == 1 else "stocks"
+    if kind == "SAME_SECTOR" and label:
+        m = re.match(r"^Same-sector alternatives \((.*), \d+\)$", label)
+        if m:
+            return f"{count} portfolios built from {pool} other {_sector_words(m.group(1))} {stocks}"
+    return f"{count} portfolios built from {pool} other {stocks} in the universe"
+
+
+def _outcome(o: OutcomeView | None, pool_words: str | None = None) -> dict | None:
     if o is None:
         return None
-    return {"percentile": _num(o.percentile), "excess": _num(o.excess), "mean_return": _num(o.mean_return),
+    return {"portfolios_text": pool_words if o.portfolio_count is not None else None, "percentile": _num(o.percentile), "excess": _num(o.excess), "mean_return": _num(o.mean_return),
             "portfolio_count": o.portfolio_count, "pool_size": o.pool_size, "lost_count": o.lost_count,
             "unavailable_reason": o.reason or None, "reason_text": _text(o.reason), "excess_direction": o.excess_direction}
 
@@ -74,11 +96,21 @@ def _alternatives(label: str | None) -> dict:
     return {"alternatives_kind": kind, "alternatives_label": text}
 
 
+def _pool(o: OutcomeView | None) -> tuple[int | None, int | None]:
+    return (None, None) if o is None else (o.portfolio_count, o.pool_size)
+
+
+def _nifty_words(o: OutcomeView | None) -> str | None:
+    count, pool = _pool(o)
+    return None if count is None or pool is None else f"{count} portfolios built from {pool} {'Nifty 50 stock' if pool == 1 else 'Nifty 50 stocks'}"
+
+
 def _trip(t: TripView, *, detail: bool = False) -> dict:
+    alt_label = _alternatives(t.stored_label)
     row = {"trip_id": t.trip_id, "symbol": t.symbol, "exchange": t.exchange, "open_session": fmt.date_object(t.open_session),
            "close_session": fmt.date_object(t.close_session), "evaluated": t.evaluated, "actual_return": _num(t.actual_return),
-           "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED", **_alternatives(t.stored_label), "alt": _outcome(t.alt),
-           "nifty": _outcome(t.nifty), "survivorship_flag": t.survivorship_flag, "regime": _regime_tag(t.regime),
+           "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED", **alt_label, "alt": _outcome(t.alt, portfolios_text(alt_label["alternatives_kind"], alt_label["alternatives_label"], *_pool(t.alt))),
+           "nifty": _outcome(t.nifty, _nifty_words(t.nifty)), "survivorship_flag": t.survivorship_flag, "regime": _regime_tag(t.regime),
            "unavailable_reason": t.unavailable_reason or None, "reason_text": _text(t.unavailable_reason)}
     if detail:
         row["histograms"] = {"ALT": _histogram(None if t.alt is None else t.alt.histogram),

@@ -234,3 +234,11 @@ def test_existing_endpoints_give_plain_reasons(client):
     s = client.get("/portfolio/summary").json()
     assert s["total_market_value_unavailable_reason"] == "Only 0 of 1 holdings could be priced."
     assert s["holdings"][0]["market_value_unavailable_reason"] == "The price source did not answer."
+
+
+@pytest.mark.parametrize("mean,lo,hi,word", [
+    ("0.02", "-0.01", "0.05", "inconclusive"), ("0.02", "0", "0.05", "inconclusive"), ("-0.02", "-0.05", "0.01", "inconclusive"),
+    ("0.02", "0.01", "0.05", "ahead"), ("-0.02", "-0.05", "-0.01", "behind"), ("0.02", None, None, "ahead"), (None, None, None, None)])
+def test_interval_direction(mean, lo, hi, word):
+    assert dd.interval_direction(mean, lo, hi) == word
+    assert dd.direction_text(word) == ("not distinguishable from zero" if word == "inconclusive" else word)
