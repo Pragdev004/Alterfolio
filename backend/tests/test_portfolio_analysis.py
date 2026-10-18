@@ -181,3 +181,15 @@ def test_a9_frozen_json_and_no_floats(seeded):
 def test_close_on_is_positive_and_deterministic():
     assert close_on(0, date(2026, 3, 2)) == close_on(0, date(2026, 3, 2)) > 0
     assert TRADED_ISIN
+
+
+def test_014_alternatives_label_per_trip_and_reference_provenance_reach_the_facts(seeded):
+    from analysis_helpers import TRADED_ISIN, UNIVERSE
+    cfg = {"alternatives": {TRADED_ISIN: (UNIVERSE, "alternatives: TEST INDEX (%d)" % len(UNIVERSE))},
+           "reference_provenance": ({"file_name": "f_2026-10-16.csv", "sha256": "ab", "download_date": "2026-10-16", "source_label": "t"},)}
+    prov = make(seeded, **cfg).analyse(USER_A, date(2026, 9, 30)).provenance
+    assert prov["luck_alternatives"]["facts_group"].startswith("alternatives: TEST INDEX")
+    assert {row[2] for row in prov["luck_alternatives"]["per_trip"]} == {prov["luck_alternatives"]["facts_group"]}
+    assert prov["reference_data"][0]["sha256"] == "ab"
+    default = make(seeded).analyse(USER_A, date(2026, 9, 30)).provenance
+    assert default["luck_alternatives"]["facts_group"] == "alternatives: static universe"

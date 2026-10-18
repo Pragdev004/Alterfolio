@@ -31,6 +31,7 @@ from app.quant.regime_split.types import RegimeParameters  # noqa: E402
 from app.repositories.trade_repository import TradeRepository  # noqa: E402
 from app.repositories.user_repository import UserRepository  # noqa: E402
 from app.services.analysis_toml import load_aliases, load_reviewed, load_universe, resolve_corporate_actions  # noqa: E402
+from app.services.sector_map import build_alternatives, load_sector_map  # noqa: E402
 from app.services.tradebook_merge import merge_tradebooks  # noqa: E402
 from app.services.portfolio_analysis import HISTORY_DAYS, AnalysisConfig, PortfolioAnalysisService  # noqa: E402
 from app.services.tradebook_import import TradebookImportService  # noqa: E402
@@ -38,6 +39,7 @@ from bar_cache import AliasingBars, CachingBars  # noqa: E402
 
 USER = UUID(int=0xD1)
 REPORTS = BACKEND.parent / "docs" / "reports"
+REFERENCE = BACKEND / "data" / "reference"
 QUESTIONS = ["Was my last buy skill or luck?", "What did my behaviour cost me?", "How did I do in each regime?",
              "What did the latest annual report say?"]
 
@@ -75,7 +77,7 @@ def summary_line(cov: dict) -> str:
 
 
 def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetime, out_path: Path, *,
-        config_dir: Path | None = None, luck_portfolios: int = 500, replicates: int = 10_000) -> dict:
+        config_dir: Path | None = None, reference_dir: Path | None = None, luck_portfolios: int = 500, replicates: int = 10_000) -> dict:
     """Import, analyse, answer the questions, write the report. `provider` is any HistoricalBarProvider (cached or fake)."""
     cfg_dir = config_dir or BACKEND / "config"
     universe = load_universe(cfg_dir / "analysis_universe.toml")
@@ -97,13 +99,20 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
                          for r in result.rejected]
         trades = TradeRepository(session).list_effective(user_id=USER)
         traded = {Instrument(t.symbol, t.exchange) for t in trades}
-        listings = traded | {c.instrument for c in universe.candidates}
+        sector_map = load_sector_map(reference_dir or REFERENCE)  # None: no sector files, the static universe is used
+        sector_candidates = set()
+        if sector_map is not None:
+            from app.services.sector_map import candidate_for
+            sector_candidates = {candidate_for(e).instrument for e in sector_map.entries.values()}
+        listings = traded | {c.instrument for c in universe.candidates} | sector_candidates
         first = min((t.trade_timestamp.date() for t in trades), default=as_of)
         start = first - timedelta(days=HISTORY_DAYS)
         isin_of = {Instrument(t.symbol, t.exchange): t.isin for t in trades if t.isin}
         isin_of.update({c.instrument: c.isin for c in universe.candidates})
         reviewed, known = resolve_corporate_actions(windows, listings, start, as_of, isin_of)
+        alternatives = build_alternatives(sector_map, universe.candidates, reviewed, {t.isin for t in trades if t.isin})
         config = AnalysisConfig(
+            alternatives=alternatives, reference_provenance=tuple(p.to_dict() for p in (sector_map.provenance if sector_map else ())),
             universe=universe.candidates, universe_static=universe.static, universe_note=universe.note,
             corporate_action_listings=known, corporate_action_reviewed=reviewed, luck_portfolio_count=luck_portfolios,
             luck_bootstrap_replicates=replicates, regime_parameters=RegimeParameters())
@@ -127,7 +136,9 @@ def run(tradebooks: list[tuple[str, bytes]], provider, as_of: date, now: datetim
              + ("; ".join(f"{n} {sym} {code} ({msg})" for n, sym, code, msg in rejected_rows) or "none") + ".",
              f"Market-data symbol aliases (lookup only): {', '.join(f'{k}->{v}' for k, v in aliases.items()) or 'none'}.",
              f"Not reviewed (universe listings; their luck/regime results are Unavailable): {', '.join(unreviewed) or 'none'}.",
-             f"Coverage: {summary_line(cov)}. Seeds: {prov['seeds']}. Nifty 50 membership is not configured, so the NIFTY baseline is Unavailable.", ""]
+             f"Coverage: {summary_line(cov)}. Seeds: {prov['seeds']}. Nifty 50 membership is not configured, so the NIFTY baseline is Unavailable.",
+             "Alternatives per trip: " + ("; ".join(f"{sym} {label}" for _, sym, label in prov["luck_alternatives"]["per_trip"]) or "none")
+             + f". Reference files: {', '.join(r['file_name'] + ' sha256 ' + r['sha256'][:12] for r in prov['reference_data']) or 'none'}.", ""]
     for n, (q, a) in enumerate(sections, 1):
         lines += [f"## Q{n}. {q}", "", f"verified: **{a.verified}** (attempts {a.attempts})", "", "```", a.text, "```", "",
                   f"Citations: {', '.join(f'{c.kind}:{c.ref}' for c in a.citations) or 'none'}", ""]

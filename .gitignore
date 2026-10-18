@@ -41,5 +41,5 @@ docs/reports/demo-real-*
 tools/mods/model-router/tsconfig.json
 
 # Local market reference datasets; keep these out of Git.
-/backend/data/reference/
+/backend/data/references/
 backend/set-test-env.sh

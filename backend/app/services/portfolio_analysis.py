@@ -81,6 +81,9 @@ class AnalysisConfig:
     corporate_action_reviewed: frozenset[Instrument] | None = None  # None = undeclared: luck is Unavailable by 007's rule
     universe_static: bool = False  # True: a fixed list, not point-in-time membership (survivorship bias)
     universe_note: str = ""
+    # Feature 014: traded ISIN -> (alternatives for its trips, label). Empty = every trip uses `universe` (the 012 behaviour).
+    alternatives: dict[str, tuple[tuple[Candidate, ...], str]] = field(default_factory=dict)
+    reference_provenance: tuple[dict, ...] = ()  # file provenance of the reference data in use, copied to the facts provenance
     luck_portfolio_count: int = 500
     luck_bootstrap_replicates: int = 10_000
     regime_parameters: RegimeParameters = field(default_factory=RegimeParameters)
@@ -305,6 +308,7 @@ class PortfolioAnalysisService:
         why = error or ""
         bias_res = luck_res = regime_res = None
         trip_count: int | None = None
+        luck_alt: dict = {"per_trip": [], "groups": [], "facts_group": None}
         known = cfg.corporate_action_listings
         reviewed = cfg.corporate_action_reviewed
         traded = {t.instrument for t in ledger}
@@ -349,8 +353,7 @@ class PortfolioAnalysisService:
                     mapped = map_round_trips(fold_positions(validated).round_trips) if validated.trades else ()
                     trips = [m.trip for m in mapped if m.unavailable is None]
                     trip_count = len(trips)
-                    luck_res = analyze_luck(trips, series, cfg.universe, cfg.nifty50, known, luck_p["luck_test"],
-                                            corporate_action_reviewed=reviewed)
+                    luck_res, luck_alt = self._luck(trips, series, known, luck_p["luck_test"], reviewed)
             except (BiasInputError, LuckInputError, RegimeInputError) as exc:
                 reasons["007"] = f"{type(exc).__name__}: {exc}"
             try:
@@ -384,6 +387,7 @@ class PortfolioAnalysisService:
             "trips_total": trips_total, "excluded_listings": excluded_rows, "price_proxies": proxies,
             "price_proxy_note": PROXY_NOTE if proxies else "",
             "universe_static": cfg.universe_static, "universe_note": cfg.universe_note,
+            "luck_alternatives": luck_alt, "reference_data": list(cfg.reference_provenance),
             "corporate_action_coverage": "UNDECLARED" if reviewed is None else "DECLARED",
             "corporate_action_listings": sorted(f"{i.symbol}.{i.exchange.value}" for i in known),
             "corporate_action_reviewed": None if reviewed is None else sorted(f"{i.symbol}.{i.exchange.value}" for i in reviewed),
@@ -398,6 +402,28 @@ class PortfolioAnalysisService:
         }
         unavailable = tuple(out.unavailable) + tuple((k, v) for k, v in reasons.items() if v)
         return AnalysisFacts(as_of=as_of, facts=tuple(out.facts), provenance=provenance, unavailable=unavailable)
+
+    def _luck(self, trips, series, known, params, reviewed):
+        """007, once per distinct alternatives set (Feature 014; the quant call is unchanged). The luck FACTS come from the group
+        holding the last trip; every trip's alternatives label and every group are recorded in the provenance."""
+        cfg = self._config
+        static_label = "alternatives: static universe"
+        if not trips:
+            return analyze_luck([], series, cfg.universe, cfg.nifty50, known, params, corporate_action_reviewed=reviewed),                 {"per_trip": [], "groups": [], "facts_group": None}
+        chosen = [cfg.alternatives.get(t.isin or "", (cfg.universe, static_label)) for t in trips]
+        order: list[tuple[tuple[Candidate, ...], str]] = []
+        for c in chosen:
+            if c not in order:
+                order.append(c)
+        results = {}
+        for cands, label in order:
+            members = [t for t, c in zip(trips, chosen) if c == (cands, label)]
+            results[label, cands] = analyze_luck(members, series, cands, cfg.nifty50, known, params, corporate_action_reviewed=reviewed)
+        last = chosen[-1] if chosen else None
+        info = {"per_trip": [[t.trip_id, t.instrument.symbol, c[1]] for t, c in zip(trips, chosen)],
+                "groups": [[label, len(cands), sum(1 for c in chosen if c == (cands, label))] for cands, label in order],
+                "facts_group": None if last is None else last[1]}
+        return (None if last is None else results[last[1], last[0]]), info
 
     @staticmethod
     def _content_id(t, seen: dict) -> str:
@@ -423,7 +449,8 @@ class PortfolioAnalysisService:
         for t in ledger:
             if t.instrument.exchange is Exchange.BSE and t.isin in nse_by_isin:
                 proxy[t.instrument] = nse_by_isin[t.isin]
-        wanted = ({t.instrument for t in ledger} - set(proxy)) | {c.instrument for c in cfg.universe} | set(proxy.values())
+        alt_listings = {c.instrument for cands, _ in cfg.alternatives.values() for c in cands}
+        wanted = ({t.instrument for t in ledger} - set(proxy)) | {c.instrument for c in cfg.universe} | alt_listings | set(proxy.values())
         listings = sorted(wanted, key=lambda i: (i.symbol, i.exchange.value))
         start = min(t.trade_timestamp for t in ledger).date() - timedelta(days=HISTORY_DAYS)
         service = MarketSeriesService(provider=self._provider, clock=lambda: now)

@@ -1,7 +1,7 @@
 # Luck-test alternative universe (Feature 012). STATIC: a fixed list of large caps, not point-in-time membership.
 static_universe = true
 note = "static universe, survivorship bias acknowledged"
-# ISINs are from memory and UNVERIFIED: check each against the NSE/BSE listing before trusting a result.
+# ISINs marked isin_source are verified against niftyindices constituent files; the others are from memory and UNVERIFIED.
 # Names that changed ISIN after a split or face-value change are left out on purpose. Exchange is NSE for all.
 
 [[instrument]]
@@ -56,19 +56,36 @@ isin = "INE481G01011"
 symbol = "WIPRO"
 isin = "INE075A01022"
 
-# Added 2026-10-16: UNVERIFIED ISINs (from memory) and NOT in the corporate-actions register, so luck stays Unavailable for them until reviewed.
+# PSU banks: ISINs verified 2026-10-16 against ind_niftypsubanklist (niftyindices). NOT in the corporate-actions register: excluded until approved.
 [[instrument]]
 symbol = "PNB"
-isin = "INE160A01022"  # UNVERIFIED
+isin = "INE160A01022"
+isin_source = "niftyindices 2026-10-16"
 [[instrument]]
 symbol = "BANKBARODA"
-isin = "INE028A01039"  # UNVERIFIED
+isin = "INE028A01039"
+isin_source = "niftyindices 2026-10-16"
 [[instrument]]
 symbol = "UNIONBANK"
-isin = "INE692A01016"  # UNVERIFIED
+isin = "INE692A01016"
+isin_source = "niftyindices 2026-10-16"
 [[instrument]]
 symbol = "BANKINDIA"
-isin = "INE084A01016"  # UNVERIFIED
+isin = "INE084A01016"
+isin_source = "niftyindices 2026-10-16"
 [[instrument]]
 symbol = "MAHABANK"
-isin = "INE457A01014"  # UNVERIFIED
+isin = "INE457A01014"
+isin_source = "niftyindices 2026-10-16"
+[[instrument]]
+symbol = "INDIANB"
+isin = "INE562A01011"
+isin_source = "niftyindices 2026-10-16"
+[[instrument]]
+symbol = "PSB"
+isin = "INE608A01012"
+isin_source = "niftyindices 2026-10-16"
+[[instrument]]
+symbol = "UCOBANK"
+isin = "INE691A01018"
+isin_source = "niftyindices 2026-10-16"

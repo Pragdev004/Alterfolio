@@ -47,6 +47,7 @@ def test_local_settings_file_is_not_tracked():
 # ---- tradebook CSVs: only the synthetic fixture may live in the repository ------------------------------------------
 
 FIXTURE = "backend/tests/fixtures/tradebook_synthetic.csv"
+PUBLIC_REFERENCE_DIR = "backend/data/reference/"
 ZERODHA_HEADER = "symbol,isin,trade_date,exchange,segment,series,trade_type,auction,quantity,price,trade_id,order_id,"
 
 
@@ -67,6 +68,8 @@ def test_no_tradebook_csv_is_tracked_or_stageable_except_the_synthetic_fixture()
         looks_like_csv = rel.lower().endswith((".csv", ".tsv", ".xlsx", ".xls"))
         with path.open("rb") as handle:
             first_line = handle.readline(512).decode("utf-8", "replace").lstrip("﻿").strip().lower()
+        if rel.startswith(PUBLIC_REFERENCE_DIR) and rel.lower().endswith(".csv") and not first_line.startswith(ZERODHA_HEADER):
+            continue  # public niftyindices constituent files (Feature 014); nothing else under backend/data
         if (looks_like_csv or first_line.startswith(ZERODHA_HEADER)) and rel != FIXTURE:
             offenders.append(rel)
     assert offenders == [], f"tradebook-like files must stay outside the repository: {offenders}"

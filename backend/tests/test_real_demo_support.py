@@ -33,7 +33,7 @@ def svc(session, **cfg):
 
 def test_shipped_universe_file_is_flagged_and_loads():
     u = load_universe(ROOT / "config" / "analysis_universe.toml")
-    assert u.static is True and u.note == NOTE and len(u.candidates) == 22
+    assert u.static is True and u.note == NOTE and len(u.candidates) == 25  # 22 + INDIANB, PSB, UCOBANK added in 014 (niftyindices 2026-10-16)
     assert len({c.isin for c in u.candidates}) == len(u.candidates)
 
 
