@@ -3,7 +3,7 @@
 Skipped unless ALTERFOLIO_TEST_OLLAMA_URL names a running Ollama server (for example http://localhost:11434). A skipped run is
 not verification. Inputs are synthetic; nothing is stored.
 """
-import hashlib
+import json
 import math
 import os
 from pathlib import Path
@@ -55,11 +55,25 @@ def embedder():
     return OllamaEmbedder(base_url=OLLAMA_URL)
 
 
-def test_the_server_digest_equals_the_local_manifest_and_the_verified_digest():
+WEIGHTS_LAYER_DIGEST = "sha256:970aa74c0a90ef7482477cf803618e776e173c007bf957f635f1015bfcfef0e6"
+
+
+def test_the_server_digest_equals_the_verified_digest_and_the_local_weights_layer_is_the_verified_one():
+    """The model identity is pinned two ways, neither of which depends on how Ollama stores the manifest file.
+
+    1. The digest the server reports for the tag must equal VERIFIED_MANIFEST_DIGEST (the real guarantee).
+    2. The local manifest's weights layer (its largest layer, ~274 MB) must have the verified digest.
+
+    The previous check hashed the manifest file's bytes. Ollama 0.40.5 on Fedora reports the verified digest but stores the
+    manifest file with different bytes (file sha256 8688dbc0..., not 0a109f42...), so the file hash is not portable although
+    the model is identical. The weights layer digest is content-addressed and is the same everywhere.
+    """
     listing = httpx.get(OLLAMA_URL.rstrip("/") + "/api/tags", timeout=30).json()["models"]
     (entry,) = [m for m in listing if m["name"] == MODEL_TAG]
-    local = hashlib.sha256(manifest_path().read_bytes()).hexdigest()
-    assert "sha256:" + entry["digest"].removeprefix("sha256:") == "sha256:" + local == VERIFIED_MANIFEST_DIGEST
+    assert "sha256:" + entry["digest"].removeprefix("sha256:") == VERIFIED_MANIFEST_DIGEST
+
+    layers = json.loads(manifest_path().read_text())["layers"]
+    assert max(layers, key=lambda layer: layer["size"])["digest"] == WEIGHTS_LAYER_DIGEST
 
 
 @pytest.mark.parametrize("role", [DOC, QUERY])

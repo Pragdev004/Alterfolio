@@ -39,3 +39,7 @@ backend/.cache/
 # Real-data demo reports hold personal trade figures (Feature 012)
 docs/reports/demo-real-*
 tools/mods/model-router/tsconfig.json
+
+# Local market reference datasets; keep these out of Git.
+/backend/data/reference/
+backend/set-test-env.sh
