@@ -38,7 +38,7 @@ Every Decimal/ratio in a response has a server display string (013a section 4): 
 | `GET /api/analysis/biases` | S4 | three bias costs, archetype, `sample` text |
 | `POST /api/analyst/ask` `{question<=2000, as_of}` | S5 | `{text, citations, verified, as_of, attempts, answer_source}`; 422 `as_of_not_sealed` |
 Not used: `POST /trades`, `/trades/{id}/correct`, `/trades/{id}/void` (manual entry is out of scope).
-Open dependency (013a): the display siblings and `/api/analysis/*` do not exist yet; this spec describes the target.
+013a is implemented: the display siblings and `/api/analysis/*` exist (shapes in `013a-analysis-read-api.md`).
 
 ## 4. Screens
 S1 Upload tradebook

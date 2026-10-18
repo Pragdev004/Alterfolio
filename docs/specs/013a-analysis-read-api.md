@@ -1,5 +1,5 @@
 # Spec 013a: Analysis read API
-Status: APPROVED 2026-10-18 (owner answers folded in, section 11). Precedes any UI work in Feature 013 (`013-frontend.md`).
+Status: IMPLEMENTED 2026-10-18, awaiting owner review (owner answers folded in, section 11). Precedes any UI work in Feature 013 (`013-frontend.md`).
 Reads: `services/portfolio_analysis.py`, `api/routes/{analyst,portfolio,trades,imports}.py`, `api/display.py`,
 `schemas/*`, quant result types of 006/007/008. No change to `domain/` or `quant/`.
 
@@ -144,3 +144,10 @@ analyst wording or the number guard; any frontend code.
 reason. 3 Sealed = yesterday IST; `meta.last_bar_date`. 4 In-process cache, no TTL, invalidated by ledger changes. 5 Price
 format 2 dp, up to 4 dp below ₹1. 6 Dates server-formatted plus ISO; counts raw. 7 Alternatives labels "Same-sector" /
 "Same-universe". 8 CLAUDE.md is updated in the build commit.
+
+## 12. As built (differences from the text above)
+Counts (`trips_used`, `trips_evaluated`, `sample.have`, block `trip_count`, `unknown_fee_trade_count`) are null, with sample text
+"Unavailable", when the analysis did not run: never 0. `trip_count` likewise. Imported trades with unknown charges show
+`brokerage_fee_display`/`taxes_display` "Unavailable" (raw 0 unchanged). `summary` carries the facts group's alternatives label;
+`groups[]` holds every group. Stored 014 labels unchanged. Archetype metrics are `unit: "unitless"`. Biases `sample.have` is the
+ledger's closed round-trip count.
