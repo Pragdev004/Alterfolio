@@ -4,12 +4,13 @@ Facts, fingerprints and stored values stay exact; rounding happens only in the f
 """
 
 from app.analyst.types import UNAVAILABLE, Fact
-from app.domain.display import format_inr, format_percent
+from app.domain.display import format_inr, format_percent, format_percentile
 
-_RATIO_SUFFIXES = ("mean_excess", "mean_percentile", "ci_lower", "ci_upper", ".percentile", ".excess", "actual_return")
+_PERCENTILE_SUFFIXES = ("mean_percentile", ".percentile")  # positions: whole percents, as in the analysis API
+_RATIO_SUFFIXES = ("mean_excess", "ci_lower", "ci_upper", ".excess", "actual_return")
 _UNIT_NOTES = {"INR_LOWER_BOUND": " (lower bound)", "RATIO_FEES_EXCLUDED": " (fees excluded)"}
 
-__all__ = ["display_value", "format_inr", "format_percent", "render_fact"]
+__all__ = ["display_value", "format_inr", "format_percent", "format_percentile", "render_fact"]
 
 
 def display_value(name: str, value: str, unit: str = "") -> str:
@@ -18,6 +19,8 @@ def display_value(name: str, value: str, unit: str = "") -> str:
         return UNAVAILABLE
     if unit.startswith("INR"):
         return format_inr(value) + _UNIT_NOTES.get(unit, "")
+    if name.endswith(_PERCENTILE_SUFFIXES):
+        return format_percentile(value)
     if unit.startswith("RATIO") or name.endswith(_RATIO_SUFFIXES):
         return format_percent(value) + _UNIT_NOTES.get(unit, "")
     return value

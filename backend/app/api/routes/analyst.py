@@ -37,7 +37,9 @@ def ask_route(
 ):
     analysis.require_sealed(body.as_of)  # rejected even when the question needs no quant tool
     tools, caveats = quant_tools_with_caveats(analysis.analyse)
-    llm = request.app.state.analyst_llm or llm_from_provider(os.environ.get("AI_PROVIDER", "none"))
+    provider = os.environ.get("AI_PROVIDER", "none")
+    # The offline template renders facts through the display formatter, so its text matches the analysis API (whole percents, INR).
+    llm = request.app.state.analyst_llm or (TemplateLLM(render=render_fact) if provider == "none" else llm_from_provider(provider))
     answer = ask(user_id, body.question, body.as_of, llm=llm, tools=tools, retriever=request.app.state.retriever, render=render_fact)
     # `answer_source` tells the reader whether the words came from the offline template or from a language model.
     return {**apply_caveats(answer, caveats()).to_dict(), "answer_source": "template" if isinstance(llm, TemplateLLM) else "llm"}

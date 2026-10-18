@@ -21,13 +21,14 @@ from app.services.analysis_view import AnalysisView, build_view
 from app.services.market_series import MarketSeriesService, ResolvedSeries
 from app.services.portfolio_analysis import PortfolioAnalysisService, Thresholds
 
+CACHE_MAX_ITEMS = 64  # the cache holds at most this many entries; the oldest goes first
 BAR_LOOKBACK_DAYS = 14  # how far back the freshness probe looks for the newest bar
 
 
 class AnalysisCache:
     """A small thread-safe dict. Values are immutable views; there is deliberately no expiry."""
 
-    def __init__(self, max_items: int = 64) -> None:
+    def __init__(self, max_items: int = CACHE_MAX_ITEMS) -> None:
         self._items: dict = {}
         self._max = max_items  # a size bound only (oldest entry out); results never expire by time
         self._lock = threading.Lock()

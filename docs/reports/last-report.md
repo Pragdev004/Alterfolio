@@ -35,3 +35,20 @@ Date: 2026-10-18. Scope: the owner's seven review items. Backend tests first, th
 `backend/app/{domain/display.py, schemas/analysis.py, schemas/summary.py, services/analysis_view.py, api/analysis_presenter.py,
 quant/luck_test/{types,analysis}.py}`, tests above, `docs/specs/013*.md`, `docs/design/013-frontend-design.md`,
 `docs/design/mockups/trip-detail.html`, `docs/design/mockups/screenshots/trip-detail-{desktop,mobile}.png`.
+
+## Follow-up (2026-10-18): percentile parity, pinned histogram, cache bound
+Full suite: **2478 passed, 0 failed, 0 skipped**.
+- **Analyst percentiles are whole percents, same as the analysis API** (`api/display.py` uses `format_percentile` for
+  `*.percentile` and `mean_percentile` facts). Parity test: each analyst fact (ALT/NIFTY mean and last-trip percentile) renders
+  exactly the analysis API's `display`. A second test checks the `/api/analyst/ask` answer text has no decimal percentiles.
+- **A bug the parity test exposed:** the `/ask` route's offline template (`AI_PROVIDER=none`) built `TemplateLLM()` without the
+  display formatter, so its text printed raw values such as `0.1392857…`. The route now builds `TemplateLLM(render=render_fact)`;
+  template answers show rounded percentages, rupees and ratios, and the number guard still verifies them.
+- **Committed demo page regenerated** (`python scripts/report_html.py`): `docs/demo/alterfolio-demo.html` showed percentiles with two
+  decimals, and the approved `test_committed_offline_report_matches_a_fresh_render` compares it to a fresh render. Only the
+  four percentile lines changed (14.21% -> 14%, 20.64% -> 21%, 3.00% -> 3%, 19.00% -> 19%). The test itself is untouched.
+- **Histogram bins pinned:** seeded fixture (14 trips, 500 portfolios, seeds from user + day + analysis name). The full 20 bin
+  counts of trips 1, 2 and 14 are asserted, plus the marker bin and text; every trip's counts sum to 500.
+- **Cache bound: 64 entries** (`CACHE_MAX_ITEMS` in `services/analysis_read.py`), oldest entry evicted first, no TTL. Analysis
+  views and the small `last_bar` date entries share the 64. Tested: 100 inserts leave 64 and the oldest 36 are gone; replacing a
+  live key evicts nothing.

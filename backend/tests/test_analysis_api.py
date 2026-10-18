@@ -576,3 +576,67 @@ def test_regimes_sentence_when_the_analysis_did_not_run(engine, session):
     b = get(TestClient(make_app(engine)), "regimes").json()
     assert b["none_ready_text"] is None  # nothing to count: the Unavailable reason speaks instead
     assert b["unavailable_reason"] and b["reason_text"]
+
+
+# --- follow-ups: analyst/API percentile parity, pinned histogram counts, cache bound ---------------------------------------
+
+def test_analyst_facts_show_percentiles_exactly_as_the_analysis_api_does(engine, seeded):
+    from app.analyst.types import Fact
+    from app.api.display import render_fact
+    detail = _detail(engine)
+    facts = {f.name: f for f in detail.facts.facts}
+    client = TestClient(make_app(engine))
+    trips = get(client, "trips").json()
+    last = max(trips["trips"], key=lambda t: (t["open_session"]["iso"], t["close_session"]["iso"], t["trip_id"]))
+    pairs = {
+        "luck.ALT.mean_percentile": trips["summary"]["ALT"]["mean_percentile"],
+        "luck.NIFTY.mean_percentile": trips["summary"]["NIFTY"]["mean_percentile"],
+        "luck.last_trip.ALT.percentile": last["alt"]["percentile"],
+        "luck.last_trip.NIFTY.percentile": last["nifty"]["percentile"],
+    }
+    for name, api in pairs.items():
+        f = facts[name]
+        shown = render_fact(Fact(name=f.name, value=f.value, source=f.source, as_of=D_ASOF, unit=f.unit))
+        assert api["value"] is not None and re.fullmatch(r"-?\d+%", shown), (name, shown)  # whole percent, no decimals
+        assert shown == api["display"], name
+
+
+def test_analyst_answer_text_shows_whole_number_percentiles(engine, seeded, monkeypatch):
+    monkeypatch.setenv("AI_PROVIDER", "none")
+    r = TestClient(make_app(engine)).post("/api/analyst/ask", json={"question": "Was my last buy skill or luck?", "as_of": ASOF}).json()
+    lines = [ln for ln in r["text"].splitlines() if "percentile" in ln]
+    assert lines and all(re.search(r": -?\d+%", ln) for ln in lines), lines
+    assert r["verified"] is True
+
+
+def test_histogram_bin_counts_are_pinned_for_a_seeded_fixture(engine, seeded):
+    """500 drawn portfolios per baseline, seeds from (user, day, name): the bins are reproducible, so they are pinned."""
+    client = TestClient(make_app(engine, luck_portfolio_count=500))
+    ids = [t["trip_id"] for t in get(client, "trips").json()["trips"]]
+    assert len(ids) == 14
+    first = get(client, f"trips/{ids[0]}").json()["trip"]["histograms"]["ALT"]
+    assert [b["count"] for b in first["bins"]] == [97, 77, 78, 56, 40, 24, 25, 16, 25, 11, 12, 12, 10, 6, 3, 2, 2, 1, 1, 2]
+    assert first["marker_bin"] == 0 and first["text"] == "Of the 500 portfolios drawn, 0 returned less than your trip, 0 the same and 500 more."
+    second = get(client, f"trips/{ids[1]}").json()["trip"]["histograms"]["ALT"]
+    assert [b["count"] for b in second["bins"]] == [13, 32, 45, 67, 58, 52, 61, 36, 27, 26, 22, 16, 13, 12, 8, 5, 4, 1, 1, 1]
+    last = get(client, f"trips/{ids[-1]}").json()["trip"]["histograms"]["ALT"]
+    assert [b["count"] for b in last["bins"]] == [120, 96, 81, 54, 39, 29, 20, 17, 15, 13, 6, 2, 3, 0, 2, 0, 0, 2, 0, 1]
+    assert last["text"] == "Of the 500 portfolios drawn, 7 returned less than your trip, 0 the same and 493 more."
+    assert all(sum(b["count"] for b in get(client, f"trips/{i}").json()["trip"]["histograms"]["ALT"]["bins"]) == 500 for i in ids)
+
+
+def test_analysis_cache_is_size_bounded_oldest_first():
+    from app.services.analysis_read import CACHE_MAX_ITEMS, AnalysisCache
+    cache = AnalysisCache()
+    assert CACHE_MAX_ITEMS == 64 and len(cache) == 0
+    for i in range(100):
+        cache.put(("k", i), i)
+    assert len(cache) == CACHE_MAX_ITEMS
+    assert cache.get(("k", 0)) is None and cache.get(("k", 35)) is None  # the oldest 36 were evicted
+    assert cache.get(("k", 36)) == 36 and cache.get(("k", 99)) == 99
+    cache.put(("k", 99), "again")  # replacing a live key never evicts another
+    assert len(cache) == CACHE_MAX_ITEMS and cache.get(("k", 36)) == 36
+    small = AnalysisCache(max_items=2)
+    for i in range(5):
+        small.put(i, i)
+    assert len(small) == 2 and small.get(3) == 3 and small.get(4) == 4
