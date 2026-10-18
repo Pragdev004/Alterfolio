@@ -171,3 +171,13 @@
     tfoot tr { border-top: 1px solid var(--rule-ink); }
   }
 }
+@layer components {
+  .margin-list { margin: 0; padding-left: var(--s-4); color: var(--ink-2); font-size: var(--t-sm); display: flex; flex-direction: column; gap: var(--s-2); max-width: 80ch; }
+  .facts dd .dir { display: block; font-size: var(--t-md); white-space: normal; }
+}
+@layer components {
+  .content { min-width: 0; display: flex; flex-direction: column; }
+  .content main { flex: 1; padding-bottom: var(--s-6); }
+  .content footer { margin: 0 var(--s-6) var(--s-6); max-width: 1176px; }
+  @media (max-width: 900px) { .content footer { margin: 0 var(--s-4) var(--s-5); } }
+}

@@ -13,6 +13,8 @@ const noFormatting = [
   { selector: "CallExpression[callee.name='parseFloat']", message: FORMAT },
   { selector: "CallExpression[callee.name='parseInt']", message: FORMAT },
   { selector: "CallExpression[callee.object.name='Number'][callee.property.name='parseFloat']", message: FORMAT },
+  { selector: "UnaryExpression[operator='+']", message: "Do not coerce response values to numbers; render `display`." },
+  { selector: "BinaryExpression[operator=/^[-*\\/%]$/] > MemberExpression[property.name='value']", message: "No arithmetic on response `value`s." },
   { selector: "CallExpression[callee.name='Number']", message: "Number() may only place marks, in src/shared/ui/geometry.ts." },
 ];
 

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import type { Histogram as HistogramData } from "../api/types";
+import { Unavailable } from "./Figure";
 import { barHeight, place } from "./geometry";
 
 const HEIGHT = 170, TOP = 28, BASE = 128;
@@ -20,10 +21,15 @@ export function Histogram({ data }: { data: HistogramData }) {
     return () => observer.disconnect();
   }, []);
 
+  const lo = data.lower.value, hi = data.upper.value, actual = data.actual_return.value;
+  if (lo === null || hi === null || actual === null || data.bins.length === 0) {
+    const why = data.actual_return.reason_text ?? data.lower.reason_text ?? data.upper.reason_text ?? "The chart could not be drawn.";
+    return <p><Unavailable /> <span className="reason">{why}</span></p>;
+  }
   const n = data.bins.length;
   const bw = width / n;
   const maxCount = Math.max(...data.bins.map((b) => b.count));
-  const mx = place(data.actual_return.value ?? data.lower.value ?? "0", data.lower.value ?? "0", data.upper.value ?? "1", width);
+  const mx = Math.min(width, Math.max(0, place(actual, lo, hi, width)));
   const anchor = mx > width - 110 ? "end" : mx < 90 ? "start" : "middle";
   return (
     <div ref={host}>

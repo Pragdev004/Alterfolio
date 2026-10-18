@@ -1,32 +1,41 @@
-# Feature 013 Phase C1 report (2026-10-18)
+# Feature 013 Phase C2 report (2026-10-18)
 
-## Backend (commit `815cc2f`)
-- Aggregate `mean_excess_direction` is `inconclusive` when `ci_lower <= 0 <= ci_upper`; new `mean_excess_direction_text` = "not distinguishable from zero".
-- New `portfolios_text` on each outcome: "500 portfolios built from 10 other Nifty Bank stocks" (Nifty baseline: "... from N Nifty 50 stocks").
-- Histogram text drops the "0 the same" clause when no tie.
-- Tests first (red), then code. **Two approved assertions were updated because the owner's change alters them**: the mean-direction
-  check in `test_direction_is_explicit_and_follows_the_sign` (now allows `inconclusive`) and the two histogram text pins (no "0 the same").
-- Full suite: **2488 passed, 0 failed, 0 skipped**, using a throwaway local PostgreSQL 16 (with `vector`), a no-vector database and the
-  local Ollama (`ALTERFOLIO_TEST_*` env vars). Without those env vars 10-90 tests skip, as before.
-- Spec 013a section 14 records the changes.
+## Fixes from the owner's live check
+1. **Horizontal overflow.** Two causes found and fixed: a single-column grid track that could not shrink (~700px), and the trip table's
+   `nowrap` listing name widening the page with a long name (reproduced at 1890 and 1366px). Long text now wraps. Playwright checks no
+   sideways scroll and the rail in view at 1920, 1366, 1000, 700 and 390px on every screen, plus a long-text case; reverting the CSS makes it fail.
+   I could not reproduce your exact 1890px state with synthetic data (your backend on :8000 was untouched); the long-name case is the closest cause I found.
+2. Disclaimer removed from the rail; the footer keeps it (now outside `<main>`, so it is a real landmark).
+3. `<html lang="en-IN">` was already set (now tested). The server's formatted date sits next to the native date input.
+4. Chart header shows "Latest bar: No price data yet." (server sentence) when `last_bar_date` is null.
 
-## Frontend (`frontend/`)
-- Scaffold: Vite + React 18 + TS, tokens.css (layers, light default, dark tokens), Source Sans 3 self-hosted, React Router with `?as_of=`,
-  TanStack Query, types generated from `openapi.json` (`gen:openapi`, `gen:types`, `check:types`), dev proxy, ESLint rule forbidding
-  `toFixed`/`toLocaleString`/`Intl.NumberFormat`/`parseFloat`/`parseInt`, and `Number()` outside `shared/ui/geometry.ts`.
-- Shared: chart header, Figure/Unavailable/Reason, status code, direction (no arrow or colour for inconclusive/level), too-few sentence,
-  histogram (SVG + visible text + bar titles), volatility band, skeleton/empty/error/not-final/analyst-offline states.
-- Screens: Trip list and Trip detail (as the mockup). Holdings/Costs/Ask/Upload show "not built yet" (C2).
-- Tests: 73 vitest (MSW, fixtures recorded from the real 013a API via `backend/scripts/record_fixtures.py`), including WCAG contrast of
-  light and dark tokens, a source scan and a test that the ESLint rule fires. 1 Playwright smoke (list -> detail -> Unavailable word + reason): passes.
-  `tsc`, `eslint`, `vite build`, `check:types` clean.
-- Run against the real backend (`backend/scripts/dev_server.py`, synthetic world, real API) with the Vite proxy; screenshots in
-  `docs/reports/c1-screenshots/` (trip list and detail, desktop and mobile).
+## Built
+Upload, Holdings (PARTIAL note from the server), Costs (archetype metrics labelled unitless; raw `details` deliberately not shown because they
+carry unformatted numbers), Ask (template / unverified labels, citation chips linking to the screen with `?as_of=`, "Analyst offline — your numbers
+are still here"), and a rail checkbox that turns the `g` shortcuts off (remembered in the browser).
 
-## Deviations and notes
-- The as-of picker is an always-visible labelled date input (max = latest sealed day) instead of a "Change date" button.
-- Latest bar is shown only when the as-of equals the latest sealed day (meta has no per-date bar), so the header never overstates.
-- The trip list Note column is filled only for trips that were not compared (the same Nifty reason on every row was noise).
-- `g` chords are in (h/t/c/a/u); there is no UI toggle to disable them yet.
-- Data is the synthetic test world, not the owner's real trades; real-data run is untested.
-- Not done: Holdings, Costs, Ask, Upload (C2). Session stayed above 15%.
+## Backend changes (suite: 2490 passed, 0 failed, 0 skipped, with local PostgreSQL, a no-vector DB and Ollama)
+- `POST /api/analyst/ask` returns 503 `ai_provider_not_configured` for a missing/unknown provider (it was a 500; rule 5 of CLAUDE.md).
+- Plain sentences: "No price data yet." and "This habit's cost has no separate fee part." (replacing "This is not available.").
+- New dev worlds `holdings`/`valued`, fake quotes, ask/import/meta fixtures recorded from the real API (`record_fixtures.py`).
+
+## Frontend verification
+125 vitest tests (MSW, recorded fixtures), 10 Playwright tests (smoke: upload -> trips -> trip detail -> Unavailable word and reason; overflow),
+`tsc`, `eslint`, `vite build` and the generated-types check all clean. Screenshots of every screen, desktop and mobile: `docs/reports/c2-screens/`.
+Nothing used your real tradebooks; uploads use the invented `tradebook_synthetic.csv`.
+
+## Opus review (14 findings) and what I did
+Fixed: date input fought typing and the header could show the wrong date (draft state, full-date commit, "…" while loading); trip list lacked the
+alternatives note, caveats, limitations and analysis errors; several Unavailable values had no reason (fees known, sample, regimes, volatility band,
+across-trips); trip detail had no h1 while loading/erroring; Ask answers now show their date, clear on edit, and link with `?as_of=`; Ask shows an error
+when `/meta` fails; invented "no price on the closing date" cause removed, unknown interval position no longer renders "sits ."; histogram refuses to
+draw from null values and clamps the marker; `.dir` text no longer spills under neighbouring columns; vacuous tests replaced (regime sentence,
+unknown-fee count, footer landmark); trip ids encoded in links; Holdings header says Unavailable when prices fail; lint now rejects unary `+` and
+arithmetic on `.value`.
+Partly addressed: phone tables keep their table markup restyled as blocks. I added the alternatives label to the phone row but did not add explicit ARIA
+table roles, so some screen readers may announce phone rows without column headers. Open, worth a decision.
+Not changed: a few counts are still composed from raw integers in the browser ("N trips · …", "the first N of M", "(N trips)"); only 013a could supply those strings.
+
+## Notes
+- Costs shows Disposition/Chasing cost as the server's "₹0.00" for small samples; that is the server's number, not a UI default.
+- Not verified: any run on your real data, and the g-shortcut toggle in a browser with blocked storage.

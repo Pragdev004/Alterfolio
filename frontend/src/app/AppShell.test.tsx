@@ -11,7 +11,9 @@ describe("app shell", () => {
   it("has the footer disclaimer and no disclaimer in the rail", async () => {
     serve("full");
     renderApp("/trips");
-    expect(screen.getByRole("contentinfo")).toHaveTextContent("Educational, not financial advice.");
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent("Educational, not financial advice.");
+    expect(footer.closest("main")).toBeNull(); // inside <main> it would not be a landmark in a real browser
     expect(screen.getByRole("navigation", { name: "Screens" })).not.toHaveTextContent("Educational");
   });
 

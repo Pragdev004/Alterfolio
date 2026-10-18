@@ -17,9 +17,10 @@ function citationTarget(ref: string): string | null {
 }
 
 function Answer({ answer }: { answer: AskOut }) {
+  const search = `?as_of=${encodeURIComponent(answer.as_of)}`;
   return (
     <section className="sec" aria-labelledby="h-answer">
-      <h2 id="h-answer">Answer</h2>
+      <h2 id="h-answer">Answer<span className="h-sub">As of {answer.as_of}</span></h2>
       <div>
         <ul className="codes" aria-label="How this answer was made">
           {answer.answer_source === "template" && <li><StatusCode>Template answer</StatusCode></li>}
@@ -35,7 +36,7 @@ function Answer({ answer }: { answer: AskOut }) {
             {answer.citations.map((c) => {
               const to = c.kind === "tool" ? citationTarget(c.ref) : null;
               return (
-                <li key={`${c.kind}-${c.ref}`}>{to ? <Link className="chip" to={to}>{c.ref}</Link> : <span className="chip">{c.kind === "chunk" ? `Document ${c.ref}` : c.ref}</span>}</li>
+                <li key={`${c.kind}-${c.ref}`}>{to ? <Link className="chip" to={{ pathname: to, search }}>{c.ref}</Link> : <span className="chip">{c.kind === "chunk" ? `Document ${c.ref}` : c.ref}</span>}</li>
               );
             })}
           </ul>
@@ -68,14 +69,15 @@ export function AskScreen() {
     <>
       <div className="title"><h1>Ask</h1><span className="sub">Questions about your own numbers</span></div>
       <p className="lede">The analyst only explains numbers the app has already computed. It never produces a number of its own, and it does not give advice.</p>
+      {meta.isError && <ErrorState error={meta.error} onRetry={() => void meta.refetch()} />}
       <form onSubmit={submit} aria-label="Ask the analyst">
         <p>
           <label htmlFor="question"><span className="k-label">Your question</span></label><br />
-          <textarea id="question" rows={3} maxLength={MAX_QUESTION} value={question} disabled={ask.isPending} onChange={(e) => setQuestion(e.target.value)} className="ask-box" />
+          <textarea id="question" rows={3} maxLength={MAX_QUESTION} value={question} disabled={ask.isPending} onChange={(e) => { setQuestion(e.target.value); ask.reset(); }} className="ask-box" />
         </p>
         <p>
           <label htmlFor="ask-date"><span className="k-label">As of</span></label>{" "}
-          <input id="ask-date" type="date" value={date} max={sealed?.iso} disabled={!sealed || ask.isPending} onChange={(e) => setAsOf(e.target.value || null)} />
+          <input id="ask-date" type="date" value={date} max={sealed?.iso} disabled={!sealed || ask.isPending} onChange={(e) => { setAsOf(e.target.value || null); ask.reset(); }} />
           {date && <span className="fig"> {asOf && asOf !== sealed?.iso ? asOf : sealed?.display}</span>}
         </p>
         <p style={{ marginTop: "var(--s-4)" }}>

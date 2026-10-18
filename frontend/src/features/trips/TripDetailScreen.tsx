@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAsOf } from "../../app/useAsOf";
 import { ApiError } from "../../shared/api/errors";
 import { useMeta, useRegimes, useTrips, useTripDetail } from "../../shared/api/queries";
-import type { BaselineSummary, Outcome, TripDetailRow } from "../../shared/api/types";
+import type { BaselineSummary, Outcome, RegimeTag, TripDetailRow } from "../../shared/api/types";
 import { ChartHeader } from "../../shared/ui/ChartHeader";
 import { Direction } from "../../shared/ui/Direction";
 import { Figure, Unavailable } from "../../shared/ui/Figure";
@@ -14,6 +14,7 @@ import { StatusCode } from "../../shared/ui/StatusCode";
 import { EmptyState, ErrorState, NotFinal, Skeleton } from "../../shared/ui/States";
 import { VolatilityBand } from "../../shared/ui/VolatilityBand";
 
+const bandReady = (r: RegimeTag) => Boolean(r.regime) && r.volatility.value !== null && r.low_threshold.value !== null && r.high_threshold.value !== null;
 const POSITION: Record<string, string> = { CONTAINS_ZERO: "across zero", ABOVE_ZERO: "above zero", BELOW_ZERO: "below zero" };
 
 function dropped(count: number | null): string | null {
@@ -66,17 +67,18 @@ function BaselineRow({ name, o }: { name: string; o: Outcome | null }) {
         </>
       )}
       <td className="status"><StatusCode hold={na}>{na ? "Unavailable" : "Evaluated"}</StatusCode></td>
-      <td className="note">{na ? <span className="reason">{o.reason_text}</span> : lost && <span className="reason">{lost}: no price on the closing date.</span>}</td>
+      <td className="note">{na ? <span className="reason">{o.reason_text}</span> : lost && <span className="reason">{lost}.</span>}</td>
     </tr>
   );
 }
 
-function AcrossTrips({ summary }: { summary: BaselineSummary }) {
+function AcrossTrips({ summary, reason }: { summary: BaselineSummary; reason: string | null }) {
   if (!summary.sample.enough) {
     return summary.sample.have === null
-      ? <div className="too-few"><strong>Across your trips</strong><Unavailable /></div>
+      ? <div className="too-few"><strong>Across your trips</strong><Unavailable /> <span>{reason ?? summary.ci_lower.reason_text}</span></div>
       : <TooFew sampleText={summary.sample.text} />;
   }
+  const where = summary.position ? POSITION[summary.position] : undefined;
   return (
     <>
       <dl className="facts">
@@ -85,7 +87,7 @@ function AcrossTrips({ summary }: { summary: BaselineSummary }) {
         <div><dt>Interval high</dt><dd><Figure n={summary.ci_upper} /></dd></div>
       </dl>
       <p className="hedge">
-        Across {summary.trips_used} trips the interval sits {summary.position ? POSITION[summary.position] ?? "" : ""}. Heuristic on a small sample, not proof of skill or luck.
+        Across {summary.trips_used} trips{where ? ` the interval sits ${where}` : ""}. Heuristic on a small sample, not proof of skill or luck.
       </p>
     </>
   );
@@ -119,7 +121,7 @@ export function TripDetailScreen() {
 
   return (
     <>
-      <ChartHeader meta={meta.data} asOf={detail.data?.as_of} onChange={setAsOf} />
+      <ChartHeader meta={meta.data} asOf={detail.data?.as_of} selected={asOf} onChange={setAsOf} />
       <p style={{ marginTop: "var(--s-4)" }}><Link to={{ pathname: "/trips", search }}>← All trips</Link></p>
 
       {detail.isPending && <Skeleton />}
@@ -129,16 +131,19 @@ export function TripDetailScreen() {
           ? <EmptyState title="That trip is not in your analysis."><p>It may belong to a different date. <Link to={{ pathname: "/trips", search }}>Back to the list</Link>.</p></EmptyState>
           : <ErrorState error={error} onRetry={() => void detail.refetch()} />)}
 
-      {trip && detail.data && (
-        <>
-          <header>
-            <div className="title"><h1>{trip.symbol}</h1><span className="sub">{trip.exchange} · {trip.open_session.display} to {trip.close_session.display}</span></div>
-            <ul className="codes" aria-label="Status">
+      <header>
+        <div className="title"><h1>{trip ? trip.symbol : "Trip"}</h1>{trip && <span className="sub">{trip.exchange} · {trip.open_session.display} to {trip.close_session.display}</span>}</div>
+        {trip && (
+          <ul className="codes" aria-label="Status">
               <li><StatusCode hold={!trip.evaluated}>{trip.evaluated ? "Evaluated" : "Not evaluated"}</StatusCode></li>
               {trip.regime.regime && <li><StatusCode>{`Regime ${trip.regime.regime}`}</StatusCode></li>}
-              {trip.survivorship_flag && trip.alt && dropped(trip.alt.lost_count) && <li><StatusCode hold>{`Survivorship: ${dropped(trip.alt.lost_count)}`}</StatusCode></li>}
+              {trip.survivorship_flag && <li><StatusCode hold>{trip.alt && dropped(trip.alt.lost_count) ? `Survivorship: ${dropped(trip.alt.lost_count)}` : "Survivorship flag"}</StatusCode></li>}
             </ul>
-          </header>
+        )}
+      </header>
+
+      {trip && detail.data && (
+        <>
 
           <section className="sec" aria-labelledby="h-result">
             <h2 id="h-result">How this trip compares</h2>
@@ -202,9 +207,10 @@ export function TripDetailScreen() {
           <section className="sec" aria-labelledby="h-regime">
             <h2 id="h-regime">Volatility regime<span className="h-sub">Relative to this stock&apos;s own history before the trip opened.</span></h2>
             <div>
-              {trip.regime.regime ? <VolatilityBand regime={trip.regime} /> : (
-                <p><Unavailable /> <span className="reason">{trip.regime.reason_text}</span></p>
+              {bandReady(trip.regime) ? <VolatilityBand regime={trip.regime} /> : (
+                <p><Unavailable /> <span className="reason">{trip.regime.reason_text ?? trip.regime.volatility.reason_text ?? regimes.data?.reason_text ?? "No volatility reading for this trip."}</span></p>
               )}
+              {regimes.isSuccess && regimes.data.analysis_errors.map((e) => <p key={`${e.analysis}-${e.reason}`} className="strip-note">{e.reason_text}</p>)}
               {regimes.isSuccess && (regimes.data.none_ready_text
                 ? <TooFew headline={regimes.data.none_ready_text} sampleText="" />
                 : block && !block.sample.enough && <TooFew headline="Not enough trips in this regime yet." sampleText={block.sample.text} />)}
@@ -221,11 +227,11 @@ export function TripDetailScreen() {
             <div>
               {trips.isPending && <Skeleton rows={2} />}
               {trips.isError && <ErrorState error={trips.error} onRetry={() => void trips.refetch()} />}
-              {trips.isSuccess && <AcrossTrips summary={trips.data.summary.ALT} />}
+              {trips.isSuccess && <AcrossTrips summary={trips.data.summary.ALT} reason={trips.data.summary.trip_count_reason_text} />}
             </div>
             <aside className="margin" aria-label="Notes on the sample">
               <h3>Sample</h3>
-              <ul>{trips.isSuccess && <li>{trips.data.summary.ALT.sample.have === null ? "Unavailable" : trips.data.summary.ALT.sample.enough ? `${trips.data.summary.ALT.trips_used} trips in the interval` : trips.data.summary.ALT.sample.text}</li>}</ul>
+              <ul>{trips.isSuccess && <li>{trips.data.summary.ALT.sample.have === null ? (trips.data.summary.trip_count_reason_text ?? "Unavailable") : trips.data.summary.ALT.sample.enough ? `${trips.data.summary.ALT.trips_used} trips in the interval` : trips.data.summary.ALT.sample.text}</li>}</ul>
             </aside>
           </section>
         </>

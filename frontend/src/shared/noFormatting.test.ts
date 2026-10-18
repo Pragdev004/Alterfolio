@@ -31,7 +31,7 @@ describe("no number formatting in the frontend", () => {
 
   it("the ESLint rule rejects each forbidden call", async () => {
     const eslint = new ESLint({ cwd: process.cwd() });
-    for (const code of ["const a = x.toFixed(2);", "const a = new Intl.NumberFormat('en-IN');", "const a = parseFloat(x);", "const a = x.toLocaleString();", "const a = Number(x);"]) {
+    for (const code of ["const a = x.toFixed(2);", "const a = new Intl.NumberFormat('en-IN');", "const a = parseFloat(x);", "const a = x.toLocaleString();", "const a = Number(x);", "const a = +x.value;", "const a = x.value * 2;"]) {
       const [result] = await eslint.lintText(code, { filePath: "src/features/example.ts" });
       expect(result?.messages.some((m) => m.ruleId === "no-restricted-syntax"), code).toBe(true);
     }

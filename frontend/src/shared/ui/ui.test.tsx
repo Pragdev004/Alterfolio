@@ -6,6 +6,8 @@ import { AnalystOffline, ErrorState, NotFinal, Skeleton } from "./States";
 import { Direction } from "./Direction";
 import { Figure, Reason } from "./Figure";
 import { band, place } from "./geometry";
+import { Histogram } from "./Histogram";
+import { scenarios } from "../../test/fixtures";
 
 const num = (value: string | null, display: string, reason_text: string | null = null): NumberOut => ({ value, display, unavailable_reason: reason_text && "CODE", reason_text });
 
@@ -80,5 +82,23 @@ describe("geometry", () => {
     expect(b.high[1]).toBe(300);
     expect(b.marker).toBeGreaterThan(b.normal[0]);
     expect(b.marker).toBeLessThan(b.normal[1]);
+  });
+});
+
+describe("Histogram", () => {
+  it("draws nothing it cannot place: an unavailable trip return gives the word and the reason, not a mark at the left edge", () => {
+    const h = scenarios.full.trip!.trip.histograms.ALT!;
+    const broken = { ...h, actual_return: { value: null, display: "Unavailable", unavailable_reason: "x", reason_text: "No return was computed." } };
+    const { container } = render(<Histogram data={broken} />);
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText("No return was computed.")).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeNull();
+  });
+  it("keeps the marker inside the chart", () => {
+    const h = scenarios.full.trip!.trip.histograms.ALT!;
+    const outside = { ...h, actual_return: { ...h.actual_return, value: "99" } };
+    const { container } = render(<Histogram data={outside} />);
+    const x = Number(container.querySelector(".you-line")!.getAttribute("x1"));
+    expect(x).toBeLessThanOrEqual(680);
   });
 });

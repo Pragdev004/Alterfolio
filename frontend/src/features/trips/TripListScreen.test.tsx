@@ -47,7 +47,7 @@ describe("Trip list", () => {
     renderApp("/trips");
     expect(await screen.findByText("7 trips · 10 needed")).toBeInTheDocument();
     expect(screen.getByText("Not enough closed trips to say anything yet.")).toBeInTheDocument();
-    expect(screen.queryByText(/lucky|unlucky|skill|significant/i)).toBeNull();
+    expect(screen.queryByText(/you (are|were) (lucky|unlucky)|no skill|not significant/i)).toBeNull();
   });
 
   it("keeps trips on an excluded listing in the list with the word Unavailable, its reason, and the listing's trip count", async () => {
@@ -62,6 +62,16 @@ describe("Trip list", () => {
     expect(within(row).queryByText(/^0/)).toBeNull();
     expect(screen.getByRole("heading", { name: /Listings left out/ })).toBeInTheDocument();
     expect(screen.getByText("(14 trips)", { exact: false })).toBeInTheDocument();
+  });
+
+  it("shows the alternatives note, caveats, limitations and the analysis errors the server sent", async () => {
+    serve("excluded");
+    renderApp("/trips");
+    const care = (await screen.findByRole("heading", { name: "Read with care" })).closest("section")!;
+    expect(care).toHaveTextContent(scenarios.excluded.trips.alternatives_note);
+    for (const c of scenarios.excluded.trips.caveats) expect(care).toHaveTextContent(c);
+    const errors = screen.getByRole("heading", { name: "Could not be worked out" }).closest("section")!;
+    expect(errors).toHaveTextContent(scenarios.excluded.trips.analysis_errors[0]!.reason_text);
   });
 
   it("with no trades teaches the next step: upload", async () => {

@@ -89,7 +89,7 @@ export function HoldingsScreen() {
   return (
     <>
       <div className="chart-head" role="group" aria-label="Valuation">
-        <span><span className="k">Prices as of</span><span className="fig">{s ? s.valuation_time_display : "…"}</span></span>
+        <span><span className="k">Prices as of</span><span className="fig">{s ? s.valuation_time_display : summary.isError ? "Unavailable" : "…"}</span></span>
         <span>Current holdings, valued at the latest price the source returned. A missing price is never estimated.</span>
       </div>
       <div className="title"><h1>Holdings</h1><span className="sub">What your ledger says you hold now</span></div>

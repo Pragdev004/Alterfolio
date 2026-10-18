@@ -16,7 +16,7 @@ describe("Costs", () => {
       const name = { DISPOSITION: "Disposition", CHASING: "Chasing", OVERTRADING: "Overtrading" }[b.kind]!;
       const row = within(table).getByRole("rowheader", { name }).closest("tr")!;
       expect(row).toHaveTextContent(b.cost_inr.display);
-      expect(row).toHaveTextContent(String(b.unknown_fee_trade_count));
+      expect(within(row).getAllByRole("cell").some((c) => c.textContent === String(b.unknown_fee_trade_count))).toBe(true);
     }
   });
 
@@ -26,6 +26,14 @@ describe("Costs", () => {
     const row = (await screen.findByRole("rowheader", { name: "Chasing" })).closest("tr")!;
     expect(within(row).getAllByText("Unavailable", { selector: ".na" }).length).toBeGreaterThan(0);
     expect(row).toHaveTextContent(scenarios.full.biases.biases[1]!.gross_cost_inr.reason_text!);
+  });
+
+  it("explains every Unavailable figure in a row, including the fees known", async () => {
+    serve("full");
+    renderApp("/costs");
+    const row = (await screen.findByRole("rowheader", { name: "Chasing" })).closest("tr")!;
+    expect(row).toHaveTextContent(scenarios.full.biases.biases[1]!.fees_known.reason_text!);
+    expect(row).toHaveTextContent("This habit's cost has no separate fee part.");
   });
 
   it("shows the archetype as a status code and its metrics labelled unitless", async () => {

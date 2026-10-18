@@ -53,7 +53,7 @@ function TripRowView({ trip, excluded, search }: { trip: TripRow; excluded: Trip
   const evaluated = trip.evaluated && trip.alt !== null;
   return (
     <tr>
-      <th scope="row"><Link data-row-link to={{ pathname: `/trips/${trip.trip_id}`, search }}>{trip.symbol}&nbsp;·&nbsp;{trip.exchange}</Link></th>
+      <th scope="row"><Link data-row-link to={{ pathname: `/trips/${encodeURIComponent(trip.trip_id)}`, search }}>{trip.symbol}&nbsp;·&nbsp;{trip.exchange}</Link></th>
       <td className="cell">{trip.open_session.display}</td>
       <td className="cell">{trip.close_session.display}</td>
       {evaluated && trip.alt ? (
@@ -65,6 +65,7 @@ function TripRowView({ trip, excluded, search }: { trip: TripRow; excluded: Trip
             <span className="l">Opened </span>{trip.open_session.display}<span className="sep">·</span>
             <span className="l">Closed </span>{trip.close_session.display}<span className="sep">·</span>
             <span className="l">Return </span>{trip.actual_return.display}<span className="sep">·</span>
+            {trip.alternatives_label}<span className="sep">·</span>
             <span className="l">Percentile </span>{trip.alt.percentile.display}
           </td>
         </>
@@ -92,7 +93,7 @@ export function TripListScreen() {
   const sample = trips.data?.summary.ALT.sample;
   return (
     <>
-      <ChartHeader meta={meta.data} asOf={trips.data?.as_of} onChange={setAsOf} />
+      <ChartHeader meta={meta.data} asOf={trips.data?.as_of} selected={asOf} onChange={setAsOf} />
       <div className="title"><h1>Trips</h1><span className="sub">Closed round trips, each compared with similar alternatives</span></div>
       <p className="lede">Each trip is compared with random portfolios built from alternatives, to show how much of the result could be chance.</p>
 
@@ -114,6 +115,20 @@ export function TripListScreen() {
             )
           ) : (
             <TripTable data={trips.data} search={search} />
+          )}
+          <section className="sec" aria-labelledby="h-care">
+            <h2 id="h-care">Read with care</h2>
+            <ul className="wide margin-list">
+              <li>{trips.data.alternatives_note}</li>
+              {trips.data.caveats.map((c) => <li key={c}>{c}</li>)}
+              {trips.data.luck_limitations.map((c) => <li key={c}>{c}</li>)}
+            </ul>
+          </section>
+          {trips.data.analysis_errors.length > 0 && (
+            <section className="sec" aria-labelledby="h-errors">
+              <h2 id="h-errors">Could not be worked out</h2>
+              <ul className="wide margin-list">{trips.data.analysis_errors.map((e) => <li key={`${e.analysis}-${e.reason}`}>{e.reason_text}</li>)}</ul>
+            </section>
           )}
           {trips.data.excluded_listings.length > 0 && (
             <section className="sec" aria-labelledby="h-excluded">

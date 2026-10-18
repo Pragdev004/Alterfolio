@@ -43,7 +43,24 @@ describe("Ask", () => {
     await askSomething();
     const cited = await screen.findByRole("complementary", { name: "Facts cited" });
     const link = within(cited).getByRole("link", { name: "006:CHASING.cost_inr" });
-    expect(link).toHaveAttribute("href", "/costs");
+    expect(link).toHaveAttribute("href", "/costs?as_of=2026-11-30");
+  });
+
+  it("shows which date an answer is for, and clears it when the question or date changes", async () => {
+    serve("full");
+    serveAsk("template");
+    renderApp("/ask");
+    await askSomething();
+    expect(await screen.findByRole("heading", { name: /Answer/ })).toHaveTextContent("As of 2026-11-30");
+    await userEvent.type(screen.getByLabelText("Your question"), " again");
+    expect(screen.queryByRole("heading", { name: /Answer/ })).toBeNull();
+  });
+
+  it("when the dates cannot load it says so with a retry instead of a dead form", async () => {
+    server.use(http.get("*/api/analysis/meta", failWith.server));
+    renderApp("/ask");
+    expect(await screen.findByText("The server hit a problem.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("an unverified answer is labelled and never presented as a normal answer", async () => {

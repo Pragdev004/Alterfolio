@@ -33,10 +33,12 @@ export function AppShell() {
             </label>
           </div>
         </nav>
-        <main id="main" tabIndex={-1}>
-          <Outlet />
+        <div className="content">
+          <main id="main" tabIndex={-1}>
+            <Outlet />
+          </main>
           <footer><span>Educational, not financial advice. Nothing here predicts future returns.</span></footer>
-        </main>
+        </div>
       </div>
     </>
   );

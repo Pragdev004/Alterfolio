@@ -5,7 +5,7 @@ import { ApiError } from "../../shared/api/errors";
 import { useBiases, useMeta } from "../../shared/api/queries";
 import type { BiasOut } from "../../shared/api/types";
 import { ChartHeader } from "../../shared/ui/ChartHeader";
-import { Figure, Reason, Unavailable } from "../../shared/ui/Figure";
+import { Figure, Unavailable } from "../../shared/ui/Figure";
 import { TooFew } from "../../shared/ui/SampleSentence";
 import { StatusCode } from "../../shared/ui/StatusCode";
 import { ErrorState, NotFinal, Skeleton } from "../../shared/ui/States";
@@ -27,7 +27,9 @@ function Row({ b }: { b: BiasOut }) {
         <span className="l">Unknown-fee trades </span>{b.unknown_fee_trade_count ?? "Unavailable"}
       </td>
       <td className="note">
-        <Reason n={b.cost_inr.value === null ? b.cost_inr : b.gross_cost_inr} />
+        {[...new Set([b.cost_inr, b.gross_cost_inr, b.fees_known].filter((n) => n.value === null && n.reason_text).map((n) => n.reason_text))].map((t) => (
+          <span key={t} className="reason">{t} </span>
+        ))}
         {b.exclusions.map((e) => <span key={`${e.subject}-${e.reason}`} className="reason"> {e.reason_text}</span>)}
       </td>
     </tr>
@@ -44,7 +46,7 @@ export function CostsScreen() {
 
   return (
     <>
-      <ChartHeader meta={meta.data} asOf={d?.as_of} onChange={setAsOf} />
+      <ChartHeader meta={meta.data} asOf={d?.as_of} selected={asOf} onChange={setAsOf} />
       <div className="title"><h1>Costs</h1><span className="sub">What three trading habits cost, in rupees</span></div>
       <p className="lede">These are observations from your own ledger, each with the figures behind it. They are not instructions, and not proof of a cause.</p>
 
@@ -55,7 +57,9 @@ export function CostsScreen() {
 
       {d && (
         <>
-          {!d.sample.enough && (d.sample.have === null ? null : <TooFew sampleText={d.sample.text} headline="Not enough closed trips for a habit profile yet." />)}
+          {!d.sample.enough && (d.sample.have === null
+            ? <div className="too-few"><strong>Habit sample</strong><Unavailable /> <span>{d.profile.reason_text}</span></div>
+            : <TooFew sampleText={d.sample.text} headline="Not enough closed trips for a habit profile yet." />)}
           <section className="sec" aria-labelledby="h-costs">
             <h2 id="h-costs">Cost of each habit<span className="h-sub">Notes such as “lower bound” and “fees excluded” are the server’s, shown as it wrote them.</span></h2>
             <div className="wide">

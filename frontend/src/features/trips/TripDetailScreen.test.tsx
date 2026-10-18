@@ -2,7 +2,10 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { serve } from "../../test/handlers";
+import { http, HttpResponse } from "msw";
+
+import { failWith, serve } from "../../test/handlers";
+import { server } from "../../test/server";
 import { renderApp } from "../../test/render";
 import { scenarios } from "../../test/fixtures";
 
@@ -95,10 +98,34 @@ describe("Trip detail", () => {
 
   it("says the regime sentence from the server when no regime has enough trips", async () => {
     serve("full");
+    server.use(http.get("*/api/analysis/regimes", () => HttpResponse.json(scenarios.open.regimes)));
     renderApp(path(full.trip.trip_id));
-    const none = scenarios.full.regimes.none_ready_text;
-    if (none) expect(await screen.findByText(none)).toBeInTheDocument();
-    else expect(await screen.findByRole("heading", { name: /Volatility regime/ })).toBeInTheDocument();
+    expect(await screen.findByText(scenarios.open.regimes.none_ready_text!)).toBeInTheDocument();
+  });
+
+  it("with an analysis that could not run shows Unavailable with the server's reasons in every section", async () => {
+    serve("excluded");
+    renderApp(path(scenarios.excluded.trip!.trip.trip_id));
+    const across = (await screen.findByRole("heading", { name: "Across all your trips" })).closest("section")!;
+    expect(await within(across).findByText("Unavailable")).toBeInTheDocument();
+    expect(across).toHaveTextContent(scenarios.excluded.trips.summary.trip_count_reason_text!);
+    const regime = screen.getByRole("heading", { name: /Volatility regime/ }).closest("section")!;
+    expect(within(regime).getByText("Unavailable")).toBeInTheDocument();
+  });
+
+  it("always has one h1: while loading, on a missing trip and on a server error", async () => {
+    serve("full");
+    const first = renderApp(path(full.trip.trip_id));
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    await screen.findByText(/Your return of/);
+    first.unmount();
+    renderApp(path("no-such-trip"));
+    await screen.findByText("That trip is not in your analysis.");
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    server.use(http.get("*/api/analysis/trips/:id", failWith.server));
+    renderApp(path("another"));
+    await screen.findAllByText("The server hit a problem.");
+    expect(screen.getAllByRole("heading", { level: 1 }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("on an excluded listing: Unavailable and the reason, no chart", async () => {
