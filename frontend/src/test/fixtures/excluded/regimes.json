@@ -1,0 +1,83 @@
+{
+ "analysis_errors": [
+  {
+   "analysis": "007",
+   "reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "reason_text": "Every listing you traded was left out of this comparison."
+  },
+  {
+   "analysis": "008",
+   "reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "reason_text": "Every listing you traded was left out of this comparison."
+  }
+ ],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "blocks": [
+  {
+   "bias": null,
+   "bias_reason_text": "Every listing you traded was left out of this comparison.",
+   "bias_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "luck": null,
+   "luck_reason_text": "Every listing you traded was left out of this comparison.",
+   "luck_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "regime": "LOW",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  },
+  {
+   "bias": null,
+   "bias_reason_text": "Every listing you traded was left out of this comparison.",
+   "bias_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "luck": null,
+   "luck_reason_text": "Every listing you traded was left out of this comparison.",
+   "luck_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "regime": "NORMAL",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  },
+  {
+   "bias": null,
+   "bias_reason_text": "Every listing you traded was left out of this comparison.",
+   "bias_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "luck": null,
+   "luck_reason_text": "Every listing you traded was left out of this comparison.",
+   "luck_unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "regime": "HIGH",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  }
+ ],
+ "caveats": [
+  "not analysed in luck/regime: TEST1.NSE (known corporate action inside the review window (prices unadjusted))",
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "exclusions": [],
+ "limitations": [],
+ "none_ready_text": null,
+ "reason_text": "Every listing you traded was left out of this comparison.",
+ "round_trip_count": null,
+ "unavailable_reason": "all traded listings are excluded (see provenance.excluded_listings)",
+ "unclassified_count": null
+}

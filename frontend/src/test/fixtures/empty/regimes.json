@@ -1,0 +1,71 @@
+{
+ "analysis_errors": [],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "blocks": [
+  {
+   "bias": null,
+   "bias_reason_text": "This was not computed.",
+   "bias_unavailable_reason": "not computed",
+   "luck": null,
+   "luck_reason_text": "This was not computed.",
+   "luck_unavailable_reason": "not computed",
+   "regime": "LOW",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  },
+  {
+   "bias": null,
+   "bias_reason_text": "This was not computed.",
+   "bias_unavailable_reason": "not computed",
+   "luck": null,
+   "luck_reason_text": "This was not computed.",
+   "luck_unavailable_reason": "not computed",
+   "regime": "NORMAL",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  },
+  {
+   "bias": null,
+   "bias_reason_text": "This was not computed.",
+   "bias_unavailable_reason": "not computed",
+   "luck": null,
+   "luck_reason_text": "This was not computed.",
+   "luck_unavailable_reason": "not computed",
+   "regime": "HIGH",
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 3,
+    "text": "Unavailable"
+   },
+   "trip_count": null,
+   "trip_ids": []
+  }
+ ],
+ "caveats": [
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "exclusions": [],
+ "limitations": [],
+ "none_ready_text": null,
+ "reason_text": "This was not computed.",
+ "round_trip_count": null,
+ "unavailable_reason": "not computed",
+ "unclassified_count": null
+}

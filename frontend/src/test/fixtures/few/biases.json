@@ -1,0 +1,179 @@
+{
+ "analysis_errors": [],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "biases": [
+  {
+   "cost_inr": {
+    "display": "\u20b90.00",
+    "reason_text": null,
+    "unavailable_reason": null,
+    "value": "0"
+   },
+   "details": [
+    {
+     "name": "h_sessions",
+     "value": "3"
+    },
+    {
+     "name": "losing_sells_held_beyond_h",
+     "value": "0"
+    },
+    {
+     "name": "paper_gain_positions",
+     "value": "0"
+    },
+    {
+     "name": "paper_loss_positions",
+     "value": "0"
+    },
+    {
+     "name": "pgr",
+     "value": "1"
+    },
+    {
+     "name": "pgr_minus_plr",
+     "value": "0"
+    },
+    {
+     "name": "plr",
+     "value": "1"
+    },
+    {
+     "name": "realised_gain_positions",
+     "value": "2"
+    },
+    {
+     "name": "realised_loss_positions",
+     "value": "5"
+    },
+    {
+     "name": "zero_pnl_positions_excluded",
+     "value": "0"
+    }
+   ],
+   "exclusions": [],
+   "fee_status": null,
+   "fees_known": {
+    "display": "Unavailable",
+    "reason_text": "No fees are known for these trades, or fees do not apply here.",
+    "unavailable_reason": "no known fees or fees do not apply",
+    "value": null
+   },
+   "gross_cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "This is not available.",
+    "unavailable_reason": "not available",
+    "value": null
+   },
+   "kind": "DISPOSITION",
+   "unknown_fee_trade_count": 0
+  },
+  {
+   "cost_inr": {
+    "display": "\u20b90.00",
+    "reason_text": null,
+    "unavailable_reason": null,
+    "value": "0"
+   },
+   "details": [
+    {
+     "name": "baseline_forward_return",
+     "value": "0.000738626553807814791871143904750984911782202011970285629620714"
+    },
+    {
+     "name": "buys_without_prior_history",
+     "value": "0"
+    },
+    {
+     "name": "chase_buys",
+     "value": "0"
+    },
+    {
+     "name": "chase_buys_with_forward",
+     "value": "0"
+    },
+    {
+     "name": "eligible_buys",
+     "value": "7"
+    },
+    {
+     "name": "non_chase_buys_with_forward",
+     "value": "7"
+    }
+   ],
+   "exclusions": [],
+   "fee_status": null,
+   "fees_known": {
+    "display": "Unavailable",
+    "reason_text": "No fees are known for these trades, or fees do not apply here.",
+    "unavailable_reason": "no known fees or fees do not apply",
+    "value": null
+   },
+   "gross_cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "This is not available.",
+    "unavailable_reason": "not available",
+    "value": null
+   },
+   "kind": "CHASING",
+   "unknown_fee_trade_count": 0
+  },
+  {
+   "cost_inr": {
+    "display": "\u20b919.00",
+    "reason_text": null,
+    "unavailable_reason": null,
+    "value": "19"
+   },
+   "details": [
+    {
+     "name": "closed_round_trips",
+     "value": "7"
+    },
+    {
+     "name": "short_term_round_trips",
+     "value": "7"
+    },
+    {
+     "name": "short_term_trades",
+     "value": "14"
+    }
+   ],
+   "exclusions": [],
+   "fee_status": "COMPLETE",
+   "fees_known": {
+    "display": "\u20b90.00",
+    "reason_text": null,
+    "unavailable_reason": null,
+    "value": "0"
+   },
+   "gross_cost_inr": {
+    "display": "\u20b919.00",
+    "reason_text": null,
+    "unavailable_reason": null,
+    "value": "19"
+   },
+   "kind": "OVERTRADING",
+   "unknown_fee_trade_count": 0
+  }
+ ],
+ "caveats": [
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "profile": {
+  "archetype_id": null,
+  "reason_text": "Not enough price history.",
+  "supporting_metrics": [],
+  "unavailable_reason": "insufficient history"
+ },
+ "sample": {
+  "enough": false,
+  "have": 7,
+  "needed": 10,
+  "text": "7 trips \u00b7 10 needed"
+ }
+}

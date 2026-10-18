@@ -1,0 +1,98 @@
+{
+ "alternatives_note": "Same-sector or same-universe alternatives, not a prediction.",
+ "analysis_errors": [],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "caveats": [
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "excluded_listings": [],
+ "groups": [],
+ "luck_limitations": [],
+ "summary": {
+  "ALT": {
+   "ci_lower": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "ci_upper": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "mean_excess": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "mean_excess_direction": null,
+   "mean_excess_direction_text": null,
+   "mean_percentile": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "position": null,
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 10,
+    "text": "Unavailable"
+   },
+   "trips_evaluated": null,
+   "trips_used": null
+  },
+  "NIFTY": {
+   "ci_lower": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "ci_upper": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "mean_excess": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "mean_excess_direction": null,
+   "mean_excess_direction_text": null,
+   "mean_percentile": {
+    "display": "Unavailable",
+    "reason_text": "This was not computed.",
+    "unavailable_reason": "not computed",
+    "value": null
+   },
+   "position": null,
+   "sample": {
+    "enough": false,
+    "have": null,
+    "needed": 10,
+    "text": "Unavailable"
+   },
+   "trips_evaluated": null,
+   "trips_used": null
+  },
+  "alternatives_kind": null,
+  "alternatives_label": null,
+  "trip_count": null,
+  "trip_count_reason_text": "This is not available.",
+  "trip_count_unavailable_reason": "not available",
+  "trips_evaluated": null
+ },
+ "trips": []
+}

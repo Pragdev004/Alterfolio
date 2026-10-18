@@ -1,0 +1,112 @@
+{
+ "analysis_errors": [
+  {
+   "analysis": "007",
+   "reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "reason_text": "Every listing you traded was left out of this comparison."
+  },
+  {
+   "analysis": "008",
+   "reason": "all traded listings are excluded (see provenance.excluded_listings)",
+   "reason_text": "Every listing you traded was left out of this comparison."
+  }
+ ],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "biases": [
+  {
+   "cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "details": [],
+   "exclusions": [],
+   "fee_status": null,
+   "fees_known": {
+    "display": "Unavailable",
+    "reason_text": "No fees are known for these trades, or fees do not apply here.",
+    "unavailable_reason": "no known fees or fees do not apply",
+    "value": null
+   },
+   "gross_cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "kind": "DISPOSITION",
+   "unknown_fee_trade_count": null
+  },
+  {
+   "cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "details": [],
+   "exclusions": [],
+   "fee_status": null,
+   "fees_known": {
+    "display": "Unavailable",
+    "reason_text": "No fees are known for these trades, or fees do not apply here.",
+    "unavailable_reason": "no known fees or fees do not apply",
+    "value": null
+   },
+   "gross_cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "kind": "CHASING",
+   "unknown_fee_trade_count": null
+  },
+  {
+   "cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "details": [],
+   "exclusions": [],
+   "fee_status": null,
+   "fees_known": {
+    "display": "Unavailable",
+    "reason_text": "No fees are known for these trades, or fees do not apply here.",
+    "unavailable_reason": "no known fees or fees do not apply",
+    "value": null
+   },
+   "gross_cost_inr": {
+    "display": "Unavailable",
+    "reason_text": "No eligible trades.",
+    "unavailable_reason": "no eligible trades",
+    "value": null
+   },
+   "kind": "OVERTRADING",
+   "unknown_fee_trade_count": null
+  }
+ ],
+ "caveats": [
+  "not analysed in luck/regime: TEST1.NSE (known corporate action inside the review window (prices unadjusted))",
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "profile": {
+  "archetype_id": null,
+  "reason_text": "No computable metrics: no eligible trades.",
+  "supporting_metrics": [],
+  "unavailable_reason": "no computable metrics: no eligible trades"
+ },
+ "sample": {
+  "enough": true,
+  "have": 14,
+  "needed": 10,
+  "text": ""
+ }
+}

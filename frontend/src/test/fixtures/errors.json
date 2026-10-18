@@ -1,0 +1,20 @@
+{
+ "not_sealed": {
+  "body": {
+   "detail": {
+    "code": "as_of_not_sealed",
+    "message": "as_of 2026-12-01 must be before today's exchange-local date"
+   }
+  },
+  "status": 422
+ },
+ "trip_not_found": {
+  "body": {
+   "detail": {
+    "code": "analysis_trip_not_found",
+    "message": "trip not found in this analysis"
+   }
+  },
+  "status": 404
+ }
+}

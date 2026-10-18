@@ -1,0 +1,546 @@
+{
+ "analysis_errors": [],
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "blocks": [
+  {
+   "bias": [
+    {
+     "cost_inr": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "details": [
+      {
+       "name": "h_sessions",
+       "value": "3"
+      },
+      {
+       "name": "losing_sells_held_beyond_h",
+       "value": "0"
+      },
+      {
+       "name": "paper_gain_positions",
+       "value": "0"
+      },
+      {
+       "name": "paper_loss_positions",
+       "value": "0"
+      },
+      {
+       "name": "pgr",
+       "value": "1"
+      },
+      {
+       "name": "pgr_minus_plr",
+       "value": "0"
+      },
+      {
+       "name": "plr",
+       "value": "1"
+      },
+      {
+       "name": "realised_gain_positions",
+       "value": "1"
+      },
+      {
+       "name": "realised_loss_positions",
+       "value": "2"
+      },
+      {
+       "name": "zero_pnl_positions_excluded",
+       "value": "0"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": null,
+     "fees_known": {
+      "display": "Unavailable",
+      "reason_text": "No fees are known for these trades, or fees do not apply here.",
+      "unavailable_reason": "no known fees or fees do not apply",
+      "value": null
+     },
+     "gross_cost_inr": {
+      "display": "Unavailable",
+      "reason_text": "This is not available.",
+      "unavailable_reason": "not available",
+      "value": null
+     },
+     "kind": "DISPOSITION",
+     "unknown_fee_trade_count": 0
+    },
+    {
+     "cost_inr": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "details": [
+      {
+       "name": "baseline_forward_return",
+       "value": "0.009674691692376657861374511547097232212759898753105170674942"
+      },
+      {
+       "name": "buys_without_prior_history",
+       "value": "0"
+      },
+      {
+       "name": "chase_buys",
+       "value": "0"
+      },
+      {
+       "name": "chase_buys_with_forward",
+       "value": "0"
+      },
+      {
+       "name": "eligible_buys",
+       "value": "3"
+      },
+      {
+       "name": "non_chase_buys_with_forward",
+       "value": "3"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": null,
+     "fees_known": {
+      "display": "Unavailable",
+      "reason_text": "No fees are known for these trades, or fees do not apply here.",
+      "unavailable_reason": "no known fees or fees do not apply",
+      "value": null
+     },
+     "gross_cost_inr": {
+      "display": "Unavailable",
+      "reason_text": "This is not available.",
+      "unavailable_reason": "not available",
+      "value": null
+     },
+     "kind": "CHASING",
+     "unknown_fee_trade_count": 0
+    },
+    {
+     "cost_inr": {
+      "display": "\u20b914.80",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "14.8"
+     },
+     "details": [
+      {
+       "name": "closed_round_trips",
+       "value": "3"
+      },
+      {
+       "name": "short_term_round_trips",
+       "value": "3"
+      },
+      {
+       "name": "short_term_trades",
+       "value": "6"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": "COMPLETE",
+     "fees_known": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "gross_cost_inr": {
+      "display": "\u20b914.80",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "14.8"
+     },
+     "kind": "OVERTRADING",
+     "unknown_fee_trade_count": 0
+    }
+   ],
+   "bias_reason_text": null,
+   "bias_unavailable_reason": null,
+   "luck": {
+    "ALT": {
+     "ci_lower": {
+      "display": "Unavailable",
+      "reason_text": "Not enough closed trips for an interval yet: 3 trips \u00b7 10 needed.",
+      "unavailable_reason": "INSUFFICIENT_TRIPS: 3 trips available, 10 needed",
+      "value": null
+     },
+     "ci_upper": {
+      "display": "Unavailable",
+      "reason_text": "Not enough closed trips for an interval yet: 3 trips \u00b7 10 needed.",
+      "unavailable_reason": "INSUFFICIENT_TRIPS: 3 trips available, 10 needed",
+      "value": null
+     },
+     "mean_excess": {
+      "display": "1.96%",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0.01955178759784376"
+     },
+     "mean_excess_direction": "ahead",
+     "mean_excess_direction_text": "ahead",
+     "mean_percentile": {
+      "display": "35%",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0.34933333333333333"
+     },
+     "position": null,
+     "sample": {
+      "enough": true,
+      "have": 3,
+      "needed": 3,
+      "text": ""
+     },
+     "trips_evaluated": 3,
+     "trips_used": 3
+    },
+    "NIFTY": {
+     "ci_lower": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "ci_upper": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "mean_excess": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "mean_excess_direction": null,
+     "mean_excess_direction_text": null,
+     "mean_percentile": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "position": null,
+     "sample": {
+      "enough": false,
+      "have": 0,
+      "needed": 3,
+      "text": "0 trips \u00b7 3 needed"
+     },
+     "trips_evaluated": 3,
+     "trips_used": 0
+    }
+   },
+   "luck_reason_text": null,
+   "luck_unavailable_reason": null,
+   "regime": "LOW",
+   "sample": {
+    "enough": true,
+    "have": 3,
+    "needed": 3,
+    "text": ""
+   },
+   "trip_count": 3,
+   "trip_ids": [
+    "t421889d18aef0feaf115d19f",
+    "t95ecb2d73122102f18f61f5e",
+    "ta96107041ce3e94f37212831"
+   ]
+  },
+  {
+   "bias": [
+    {
+     "cost_inr": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "details": [
+      {
+       "name": "h_sessions",
+       "value": "3"
+      },
+      {
+       "name": "losing_sells_held_beyond_h",
+       "value": "0"
+      },
+      {
+       "name": "paper_gain_positions",
+       "value": "0"
+      },
+      {
+       "name": "paper_loss_positions",
+       "value": "0"
+      },
+      {
+       "name": "pgr",
+       "value": "1"
+      },
+      {
+       "name": "pgr_minus_plr",
+       "value": "0"
+      },
+      {
+       "name": "plr",
+       "value": "1"
+      },
+      {
+       "name": "realised_gain_positions",
+       "value": "1"
+      },
+      {
+       "name": "realised_loss_positions",
+       "value": "2"
+      },
+      {
+       "name": "zero_pnl_positions_excluded",
+       "value": "0"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": null,
+     "fees_known": {
+      "display": "Unavailable",
+      "reason_text": "No fees are known for these trades, or fees do not apply here.",
+      "unavailable_reason": "no known fees or fees do not apply",
+      "value": null
+     },
+     "gross_cost_inr": {
+      "display": "Unavailable",
+      "reason_text": "This is not available.",
+      "unavailable_reason": "not available",
+      "value": null
+     },
+     "kind": "DISPOSITION",
+     "unknown_fee_trade_count": 0
+    },
+    {
+     "cost_inr": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "details": [
+      {
+       "name": "baseline_forward_return",
+       "value": "-0.00733679040937501320875966117641098631261064398170292202456733"
+      },
+      {
+       "name": "buys_without_prior_history",
+       "value": "0"
+      },
+      {
+       "name": "chase_buys",
+       "value": "0"
+      },
+      {
+       "name": "chase_buys_with_forward",
+       "value": "0"
+      },
+      {
+       "name": "eligible_buys",
+       "value": "3"
+      },
+      {
+       "name": "non_chase_buys_with_forward",
+       "value": "3"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": null,
+     "fees_known": {
+      "display": "Unavailable",
+      "reason_text": "No fees are known for these trades, or fees do not apply here.",
+      "unavailable_reason": "no known fees or fees do not apply",
+      "value": null
+     },
+     "gross_cost_inr": {
+      "display": "Unavailable",
+      "reason_text": "This is not available.",
+      "unavailable_reason": "not available",
+      "value": null
+     },
+     "kind": "CHASING",
+     "unknown_fee_trade_count": 0
+    },
+    {
+     "cost_inr": {
+      "display": "\u20b92.80",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "2.8"
+     },
+     "details": [
+      {
+       "name": "closed_round_trips",
+       "value": "3"
+      },
+      {
+       "name": "short_term_round_trips",
+       "value": "3"
+      },
+      {
+       "name": "short_term_trades",
+       "value": "6"
+      }
+     ],
+     "exclusions": [],
+     "fee_status": "COMPLETE",
+     "fees_known": {
+      "display": "\u20b90.00",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0"
+     },
+     "gross_cost_inr": {
+      "display": "\u20b92.80",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "2.8"
+     },
+     "kind": "OVERTRADING",
+     "unknown_fee_trade_count": 0
+    }
+   ],
+   "bias_reason_text": null,
+   "bias_unavailable_reason": null,
+   "luck": {
+    "ALT": {
+     "ci_lower": {
+      "display": "Unavailable",
+      "reason_text": "Not enough closed trips for an interval yet: 3 trips \u00b7 10 needed.",
+      "unavailable_reason": "INSUFFICIENT_TRIPS: 3 trips available, 10 needed",
+      "value": null
+     },
+     "ci_upper": {
+      "display": "Unavailable",
+      "reason_text": "Not enough closed trips for an interval yet: 3 trips \u00b7 10 needed.",
+      "unavailable_reason": "INSUFFICIENT_TRIPS: 3 trips available, 10 needed",
+      "value": null
+     },
+     "mean_excess": {
+      "display": "0.17%",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0.0017381283569566797"
+     },
+     "mean_excess_direction": "ahead",
+     "mean_excess_direction_text": "ahead",
+     "mean_percentile": {
+      "display": "31%",
+      "reason_text": null,
+      "unavailable_reason": null,
+      "value": "0.31266666666666665"
+     },
+     "position": null,
+     "sample": {
+      "enough": true,
+      "have": 3,
+      "needed": 3,
+      "text": ""
+     },
+     "trips_evaluated": 3,
+     "trips_used": 3
+    },
+    "NIFTY": {
+     "ci_lower": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "ci_upper": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "mean_excess": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "mean_excess_direction": null,
+     "mean_excess_direction_text": null,
+     "mean_percentile": {
+      "display": "Unavailable",
+      "reason_text": "Nifty 50 membership is not set up, so this comparison cannot be made.",
+      "unavailable_reason": "NO_MEMBERSHIP: all 3 trips: no Nifty 50 membership interval covers the decision date",
+      "value": null
+     },
+     "position": null,
+     "sample": {
+      "enough": false,
+      "have": 0,
+      "needed": 3,
+      "text": "0 trips \u00b7 3 needed"
+     },
+     "trips_evaluated": 3,
+     "trips_used": 0
+    }
+   },
+   "luck_reason_text": null,
+   "luck_unavailable_reason": null,
+   "regime": "NORMAL",
+   "sample": {
+    "enough": true,
+    "have": 3,
+    "needed": 3,
+    "text": ""
+   },
+   "trip_count": 3,
+   "trip_ids": [
+    "te3094452aa7df91d33f3a1c4",
+    "te5cf86d13c96e051ba2d93e6",
+    "t6d68f1d1273d7399a58a2eae"
+   ]
+  },
+  {
+   "bias": null,
+   "bias_reason_text": "Not enough trips in this regime yet.",
+   "bias_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 1 classified trips, need 3",
+   "luck": null,
+   "luck_reason_text": "Not enough trips in this regime yet.",
+   "luck_unavailable_reason": "INSUFFICIENT_TRIPS_IN_REGIME: 1 classified trips, need 3",
+   "regime": "HIGH",
+   "sample": {
+    "enough": false,
+    "have": 1,
+    "needed": 3,
+    "text": "1 trips \u00b7 3 needed"
+   },
+   "trip_count": 1,
+   "trip_ids": [
+    "t51839313d844be78f2627f13"
+   ]
+  }
+ ],
+ "caveats": [
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "exclusions": [],
+ "limitations": [
+  "Heuristic grouping, not a model of markets: regimes are relative to each listing's own volatility history.",
+  "Calibration windows overlap, so the pool is autocorrelated and its effective sample is smaller than its size.",
+  "Per-regime Feature 006 results are computed over that regime's round trips only; pooled parts differ from the full run.",
+  "Regimes with fewer classified trips than the minimum are Unavailable; no multiple-testing adjustment is applied."
+ ],
+ "none_ready_text": null,
+ "reason_text": null,
+ "round_trip_count": 7,
+ "unavailable_reason": null,
+ "unclassified_count": 0
+}

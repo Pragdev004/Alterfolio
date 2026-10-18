@@ -1,0 +1,71 @@
+{
+ "alternatives_note": "Same-sector or same-universe alternatives, not a prediction.",
+ "as_of": {
+  "display": "30 Nov 2026",
+  "iso": "2026-11-30"
+ },
+ "as_of_defaulted": true,
+ "caveats": [
+  "not analysed in luck/regime: TEST1.NSE (known corporate action inside the review window (prices unadjusted))",
+  "returns use ledger prices and exclude fees; luck and bias results are heuristics on small samples, not proof of skill or luck"
+ ],
+ "trip": {
+  "actual_return": {
+   "display": "Unavailable",
+   "reason_text": "No return is shown because this listing was left out of the comparison.",
+   "unavailable_reason": "not computed: listing excluded (known corporate action inside the review window (prices unadjusted))",
+   "value": null
+  },
+  "actual_return_basis": "LEDGER_PRICES_FEES_EXCLUDED",
+  "alt": null,
+  "alternatives_kind": null,
+  "alternatives_label": null,
+  "close_session": {
+   "display": "5 Mar 2026",
+   "iso": "2026-03-05"
+  },
+  "evaluated": false,
+  "exchange": "NSE",
+  "exclusions": [],
+  "histograms": {
+   "ALT": null,
+   "NIFTY": null
+  },
+  "nifty": null,
+  "open_session": {
+   "display": "2 Mar 2026",
+   "iso": "2026-03-02"
+  },
+  "picks": [],
+  "reason_text": "A split, bonus or dividend in the review window would distort its prices.",
+  "regime": {
+   "calibration_count": null,
+   "high_threshold": {
+    "display": "Unavailable",
+    "reason_text": "A split, bonus or dividend in the review window would distort its prices.",
+    "unavailable_reason": "known corporate action inside the review window (prices unadjusted)",
+    "value": null
+   },
+   "low_threshold": {
+    "display": "Unavailable",
+    "reason_text": "A split, bonus or dividend in the review window would distort its prices.",
+    "unavailable_reason": "known corporate action inside the review window (prices unadjusted)",
+    "value": null
+   },
+   "reason": "listing excluded: known corporate action inside the review window (prices unadjusted)",
+   "reason_text": "A split, bonus or dividend in the review window would distort its prices.",
+   "regime": null,
+   "volatility": {
+    "display": "Unavailable",
+    "reason_text": "A split, bonus or dividend in the review window would distort its prices.",
+    "unavailable_reason": "known corporate action inside the review window (prices unadjusted)",
+    "value": null
+   }
+  },
+  "survivorship_flag": null,
+  "symbol": "TEST1",
+  "trip_id": "t51839313d844be78f2627f13",
+  "unavailable_reason": "known corporate action inside the review window (prices unadjusted)",
+  "zero_variance_features": []
+ }
+}
