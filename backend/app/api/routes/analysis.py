@@ -8,25 +8,26 @@ from fastapi import APIRouter, Depends
 
 from app.api import analysis_presenter as present
 from app.api.deps import get_analysis_reader, get_current_user_id
+from app.schemas.analysis import BiasesOut, MetaOut, RegimesOut, TripDetailOut, TripsOut
 from app.services.analysis_read import AnalysisReadService
 from app.services.errors import AnalysisTripNotFoundError
 
 router = APIRouter(prefix="/api/analysis")
 
 
-@router.get("/meta")
+@router.get("/meta", response_model=MetaOut)
 def meta(user_id: UUID = Depends(get_current_user_id), reader: AnalysisReadService = Depends(get_analysis_reader)):
     return present.meta(reader.meta(user_id))
 
 
-@router.get("/trips")
+@router.get("/trips", response_model=TripsOut)
 def trips(as_of: date | None = None, user_id: UUID = Depends(get_current_user_id),
           reader: AnalysisReadService = Depends(get_analysis_reader)):
     day, defaulted = reader.resolve_as_of(as_of)
     return present.trips(reader.view(user_id, day), defaulted)
 
 
-@router.get("/trips/{trip_id}")
+@router.get("/trips/{trip_id}", response_model=TripDetailOut)
 def trip(trip_id: str, as_of: date | None = None, user_id: UUID = Depends(get_current_user_id),
          reader: AnalysisReadService = Depends(get_analysis_reader)):
     day, defaulted = reader.resolve_as_of(as_of)
@@ -37,14 +38,14 @@ def trip(trip_id: str, as_of: date | None = None, user_id: UUID = Depends(get_cu
     return present.trip_detail(view, found, defaulted)
 
 
-@router.get("/regimes")
+@router.get("/regimes", response_model=RegimesOut)
 def regimes(as_of: date | None = None, user_id: UUID = Depends(get_current_user_id),
             reader: AnalysisReadService = Depends(get_analysis_reader)):
     day, defaulted = reader.resolve_as_of(as_of)
     return present.regimes(reader.view(user_id, day), defaulted)
 
 
-@router.get("/biases")
+@router.get("/biases", response_model=BiasesOut)
 def biases(as_of: date | None = None, user_id: UUID = Depends(get_current_user_id),
            reader: AnalysisReadService = Depends(get_analysis_reader)):
     day, defaulted = reader.resolve_as_of(as_of)

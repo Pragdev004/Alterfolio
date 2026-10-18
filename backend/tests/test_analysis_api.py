@@ -390,3 +390,33 @@ def test_t12_ask_labels_template_answers_and_analysis_needs_no_ai(engine, seeded
     r2 = TestClient(make_app(engine, llm=llm)).post("/api/analyst/ask", json={"question": "What did my behaviour cost me?", "as_of": ASOF})
     assert r2.status_code == 200 and r2.json()["answer_source"] == "llm"
     assert TemplateLLM  # imported for the template/llm distinction above
+
+
+def test_t4_per_trip_and_regime_luck_values_equal_the_quant_results(engine, seeded):
+    """Parity with what was already computed (no new statistic): each trip's ALT/NIFTY outcome and each regime block's luck mean."""
+    from app.services.portfolio_analysis import _stat
+    with sessionmaker(engine)() as s:
+        svc = PortfolioAnalysisService(repo=TradeRepository(s), provider=FakeBars(), clock=lambda: NOW, config=config())
+        detail = svc.analyse_detail(USER_A, D_ASOF)
+    facts = {f.name: f.value for f in detail.facts.facts}
+    client = TestClient(make_app(engine))
+    rows = {t["trip_id"]: t for t in get(client, "trips").json()["trips"]}
+    checked = 0
+    for group in detail.luck_groups:
+        for trip in group.result.trips:
+            row = rows[trip.trip_id]
+            assert row["evaluated"] is trip.evaluated
+            if not trip.evaluated:
+                continue
+            for key, outcome in (("alt", trip.alt), ("nifty", trip.nifty)):
+                if outcome.unavailable is None:
+                    assert row[key]["percentile"]["value"] == _stat(outcome.percentile)
+                    assert row[key]["excess"]["value"] == _stat(outcome.excess)
+                    checked += 1
+                else:
+                    assert row[key]["percentile"]["value"] is None and row[key]["unavailable_reason"]
+    assert checked >= 14
+    for blk in get(client, "regimes").json()["blocks"]:
+        fact = facts[f"regime.{blk['regime']}.luck.ALT.mean_excess"]
+        got = blk["luck"]["ALT"]["mean_excess"]["value"] if blk["luck"] else None
+        assert ("Unavailable" if got is None else got) == fact

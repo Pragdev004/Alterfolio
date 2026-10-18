@@ -46,6 +46,24 @@ class WithDisplay(BaseModel):
         """Field -> why it is missing, for nullable fields; a subclass overrides it."""
         return {}
 
+    def display_notes(self) -> dict[str, str]:
+        """Field -> a short note appended to its display, e.g. "(partial: 1 of 2 holdings valued)"."""
+        return {}
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        """Serialization schemas list the `x_display` / `x_unavailable_reason` siblings the wrap serializer adds (OpenAPI)."""
+        schema = handler(core_schema)
+        if handler.mode != "serialization":
+            return schema
+        resolved = handler.resolve_ref_schema(schema)
+        props, required = resolved.setdefault("properties", {}), resolved.setdefault("required", [])
+        for name in cls.display_fields():
+            props[f"{name}_display"] = {"type": "string", "title": f"{name} display"}
+            props[f"{name}_unavailable_reason"] = {"anyOf": [{"type": "string"}, {"type": "null"}], "title": f"{name} unavailable reason"}
+            required.append(f"{name}_display")
+        return schema
+
     def withheld_displays(self) -> dict[str, str]:
         """Field -> why its value must not be shown even though it is set (e.g. a stored 0 that means "unknown")."""
         return {}
@@ -53,7 +71,7 @@ class WithDisplay(BaseModel):
     @model_serializer(mode="wrap")
     def _add_display(self, handler):
         data = handler(self)
-        reasons, withheld = self.unavailable_reasons(), self.withheld_displays()
+        reasons, withheld, notes = self.unavailable_reasons(), self.withheld_displays(), self.display_notes()
         for name, kind in self.display_fields().items():
             value = getattr(self, name)
             if name in withheld:
@@ -65,5 +83,5 @@ class WithDisplay(BaseModel):
             elif kind == "datetime":
                 data[f"{name}_display"] = fmt.format_datetime_ist(typing.cast(datetime, value))
             else:
-                data[f"{name}_display"] = fmt.number(typing.cast(Decimal, value), kind)["display"]
+                data[f"{name}_display"] = fmt.number(typing.cast(Decimal, value), kind)["display"] + notes.get(name, "")
         return data

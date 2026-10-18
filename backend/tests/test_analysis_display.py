@@ -138,3 +138,50 @@ def test_t6_holdings_and_summary_add_display_keys(client):
     (sh,) = s["holdings"]
     assert sh["market_value_display"] == "Unavailable" and sh["market_value_unavailable_reason"]
     assert sh["isin"] == ISIN and sh["invested_amount_display"] == "₹1,000.00"
+
+
+def test_partial_valuation_is_noted_on_the_totals(engine, session, id_factory):
+    from app.domain.enums import Currency, Exchange
+    from app.domain.instrument import Instrument
+    from app.providers.market.port import MarketQuote
+
+    class Market:
+        def get_quotes(self, instruments, retrieved_at):
+            inst = Instrument("RELIANCE", Exchange.NSE)
+            return {i: MarketQuote(i, Decimal("120.5"), Currency.INR, NOW, NOW, "fake") for i in instruments if i == inst}
+
+    app = create_app(session_factory=sessionmaker(engine, expire_on_commit=False), settings=Settings(user_id=USER_A),
+                     clock=lambda: NOW, id_factory=id_factory, market_data=Market())
+    c = TestClient(app)
+    c.post("/trades", json=body())
+    c.post("/trades", json=body(isin="ZZ0TCS000000", symbol="TCS", name="Tata Consultancy"))
+    s = c.get("/portfolio/summary").json()
+    assert s["valuation_status"] == "PARTIAL" and s["valuation_text"] == "1 of 2 holdings valued"
+    assert s["total_market_value_display"] == "₹1,205.00 (partial: 1 of 2 holdings valued)"
+    assert s["total_unrealized_pnl_display"].endswith("(partial: 1 of 2 holdings valued)")
+    assert s["total_invested_display"] == "₹2,000.00"  # invested covers every holding: no note
+    assert "partial" not in s["holdings"][0]["market_value_display"]
+
+
+def test_openapi_documents_the_display_contract_and_every_analysis_schema(client):
+    spec = client.get("/openapi.json").json()
+    schemas = spec["components"]["schemas"]
+    paths = spec["paths"]
+    for path, model in (("/api/analysis/meta", "MetaOut"), ("/api/analysis/trips", "TripsOut"),
+                        ("/api/analysis/trips/{trip_id}", "TripDetailOut"), ("/api/analysis/regimes", "RegimesOut"),
+                        ("/api/analysis/biases", "BiasesOut")):
+        ref = paths[path]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        assert ref.endswith(f"/{model}") and model in schemas
+    assert set(schemas["NumberOut"]["properties"]) == {"value", "display", "unavailable_reason"}
+    assert set(schemas["NumberOut"]["required"]) == {"value", "display", "unavailable_reason"}
+    assert {"iso", "display"} == set(schemas["DateOut"]["properties"])
+    for name in ("TripRowOut", "BaselineSummaryOut", "BiasOut", "BlockOut", "ProfileOut", "SampleOut"):
+        assert name in schemas, name
+    # server-added display siblings of the existing endpoints are listed too (serialization schemas)
+    assert "price_per_unit_display" in schemas["TradeOut"]["properties"]
+    assert "price_per_unit_unavailable_reason" in schemas["TradeOut"]["properties"]
+    assert {"total_market_value_display", "valuation_text"} <= set(schemas["SummaryOut"]["properties"])
+    assert "market_value_display" in schemas["SummaryHoldingOut"]["properties"]
+    assert "invested_amount_display" in schemas["HoldingOut"]["properties"]
+    assert "price_display" in schemas["QuoteOut"]["properties"]
+    assert "price_per_unit_display" in schemas["TradeOut"]["required"]

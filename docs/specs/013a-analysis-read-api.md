@@ -151,3 +151,5 @@ Counts (`trips_used`, `trips_evaluated`, `sample.have`, block `trip_count`, `unk
 `brokerage_fee_display`/`taxes_display` "Unavailable" (raw 0 unchanged). `summary` carries the facts group's alternatives label;
 `groups[]` holds every group. Stored 014 labels unchanged. Archetype metrics are `unit: "unitless"`. Biases `sample.have` is the
 ledger's closed round-trip count.
+Every analysis endpoint has a response model (`schemas/analysis.py`); `/openapi.json` also lists the `x_display` siblings of the
+existing endpoints. A PARTIAL summary appends "(partial: n of m holdings valued)" to the market-value and P&L totals.

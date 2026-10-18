@@ -46,6 +46,12 @@ class SummaryOut(WithDisplay):
         why = f"portfolio valuation is {self.valuation_status}: {self.valued_holdings_count} of {self.holdings_count} holdings valued"
         return {"total_market_value": why, "total_unrealized_pnl": why}
 
+    def display_notes(self) -> dict[str, str]:
+        if self.valuation_status != "PARTIAL":
+            return {}
+        note = f" (partial: {self.valued_holdings_count} of {self.holdings_count} holdings valued)"
+        return {"total_market_value": note, "total_unrealized_pnl": note}
+
     @computed_field
     @property
     def valuation_text(self) -> str:
