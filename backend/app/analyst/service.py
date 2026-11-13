@@ -1,12 +1,13 @@
-"""Entry point: `ask(user_id, question, as_of)`. Provider selection follows AI_PROVIDER (default none, offline)."""
+"""Entry point: `ask(user_id, question, as_of)`. Provider selection follows AI_PROVIDER (process env, then
+backend/.env; default none, offline)."""
 
-import os
 from collections.abc import Callable
 from datetime import date, datetime
 from uuid import UUID
 
 from app.analyst.graph import build_graph
 from app.analyst.llm import AnalystLLM, TemplateLLM
+from app.analyst.settings import ai_env
 from app.analyst.tools import QuantTools, Retriever
 from app.analyst.types import AnalystAnswer, Fact
 
@@ -17,7 +18,10 @@ def llm_from_provider(provider: str) -> AnalystLLM:
     if provider == "openai_compatible":
         from app.analyst.llm_openai import OpenAICompatibleLLM
         return OpenAICompatibleLLM.from_env()
-    raise ValueError(f"unknown AI_PROVIDER {provider!r}; expected 'none' or 'openai_compatible'")
+    if provider == "langchain":
+        from app.analyst.llm_langchain import LangChainLLM
+        return LangChainLLM.from_env()
+    raise ValueError(f"unknown AI_PROVIDER {provider!r}; expected 'none', 'openai_compatible' or 'langchain'")
 
 
 def ask(user_id: UUID, question: str, as_of: date, *, llm: AnalystLLM | None = None, tools: QuantTools | None = None,
@@ -30,6 +34,6 @@ def ask(user_id: UUID, question: str, as_of: date, *, llm: AnalystLLM | None = N
     if isinstance(as_of, datetime) or not isinstance(as_of, date):
         raise TypeError("as_of must be a date, not a datetime or text")
     if llm is None:
-        llm = llm_from_provider(os.environ.get("AI_PROVIDER", "none"))
+        llm = llm_from_provider(ai_env().get("AI_PROVIDER", "none"))
     graph = build_graph(llm, tools, retriever, render)
     return graph.invoke({"user_id": user_id, "question": question, "as_of": as_of})["answer"]

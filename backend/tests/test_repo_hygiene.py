@@ -24,6 +24,7 @@ def _git(*args: str) -> subprocess.CompletedProcess:
         "CLAUDE.local.md",
         ".env",
         "backend/.env.test",
+        "backend/.env",  # Feature 015: holds AI_API_KEY
     ],
 )
 def test_machine_local_files_are_gitignored(path):

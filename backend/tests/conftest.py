@@ -1,3 +1,5 @@
+import os
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from itertools import count
@@ -14,6 +16,18 @@ from app.repositories.user_repository import UserRepository
 USER_A = UUID(int=0xA)
 USER_B = UUID(int=0xB)
 T0 = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+
+# Feature 015: AI settings present when the run started (only the opt-in live eval reads them). Every other test runs
+# with them cleared and backend/.env disabled, so a developer key never makes an offline test call a model (rule 2).
+_AI_NAME = re.compile(r"^(?:AI_[A-Z0-9_]+|[A-Z0-9]+_API_KEY)$")
+AI_ENV_AT_START = {k: v for k, v in os.environ.items() if _AI_NAME.match(k)}
+
+
+@pytest.fixture(autouse=True)
+def _offline_ai_env(monkeypatch):
+    for name in AI_ENV_AT_START:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AI_DOTENV", "0")
 
 
 def make_engine():

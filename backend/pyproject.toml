@@ -18,6 +18,10 @@ dependencies = [
     "httpx>=0.27",
     "langgraph==1.2.15",
     "langchain-core==1.6.11",
+    "langchain==1.4.6",  # Feature 015: init_chat_model (provider-agnostic analyst LLM)
+    "langchain-groq==1.1.3",
+    "langchain-openai==1.7.2",  # also OpenRouter and other OpenAI-compatible endpoints via AI_BASE_URL
+    "python-dotenv==1.2.4",  # Feature 015: AI_* settings from backend/.env (analyst/settings.py only)
 ]
 
 [project.optional-dependencies]

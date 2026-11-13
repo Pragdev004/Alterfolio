@@ -1,9 +1,11 @@
-"""Feature 010 import boundaries (A9)."""
+"""Feature 010 import boundaries (A9), extended by Feature 015 (langchain adapter, provider SDKs, dotenv)."""
 from pathlib import Path
 
 from tests.test_import_boundaries import APP, _files, _imports, _top
 
-LIBS = {"langgraph", "langchain_core", "langchain"}
+LIBS = {"langgraph", "langchain_core", "langchain", "langchain_groq", "langchain_openai", "groq", "openai"}
+LANGCHAIN_FILES = {"graph.py", "llm_langchain.py"}  # Feature 015 adds the provider-agnostic adapter
+PROVIDER_SDKS = {"langchain_groq", "langchain_openai", "groq", "openai"}  # loaded by init_chat_model, never imported
 LOWER = ("domain", "quant", "models", "repositories", "db", "providers", "schemas")
 
 
@@ -28,11 +30,21 @@ def test_services_never_import_analyst():
             assert not _is_analyst(name) and _top(name) not in LIBS, f"services/{path.name} imports {name}"
 
 
-def test_only_graph_py_imports_langgraph_or_langchain():
+def test_only_graph_py_and_llm_langchain_import_langgraph_or_langchain():
     for path in _files("analyst"):
         for name in _imports(path):
             if _top(name) in LIBS:
+                assert path.name in LANGCHAIN_FILES, f"{path.name} imports {name}"
+                assert _top(name) not in PROVIDER_SDKS, f"{path.name} imports provider SDK {name} directly"
+            if _top(name) == "langgraph":
                 assert path.name == "graph.py", f"{path.name} imports {name}"
+
+
+def test_only_settings_py_reads_dotenv():
+    for path in _files("analyst"):
+        for name in _imports(path):
+            if _top(name) == "dotenv":
+                assert path.name == "settings.py", f"{path.name} imports {name}"
 
 
 def test_only_llm_openai_imports_httpx():
@@ -63,5 +75,5 @@ def test_analyst_has_no_float_use():
 def test_pins_are_exact():
     root = Path(__file__).resolve().parent.parent
     text = (root / "constraints.txt").read_text(encoding="utf-8").lower()
-    for lib in ("langgraph==", "langchain-core=="):
+    for lib in ("langgraph==", "langchain-core==", "langchain==", "langchain-groq==", "langchain-openai=="):
         assert lib in text, f"{lib} must be pinned exactly in constraints.txt"
