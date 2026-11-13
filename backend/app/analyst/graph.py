@@ -1,7 +1,7 @@
 """The LangGraph state machine: classify -> quant_tools -> retrieve -> draft -> number_check -> (draft | finalize).
 
 Feature 015: an LLM with `plan()` routes ambiguous questions once (validated in code); every draft has its `{fact:..}`
-placeholders filled by code before the number check; an LLM with `fallback_to_template` gets a token
+placeholders filled by code before the number and semantic checks; an LLM with `fallback_to_template` gets a token
 budget and a verified template fallback instead of an unverified answer (docs/plans/015)."""
 
 from collections.abc import Callable
@@ -16,6 +16,7 @@ from app.analyst.harness import (BULLET_CHARS, MAX_BULLETS, OUT_OF_SCOPE_TEXT, P
                                  is_ambiguous, parse_plan, select_passages, style_errors)
 from app.analyst.llm import AnalystLLM, AnalystLLMError, TemplateLLM, fact_line
 from app.analyst.numbers import check
+from app.analyst.semantics import semantic_errors
 from app.analyst.tools import QuantTools, Retriever, unwired_tools
 from app.analyst.types import AnalystAnswer, Citation, Draft, Fact, Passage, Usage
 from app.domain.retrieval import Unavailable, to_utc, validate_text
@@ -147,8 +148,10 @@ def build_graph(llm: AnalystLLM, tools: QuantTools | None, retriever: Retriever 
         if draft is None:
             return {}
         shown = tuple(p for p, _ in select_passages(state["passages"]))
+        raw = draft.text
         draft, errors = fill(draft, state["facts"], shown, render)
         errors += check(draft, state["facts"], state["passages"], state["as_of"], render)
+        errors += semantic_errors(raw, draft.text, state["facts"])
         errors += style_errors(draft.text)
         if not draft.text.strip():
             errors.append("the draft text is empty")
