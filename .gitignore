@@ -43,3 +43,7 @@ tools/mods/model-router/tsconfig.json
 # Local market reference datasets; keep these out of Git.
 /backend/data/references/
 backend/set-test-env.sh
+
+# personal working notes
+docs/reports/progress-*.md
+backend/harness_demo/
