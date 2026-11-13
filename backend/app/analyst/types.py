@@ -1,6 +1,7 @@
 """Frozen value types of the analyst. Values are canonical Decimal strings or "Unavailable"; floats are rejected."""
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
@@ -69,9 +70,33 @@ class Claim:
 
 
 @dataclass(frozen=True)
+class Usage:
+    """Token usage of one model call (Feature 015). `estimated` is true when the provider reported none."""
+
+    step: str  # "plan" or "draft"
+    input_tokens: int
+    output_tokens: int
+    estimated: bool = False
+
+    def to_dict(self) -> dict:
+        return {"step": self.step, "input_tokens": self.input_tokens, "output_tokens": self.output_tokens,
+                "estimated": self.estimated}
+
+
+@dataclass(frozen=True)
+class Plan:
+    """A validated routing plan from the model (Feature 015); built only by `harness.parse_plan`."""
+
+    intents: tuple[str, ...]
+    needs_docs: bool
+    out_of_scope: bool
+
+
+@dataclass(frozen=True)
 class Draft:
     text: str
     claims: tuple[Claim, ...] = ()
+    usage: tuple[Usage, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -90,7 +115,9 @@ class AnalystAnswer:
     verified: bool
     as_of: date
     attempts: int
+    provenance: dict = field(default_factory=dict, hash=False)  # route, intents, token usage, fallback (015)
 
     def to_dict(self) -> dict:
         return {"text": self.text, "citations": [c.to_dict() for c in self.citations], "verified": self.verified,
-                "as_of": self.as_of.isoformat(), "attempts": self.attempts}
+                "as_of": self.as_of.isoformat(), "attempts": self.attempts,
+                "provenance": json.loads(json.dumps(self.provenance))}
