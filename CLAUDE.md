@@ -10,7 +10,7 @@ a source of a number.** Educational, not financial advice; no profitability clai
 
 Status: Feature 001 (trade ledger + holdings, API only) implemented per `docs/plans/001-trade-ledger-holdings.md`;
 feature 002 (Zerodha import, plans `docs/plans/002*.md`, as-built specs `docs/specs/`) is implemented and verified (API, holdings,
-live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is implemented and committed (steps 1-6, `acac749` + `55a03de`), awaiting owner review; D7 DECIDED: recorded in result, persisted later (`trial_count`); 009 (RAG date-cutoff; plan `docs/plans/009*.md`, spec `docs/specs/009*.md`) is COMPLETE (owner-verified, live: full suite 2222 passed, 0 skipped). 011 (portfolio analysis wiring: `services/portfolio_analysis.py`, `POST /api/analyst/ask`, offline demo; plan/spec `docs/*/011*`) is implemented, awaiting owner review. 014 (no spec yet): Task 1 (sector map, reference data, +INDIANB/PSB/UCOBANK) done in `1eb8c8a`; Task 2 (NIFTY baseline via `ind_nifty50list` membership) partial; Task 3 (corporate actions) blocked on the NSE corporate-actions CSV. 013a (analysis read API: `GET /api/analysis/{meta,trips,trips/{id},regimes,biases}`, server-side `*_display` strings on every endpoint the UI uses, `answer_source` on `/ask`; plan/spec `docs/*/013a*`) is implemented, awaiting owner review; 013a.1 (reason_text, histogram bins, direction, null counts; one retained field `BaselineOutcome.portfolio_returns` in `quant/luck_test`) is built; 013 C1+C2 (frontend: `frontend/` Vite + React + TS; all six screens: trips, trip detail, upload, holdings, costs, ask; design `docs/design/013-frontend-design.md`) is built, awaiting owner review; `/api/analyst/ask` returns 503 `ai_provider_not_configured` for a missing provider. `quant/` holds `market_data/` and `backtest/`.
+live PostgreSQL 16.14 suite); 003 (market-data port, Yahoo adapter, `GET /portfolio/summary`; plan `docs/plans/003*.md`, spec `docs/specs/003*.md`) is committed; 004 (quant market-data foundation: daily-bar port, Yahoo daily bars, `MarketBar`/`MarketSeries`, market-series service; plan `docs/plans/004*.md`, spec `docs/specs/004*.md`) is committed (`e7010bc`); 005 (backtesting foundation; plan `docs/plans/005*.md`, spec `docs/specs/005*.md`) is implemented and committed (steps 1-6, `acac749` + `55a03de`), awaiting owner review; D7 DECIDED: recorded in result, persisted later (`trial_count`); 009 (RAG date-cutoff; plan `docs/plans/009*.md`, spec `docs/specs/009*.md`) is COMPLETE (owner-verified, live: full suite 2222 passed, 0 skipped). 011 (portfolio analysis wiring: `services/portfolio_analysis.py`, `POST /api/analyst/ask`, offline demo; plan/spec `docs/*/011*`) is implemented, awaiting owner review. 014 (no spec yet): Task 1 (sector map, reference data, +INDIANB/PSB/UCOBANK) done in `1eb8c8a`; Task 2 (NIFTY baseline via `ind_nifty50list` membership) partial; Task 3 (corporate actions) blocked on the NSE corporate-actions CSV. 013a (analysis read API: `GET /api/analysis/{meta,trips,trips/{id},regimes,biases}`, server-side `*_display` strings on every endpoint the UI uses, `answer_source` on `/ask`; plan/spec `docs/*/013a*`) is implemented, awaiting owner review; 013a.1 (reason_text, histogram bins, direction, null counts; one retained field `BaselineOutcome.portfolio_returns` in `quant/luck_test`) is built; 013 C1+C2 (frontend: `frontend/` Vite + React + TS; all six screens: trips, trip detail, upload, holdings, costs, ask; design `docs/design/013-frontend-design.md`) is built, awaiting owner review; `/api/analyst/ask` returns 503 `ai_provider_not_configured` for a missing provider. 015 (weak-model analyst harness: `AI_PROVIDER=langchain`, planner + placeholders + semantic guard + template fallback, golden-set eval; plan `docs/plans/015*.md`, no spec yet) is built, owner-approved and committed (`4794135`..`eb5aa0a` + docs); held-out set `backend/evals/holdout.jsonl` pending (owner). 016 (order-independent import; spec `docs/specs/016-order-independent-import.md`) is proposed, awaiting owner review (no code). `quant/` holds `market_data/` and `backtest/`.
 V1 lives read-only at `C:\Users\praga\Desktop\projects 2\alterfolio` and is ported
 selectively, only when a stage starts (see `docs/v1-lineage.md`).
 
@@ -28,8 +28,10 @@ services -> quant, services -> providers (ports only: `providers/market/port.py`
   Feature 009 embeddings: `providers/embedding/port.py`, imported only by `services/retrieval.py`; never an adapter)
 (implemented extras, see plan 001: services -> models for read types; api -> schemas, db; schemas -> domain only)
 ai -> quant result schemas (stage 6);  api -> ai (stage 6)
-analyst (010, service layer): imports domain only (never quant, services, adapters, ORM); langgraph/langchain only in
-  `analyst/graph.py`; httpx only in `analyst/llm_openai.py`; nothing in domain/quant/models/repositories/services imports it
+analyst (010, service layer): imports domain only (never quant, services, adapters, ORM); langgraph only in `analyst/graph.py`;
+  langchain/langchain_core only in `analyst/graph.py` and `analyst/llm_langchain.py` (015; provider SDKs langchain_groq/
+  langchain_openai/groq/openai never imported, `init_chat_model` loads them); dotenv only in `analyst/settings.py`;
+  httpx only in `analyst/llm_openai.py`; nothing in domain/quant/models/repositories/services imports it
 domain: stdlib only; every layer may import it
 quant: stdlib + domain + one statsmodels adapter ONLY (never api/services/repositories/models/db/ai/providers/ORM)
 ```
@@ -86,7 +88,8 @@ Market data: provider port, Yahoo adapter via httpx (runtime dep; httpx imported
 `providers/embedding/ollama.py`). Frontend (stage 3): React + TypeScript + Vite, vitest.
 Embeddings (009): provider port + local Ollama adapter (`nomic-embed-text`) via httpx; pgvector is a PostgreSQL extension, not a
 Python dependency.
-AI provider/orchestration: TBD via ADR at stage 6 (provider-neutral port, default none).
+AI provider/orchestration: TBD via ADR at stage 6 (provider-neutral port, default none). 015: LangChain `init_chat_model`
+(`langchain`, `langchain-groq`, `langchain-openai`, pinned) behind `AnalystLLM`; settings `AI_*` from env, then `backend/.env`.
 Declared in `backend/pyproject.toml` (setuptools build; runtime incl. `python-multipart` for the streaming tradebook upload;
 `dev` extra: pytest, httpx, uvicorn). Exact versions
 for the whole closure are pinned in `backend/constraints.txt` (resolved on Python 3.14.5).
@@ -138,7 +141,7 @@ Frontend (from `frontend/`): `npm run dev|test|lint|typecheck|build|e2e`; `npm r
   asked or the task requires a documented context update.
 
 ## 8. Git Workflow
-Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is committed (steps 1-6: `acac749`, `55a03de`; owner review pending; D7 decided, `trial_count` recorded).
+Branch `main`; Feature 001 is committed (`0df5c49`); Feature 002 is committed (`e7da01c`); Feature 003 is committed (`0068438`); Feature 004 is committed (`e7010bc`); Feature 005 is committed (steps 1-6: `acac749`, `55a03de`; owner review pending; D7 decided, `trial_count` recorded). Feature 015 is committed (`4794135`, `9e3a3cd`, `241cb01`, `eb5aa0a` + docs), not pushed.
 Never push without explicit user approval. Markdown docs must stay
 under 200 lines. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
