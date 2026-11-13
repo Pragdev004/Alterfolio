@@ -1,4 +1,4 @@
-# Feature 015: order-independent import (SPEC, awaiting owner review, no code yet)
+# Feature 016: order-independent import (SPEC, awaiting owner review, no code yet)
 
 Status: proposed 2026-10-19. Replaces the "upload your oldest tradebook first" rule. Supersedes parts of 002 (oversell and
 quarantine at import) and the import-order wording in 013. Owner decisions needed are in section 12.
@@ -32,7 +32,7 @@ The fold order is a pure function of trade content, never of upload order, `reco
 4. Manual rows (no broker trade id) sort after imported rows at the same instant, by `recorded_at`, then `id`.
 Same-day rule: there is no day-level grouping; two trades the same day are ordered by rule 1 first. Only an exact timestamp tie
 reaches rules 2-4. Today's `canonical_order` uses `recorded_at, id` before any content tiebreak, which is upload-order dependent;
-015 replaces it. This is the single behavioural change to the fold's ordering and needs a regression test on the old fixtures.
+016 replaces it. This is the single behavioural change to the fold's ordering and needs a regression test on the old fixtures.
 
 ## 5. Unmatched sells (FR-3, FR-4)
 Fold per position key (ISIN, else (symbol, exchange); unchanged from the 2026-10-19 fix). For a sell of `q` with `h` held:
@@ -93,7 +93,7 @@ quantities and trip statuses are computed from that cut only. A buy dated before
 adding trades dated after D never changes any D result (existing point-in-time test, extended to unmatched sells).
 
 ## 11. Performance and cache
-- Import today replays history per inserted row (`find_oversell` over the ISIN's whole history, roughly O(n^2) per ISIN). 015 removes
+- Import today replays history per inserted row (`find_oversell` over the ISIN's whole history, roughly O(n^2) per ISIN). 016 removes
   that: parse, one key lookup per row, bulk insert. Import cost becomes O(rows) plus the dedupe lookups.
 - Read cost: one sort plus one pass, O(n log n). For 5,000 rows per file and tens of thousands of trades this is milliseconds to
   tens of milliseconds in Python; the plan must measure it (budget: fold under 100 ms for 10,000 trades) before claiming it.

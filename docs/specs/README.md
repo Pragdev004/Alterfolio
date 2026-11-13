@@ -20,7 +20,7 @@ the approved decisions live in `docs/plans/`, the product-level requirements in 
 | `008-regime-split.md` | Per-regime Feature 007 and 006 results; rule-based own-listing volatility regimes, expanding 33/67 percentiles | Implemented, awaiting owner review (not committed) |
 | `009-rag-date-cutoff.md` | Date-cutoff retrieval: embedding port, pgvector chunks, user-scoped ingestion, search, cutoff audit | COMPLETE (owner-verified, live: PostgreSQL + Ollama, 2222 passed, 0 skipped) |
 | `013-frontend.md` | Frontend: screens, endpoints used, Unavailable-never-0 UI rule, states, verdict wording | Proposed / Phase A, awaiting owner review (needs 013a) |
-| `015-order-independent-import.md` | Store every valid trade, fold on read, unmatched sells flagged, coverage gaps | Proposed, awaiting owner review (no code) |
+| `016-order-independent-import.md` | Store every valid trade, fold on read, unmatched sells flagged, coverage gaps | Proposed, awaiting owner review (no code) |
 | `013a-analysis-read-api.md` | Read-only analysis API (per trip, regime, bias), display strings, latest sealed as_of | Implemented, awaiting owner review |
 
 Not yet delivered: Feature 002 final review (docs sweep, live-PostgreSQL verification). Features 005-008: see their rows.
